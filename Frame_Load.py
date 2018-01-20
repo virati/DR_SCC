@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 import sklearn
 from sklearn.linear_model import ElasticNet, ElasticNetCV
+import pdb
 
 def Phase_List(exprs='all',nmo=-1):
     all_phases = ['A04','A03','A02','A01','B01','B02','B03','B04']
@@ -40,7 +41,7 @@ def Phase_List(exprs='all',nmo=-1):
 #Let's load in that frame, which should contain all the data we want
 #Only do Chronics with this analysis
 exp = 'Chronics'
-DataFrame = np.load('/home/virati/Data_frame_' + exp + '.npy').item()
+DataFrame = np.load('/home/virati/MDD_Data/Data_frame_ChronicsMed.npy').item()
 #Load in the stim change times, though this should be merged into DataFrame itself in the generation script
 StimChange = scipy.io.loadmat('/home/virati/MDD_Data/stim_changes.mat')['StimMatrix']
 f_focus = ((0,50))
@@ -57,7 +58,7 @@ test_patients = ['901','903','908']
 
 #Need to make our design matrix now
 #get the list of ephys-related clinical phases
-def Phase_Matrix(DataFrame,Phases,max_freq = 211,training_patients=['901','903','905','906','907','908']):
+def Phase_StateMatrix(DataFrame,Phases,max_freq = 211,training_patients=['901','903','905','906','907','908']):
     max_fidx = int(max_freq/211 * 512)
     
     dsgnX = []
@@ -65,8 +66,11 @@ def Phase_Matrix(DataFrame,Phases,max_freq = 211,training_patients=['901','903',
     for pt, patient in enumerate(training_patients):
         for pp,phase in enumerate(DataFrame['DBS'+patient].keys()):
             if phase[0] != 'A':
+                print(patient + ' ' + phase + ' up now')
+                
                 try:
                     state_vector = np.hstack((DataFrame['DBS'+patient][phase]['MeanPSD']['LOGPxx'][:max_fidx,0],DataFrame['DBS'+patient][phase]['MeanPSD']['LOGPxx'][:max_fidx,1]))
+                    #state_vector = np.hstack((DataFrame['DBS'+patient][phase]['MeanPSD']['LOGPxx'][:max_fidx,0],DataFrame['DBS'+patient][phase]['MeanPSD']['LOGPxx'][:max_fidx,1]))
                     dsgnX.append(state_vector)
                     dsgnY.append(DataFrame['DBS'+patient][phase]['HDRS17'])
                 except:
@@ -79,7 +83,7 @@ def Phase_Matrix(DataFrame,Phases,max_freq = 211,training_patients=['901','903',
     #return the design tensors and flags for NaN presence
     return Xout, Yout
     
-DsgnX, clinY = Phase_Matrix(DataFrame,Phase_List(exprs='ephys'),max_freq=70,training_patients=training_patients)
+DsgnX, clinY = Phase_StateMatrix(DataFrame,Phase_List(exprs='ephys'),max_freq=70,training_patients=training_patients)
 
 #The actual regression code below
 EN_alpha = 0.2
