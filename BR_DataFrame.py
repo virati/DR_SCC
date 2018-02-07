@@ -29,24 +29,39 @@ import datetime
 import glob
 import json
 
+#This function is a general function that finds the "nearest" object to the pivot
+#Used in this module for finding the nearest datetime
 def nearest(items,pivot):
     return min(items,key=lambda x: abs(x - pivot))
 
+#THIS CLASS IS ONLY FOR GENERATING THE FRAME
+#The frame is supposed to only go from Raw Rec -> PSDs, this can later be passed to analysis classes
+#Split out anything else into separate classes where the object this generates can go in
 class BR_Data_Tree():
-    def __init__(self,do_pts=['901','903','905','906','907','908']):
+    
+    def __init__(self,do_pts=['901','903','905','906','907','908'],preload=False):
         self.do_pts = do_pts
         self.fs = 422
+        
+        #Where is the data?
+        self.base_data_dir = '/home/virati/MDD_Data'
         
         CVect = json.load(open('/home/virati/Dropbox/ClinVec.json'))['HAMDs']
         clinvect = {pt['pt']: pt for pt in CVect}
         self.ClinVect = clinvect
+        
+        self.preloadData = preload
+        self.data_basis = []
+        
+        #how many seconds to take from the chronic recordings
+        self.sec_end = 10
     
     def full_sequence(self,data_path=''):
         self.build_phase_dict()
         self.list_files()
         self.meta_files()
         self.Load_Data(path=data_path)
-        
+        #in case the meta-data isn't properly updated from the loaded in deta
         print('Data Loaded')
         
     #First, the goal is to literally come up with a big list of all the recordings
@@ -143,7 +158,10 @@ class BR_Data_Tree():
         
     def meta_files(self,mode='Chronic'):
         #file_meta = {} * len(self.file_list)
-        file_meta = [{} for _ in range(len(self.file_list))]
+        if not self.preloadData:
+            file_meta = [{} for _ in range(len(self.file_list))]
+        else:
+            file_meta = self.file_meta
         
         for ff,filen in enumerate(self.file_list):
             #we're going to to each and every file now and give it its metadata
@@ -158,7 +176,7 @@ class BR_Data_Tree():
             file_dayniteinfo = self.get_time(filen)
             
             if file_typeinfo == mode:
-                file_meta[ff] = {'Filename': filen,'Date': file_dateinfo, 'Type': file_typeinfo,'Patient':file_ptinfo,'Phase':file_phaseinfo,'Circadian':file_dayniteinfo}
+                file_meta[ff].update({'Filename': filen,'Date': file_dateinfo, 'Type': file_typeinfo,'Patient':file_ptinfo,'Phase':file_phaseinfo,'Circadian':file_dayniteinfo})
             else:
                 file_meta[ff] = None
                 
@@ -167,24 +185,32 @@ class BR_Data_Tree():
         
         self.file_meta = file_meta
         
-    def update_meta(self):
-        for ff in self.file_meta:
-            file_dayniteinfo = self.get_time(ff['Filename'])
-            ff.update({'Circadian':file_dayniteinfo})
-        
     def Load_Data(self,domain='F',path=''):
         #this function will return a feature matrix that will be useful for subsequent analysis
+        #check if we're consistent
+        if self.preloadData == True and path == '':
+            raise Exception('INCONSISTENT LOADING: Preload Flag is True but no Path Specified')
+        
+        if domain == 'F':
+            self.data_basis = np.linspace(0,self.fs/2,2**9+1)
+        elif domain == 'T':
+            self.data_basis = np.linspace(0,self.sec_end)
+        
         if path == '':
             for rr in self.file_meta:
                 #load in the file
                 print('Loading in ' + rr['Filename'])
                 rr.update({'Data':self.load_file(rr['Filename'],domain=domain)})
+            self.preloadData = False
+            
         else:
             print('Loading data from...' + path)
             self.file_meta = np.load(path)
+            self.preloadData = True
+
             
     def Save_Frame(self,path = '/tmp/'):
-        print('Saving File Metastructure...')
+        print('Saving File Metastructure... ' + path)
         
         np.save(path + 'Chronic_Frame.npy',self.file_meta)
             
@@ -197,7 +223,7 @@ class BR_Data_Tree():
         txtdata = dbo.load_br_file(fname)
         
         #take just the last 10 seconds
-        sec_end = 10
+        sec_end = self.sec_end
         
         #extract channels
         X = {'Left':txtdata[-(422*sec_end):-1,0],'Right':txtdata[-(422*sec_end):-1,2]}
@@ -205,46 +231,64 @@ class BR_Data_Tree():
         F = defaultdict(dict)
         
         if domain == 'T':
+            
             return X
+        
         elif domain == 'F':
             #we want to return the FFT, not the timedomain signal
             #This saves a lot of RAM but obviously has its caveats
-            
             #for this, we want to call the DBS_Osc method for doing FFTs
+            #The return from gen_psd is a dictionary eg: {'Left':{'F','PSD'},'Right':{'F','PSD'}}
             F = dbo.gen_psd(X)
+            
                 
             return F
+    #PLOTTING FUNCTIONS FOR THE BRFRAME
+    
+    def plot_PSD(self):
+        #generate out F vector
+        fvect = np.linspace(0,211,513)
+        
+        #quick way to plot all of a patient's recording
+        #therapy_phases = dbo.all_phases
+        list1 = np.array([np.log10(rr['Data']['Left']) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'night' and rr['Phase'] in dbo.Phase_List('therapy')]).T
+        list2 = np.array([np.log10(rr['Data']['Left']) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'night' and rr['Phase'] in dbo.Phase_List('notherapy')]).T
+        
+        plt.figure()
+        plt.plot(fvect,list1,color='r',alpha=0.01)
+        plt.plot(fvect,list2,color='b',alpha=0.01)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Power (dB)')
+        plt.legend({'Therapy','NoTherapy'})    
+        
+        #%%
+        [plt.plot(fvect,np.log10(rr['Data']['Left']),alpha=0.1) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'night']
+        plt.title('Night')
+        
+        plt.figure()
+        [plt.plot(fvect,np.log10(rr['Data']['Left']),alpha=0.1) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'day']
+        plt.title('Day')
+        
+        
+        #%%
+        #test = [rr for rr in DataFrame.file_meta if rr['Patient'] == '902']
+        
+        
+        #%%
+        #for rr in DataFrame.file_meta:
+        #    plt.plot(rr['TD']['Left'])
             
-#Unit Test
-            
-DataFrame = BR_Data_Tree()
-#DataFrame.list_files()
-#DataFrame.build_phase_dict()
-#DataFrame.meta_files()
-
-#Load in preloaded file
-DataFrame.full_sequence(data_path='/tmp/Chronic_Frame.npy')
-DataFrame.update_meta()
-
-#plot the PSDs for a specific phase
-
-#%%
-
-plt.figure()
-#quick way to plot all of a patient's recordings
-[plt.plot(np.log10(rr['Data']['Left']),alpha=0.1) for rr in DataFrame.file_meta if rr['Patient'] == '903' and rr['Phase'] == 'C01' and rr['Circadian'] == 'night']
-
-
-plt.figure()
-[plt.plot(np.log10(rr['Data']['Left']),alpha=0.1) for rr in DataFrame.file_meta if rr['Patient'] == '903' and rr['Phase'] == 'C01' and rr['Circadian'] == 'day']
-
-
-#%%
-#test = [rr for rr in DataFrame.file_meta if rr['Patient'] == '902']
-
-
-#%%
-#for rr in DataFrame.file_meta:
-#    plt.plot(rr['TD']['Left'])
-
-#plt.show()
+if __name__ == '__main__':
+    #Unit Test
+    DataFrame = BR_Data_Tree()
+    #DataFrame.list_files()
+    #DataFrame.build_phase_dict()
+    #DataFrame.meta_files()
+    
+    #Load in preloaded file
+    #DataFrame.full_sequence(data_path='/tmp/Chronic_Frame.npy')
+    #DataFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
+    DataFrame.full_sequence()
+    DataFrame.Save_Frame()
+    
+    #plot the PSDs for a specific phase
