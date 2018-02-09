@@ -61,8 +61,16 @@ class BR_Data_Tree():
         self.list_files()
         self.meta_files()
         self.Load_Data(path=data_path)
+        #now go in and remove anything with a bad flag
+        self.Remove_BadFlags()
+        
+        #take out the phases that don't exist, and any other stuff, but so far that's all this does
+        self.prune_meta()
         #in case the meta-data isn't properly updated from the loaded in deta
         print('Data Loaded')
+        
+    def Remove_BadFlags(self):
+        self.file_meta = [rr for rr in self.file_meta if rr['BadFlag'] != True]
         
     #First, the goal is to literally come up with a big list of all the recordings
     def list_files(self,rootdir='/home/virati/MDD_Data/BR/'):
@@ -155,6 +163,13 @@ class BR_Data_Tree():
             closest_phase = None
             
         return closest_phase
+    
+    def check_empty_phases(self):
+        empty_phases = [rr['Filename'] for rr in self.file_meta if rr['Phase'] == None]
+        
+        if len(empty_phases):
+            print('Some Empty Phases!')
+        #pdb.set_trace()
         
     def meta_files(self,mode='Chronic'):
         #file_meta = {} * len(self.file_list)
@@ -176,7 +191,7 @@ class BR_Data_Tree():
             file_dayniteinfo = self.get_time(filen)
             
             if file_typeinfo == mode:
-                file_meta[ff].update({'Filename': filen,'Date': file_dateinfo, 'Type': file_typeinfo,'Patient':file_ptinfo,'Phase':file_phaseinfo,'Circadian':file_dayniteinfo})
+                file_meta[ff].update({'Filename': filen,'Date': file_dateinfo, 'Type': file_typeinfo,'Patient':file_ptinfo,'Phase':file_phaseinfo,'Circadian':file_dayniteinfo,'BadFlag':False})
             else:
                 file_meta[ff] = None
                 
@@ -185,6 +200,19 @@ class BR_Data_Tree():
         
         self.file_meta = file_meta
         
+    def check_meta(self,prob_condit=0):
+        for rr in self.file_meta:
+            for ch in ['Left','Right']:
+                if rr['Data'][ch].all() == 0:
+                    print('PROBLEM: ' + str(rr) + ' has a zero PSD in channel ' + ch)
+                    
+    def prune_meta(self):
+        print('Pruning out recordings that have no Phase in main study...')
+        #prune out the parts of file_meta that are not in the study
+        new_meta = [rr for rr in self.file_meta if rr['Phase'] != None]
+        
+        self.file_meta = new_meta
+            
     def Load_Data(self,domain='F',path=''):
         #this function will return a feature matrix that will be useful for subsequent analysis
         #check if we're consistent
@@ -196,11 +224,18 @@ class BR_Data_Tree():
         elif domain == 'T':
             self.data_basis = np.linspace(0,self.sec_end)
         
+        
+            
         if path == '':
             for rr in self.file_meta:
                 #load in the file
                 print('Loading in ' + rr['Filename'])
-                rr.update({'Data':self.load_file(rr['Filename'],domain=domain)})
+                precheck_data = self.load_file(rr['Filename'],domain=domain)
+                if precheck_data['Left'].all() != 0 and precheck_data['Right'].all() != 0:
+                    rr.update({'Data':precheck_data})
+                else:
+                    rr.update({'BadFlag':True})
+                    
             self.preloadData = False
             
         else:
@@ -241,9 +276,17 @@ class BR_Data_Tree():
             #The return from gen_psd is a dictionary eg: {'Left':{'F','PSD'},'Right':{'F','PSD'}}
             F = dbo.gen_psd(X)
             
+            
                 
             return F
     #PLOTTING FUNCTIONS FOR THE BRFRAME
+    
+    def plot_PSD(self,fname=''):
+        if fname != '':
+            psd_interest = [(rr['Data']['Left'],rr['Data']['Right']) for rr in DataFrame.file_meta if rr['Filename'] == fname]
+        
+        plt.figure()
+        plt.plot(psd_interest)
     
     def plot_PSD(self):
         #generate out F vector

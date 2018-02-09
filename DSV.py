@@ -14,57 +14,16 @@ from collections import defaultdict
 
 import json
 
-default_params = {'CrossValid':10}
+import pdb
 
-class CFrame:
-    do_pts = ['901','903','905','906','907','908']
-    
-    def __init__(self,incl_scales = ['HDRS17','MADRS','BDI','GAF']):
-        #load in our JSON file
-        #Import the data structure needed for the CVect
-        ClinVect = json.load(open('/home/virati/Dropbox/ClinVec.json'))
-        clin_dict = defaultdict(dict)
-        for ss,scale in enumerate(incl_scales):
-            for pp in range(len(ClinVect['HAMDs'])):
-                ab = ClinVect['HAMDs'][pp]
-                clin_dict[ab['pt']][scale] = ab[scale]
-        
-        self.clin_dict = clin_dict
-        
-    def gen_subdim(self,latentdim=1):
-        #just do it for all patients
-        for pp,pat in enumerate(self.do_pts):
-            all_cscores = (' '.join(w) for w in self.clin_dict[pat])
-            sC = np.vstack((big_dict[pat]['HDRS17'],big_dict[pat]['HDRS17'],big_dict[pat]['HDRS17'],big_dict[pat]['HDRS17']))
+import numpy as np
 
-        self.bvect = {'LR': lrvect,'SC': srvect}
-        
-    def pt_scale_dict(self,pt):
-        #return dictionary with all scales, and each element of that dictionary should be a NP vector
-        return self.clin_dict[pt]
-
-    def pt_scale_vect(self,pt):
-        for ss in self.clin_dict[pt]:
-            pass
-        
-    def c_vect(self):
-        #each patient will be a dict key
-        c_vects = {el:0 for el in self.do_pts}
-        for pp,pt in enumerate(self.do_pts):
-            #vector with all clinical measures in the thing
-            #return will be phase x clinscores
-            c_vect[pt] = 0
-            
+default_params = {'CrossValid':10}            
         
 class DSV:
-    def __init__(self, BRFrame=[]):
+    def __init__(self, BRFrame,CFrame):
         #load in the BrainRadio DataFrame we want to work with
-        if BRFrame == []:
-            self.YFrame = BR_Data_Tree()
-            print('Populating the BR Frame')
-            self.YFrame.full_sequence()
-        else:
-            self.YFrame = BRFrame
+        self.YFrame = BRFrame
         
         #Load in the clinical dataframe we will work with
         self.CFrame = CFrame()
@@ -80,19 +39,40 @@ class DSV:
         else:
             c_vect = np.zeros((len(basis),nweeks))
             for ss,scales in enumerate(basis):
-                c_vect[ss,:] = 0
-            
-    def DEPRload_Ephys(self,preload=True):
-        #Import the data structure needed for the Ephys
-        if preload:
-            #the data is brought in from a preloaded .npy file
-            pass
-        else:
-            #do the raw load of the data and F-transform
-            DataFrame = BR_Data_Tree()
-            DataFrame.full_sequence(datapath='/home/virati/')
+                c_vect[ss,:] = 0    
     
+    def dsgn_X_Y(self,pts,scale='HDRS17'):
+        #generate the X and Y needed for the regression
+        fmeta = self.YFrame.file_meta
+        ptcdict = self.CFrame.clin_dict
+        
+        fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in fmeta if rr['Patient'] in pts]
+        
+        #go search the clin vect and replace the last element of the tuple (phase) with the actual score
+        X_dsgn = np.array([np.vstack((a.reshape(-1,1),b.reshape(-1,1))) for a,b,c,d in fullfilt_data])
+        Y_dsgn = np.zeros((X_dsgn.shape[0],1))
+        
+#        for rr,(aa,bb,cc,dd) in enumerate(fullfilt_data):
+#            try:
+#                Y_dsgn[rr] = ptcdict['DBS'+dd][cc][scale]
+#            except:
+#                pdb.set_trace()
+#            
+        Y_dsgn = [ptcdict['DBS'+d][c][scale] for a,b,c,d in fullfilt_data]
     
+        self.X_dsgn = X_dsgn
+        self.Y_dsgn = Y_dsgn
+        return X_dsgn,Y_dsgn
+        
+      
+    def ENet_Construct(self):
+        #parameters are done in here
+        l1_rat = 1
+        alphas = []
+        cv=5
+        
+        self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,tol=0.01,normalize=True,positive=False,cv=k_fold)
+        
     ## Ephys shaping methods
     def extract_DayNit(self):
         #stratify recordings based on Day/Night

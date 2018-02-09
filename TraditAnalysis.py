@@ -14,8 +14,17 @@ from BR_DataFrame import *
 BRFrame = BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
 
+#do a check to see if any PSDs are entirely zero; bad sign
+BRFrame.check_meta()
+
+
+#%%
+#Move forward with analysis
 analysis = OBands(BRFrame)
 analysis.feat_extract()
 
 #%%
-analysis.scatter_state(week=['C01','C05','C15','C24'],pt=['901','905','908'],feat='Alpha')
+#analysis.scatter_state(week='all',pt=['908'],feat='SHarm')
+#analysis.scatter_state(week='all',pt=['908'],feat='Stim')
+analysis.scatter_state(week=['C01','C23'],pt='all',feat='Alpha',circ='day',plot_type='scatter')
+analysis.scatter_state(week=['C01','C23'],pt='all',feat='Alpha',circ='night',plot_type='scatter')
