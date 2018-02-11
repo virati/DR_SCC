@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jan 27 17:51:57 2018
+Created on Sun Feb 11 15:39:35 2018
 
 @author: virati
-Elastic Net Analysis on BrainRadio Data
-THIS USES THE NEW BR_DATAFRAME class
+This file does all the regressions on the oscillatory states over chronic timepoints
 """
 
 from BR_DataFrame import *
 from ClinVect import CFrame
-from DSV import *
 
 ClinFrame = CFrame()
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
@@ -21,13 +19,17 @@ BRFrame = BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
 BRFrame.check_empty_phases()
 
-analysis = DSV(BRFrame,CFrame)
 
+#%%
+from DSV import *
+
+analysis = DSV(BRFrame,CFrame)
+analysis.O_feat_extract()
 
 #%%
 
 #X,Y = analysis.get_dsgns()
-analysis.learn_coeffs()
+Otest,Ctest = analysis.dsgn_O_C(['901','903'])
 
 
 #ready for elastic net setup
