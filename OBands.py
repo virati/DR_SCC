@@ -32,7 +32,7 @@ class OBands:
         #Bring in the BR Data Frame
         self.BRFrame = BRFrame
         
-    def OBSfeat_extract(self):
+    def feat_extract(self):
         big_list = self.BRFrame.file_meta
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}

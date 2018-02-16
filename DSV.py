@@ -21,6 +21,8 @@ import numpy as np
 import scipy.stats as stats
 import scipy.signal as sig
 
+import matplotlib.pyplot as plt
+
 from sklearn.linear_model import ElasticNet, ElasticNetCV
 
 import sys
@@ -38,6 +40,8 @@ class PSD_EN:
         else:
             self.ENet = ElasticNet()
             
+        self.performance = {'Train_Error':0}
+            
     def Train(self,X,Y):
         #get the shape of the X and Y
         assert X.shape[0] == Y.shape[0]
@@ -45,10 +49,10 @@ class PSD_EN:
         self.n_obs = Y.shape[0]
         
         self.ENet.fit(X,Y)
-        self.performance['Train_Error'] = ENet.score(X,Y)
+        self.performance['Train_Error'] = self.ENet.score(X,Y)
     
     def Test(self,X,Y_true):
-        assert X.shape[0] == Y.shape[0]
+        assert X.shape[0] == Y_true.shape[0]
         
         self.ENet.predict(X)
         
@@ -61,7 +65,7 @@ class DSV:
         
         #Load in the clinical dataframe we will work with
         self.CFrame = CFrame()
-        self.dsgn_shape_params = ['logged']#,'detrendX','detrendY','zscoreX','zscoreY']
+        self.dsgn_shape_params = ['logged','polyrem']#,'detrendX','detrendY','zscoreX','zscoreY']
 
     def gen_DV(self,basis=['HDRS17','MADRS','GAF','BDI']):
         #this method generates the Depression Vector
@@ -147,9 +151,18 @@ class DSV:
 
     
     def shape_F_C(self,X,Y,params):
+        
         if 'logged' in params:
             X = np.log10(X)
+        
+        if 'polyrem' in params:
             
+            for obs in range(X.shape[0]):
+                Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
+                Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
+                pdb.set_trace()
+            
+        
         if 'detrendX' in params:
             X = sig.detrend(X.T).T
         
@@ -174,13 +187,19 @@ class DSV:
         self.train_F,self.train_C = self.dsgn_F_C(['901','903','905'],week_avg=True)
         #setup our Elastic net here
         Ealg = PSD_EN()
+        
+        print("Training Elastic Net...")
+        pdb.set_trace()
         Ealg.Train(self.train_F,self.train_C)
         
         #coefficients available
         
         #test phase
         Ftest,Ctest = self.dsgn_F_C(['906','907','908'],week_avg=True)
+        print("Testing Elastic Net...")
         Ealg.Test(Ftest,Ctest)
+        
+        self.ENet = Ealg
         
         
     ## Ephys shaping methods
