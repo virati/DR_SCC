@@ -23,11 +23,11 @@ BRFrame.check_empty_phases()
 
 analysis = DSV(BRFrame,CFrame)
 
+analysis.run_EN()
+
+#then call the premade methods for analysing EN results for this analysis
+
 #%%
-
-#X,Y = analysis.get_dsgns()
-analysis.learn_ENcoeffs()
-
 
 #ready for elastic net setup
 #analysis.ENet_Construct()

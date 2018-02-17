@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 
 class CFrame:
     do_pts = ['901','903','905','906','907','908']
+    scale_max = {'HDRS17':40}
     
     def __init__(self,incl_data = ['HDRS17','MADRS','BDI','GAF','dates']):
         #load in our JSON file

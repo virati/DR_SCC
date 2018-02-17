@@ -7,7 +7,6 @@ Created on Wed Feb  7 09:24:26 2018
 Traditional Analyses
 """
 
-
 from BR_DataFrame import *
 from collections import defaultdict
 
