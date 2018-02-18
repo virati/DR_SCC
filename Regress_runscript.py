@@ -20,21 +20,24 @@ ClinFrame = CFrame()
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
-#%%
 BRFrame = BRDF.BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
 BRFrame.check_empty_phases()
 
 
 #%%
-from DSV import DSV
+from DSV import DSV, ORegress
 
-analysis = DSV(BRFrame,CFrame)
+analysis = ORegress(BRFrame,CFrame)
 analysis.O_feat_extract()
 
 #%%
-analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=False)
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.6,avgweeks=True)
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.6,avgweeks=False)
+analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
+
+#%%
+
+O1,C1 = analysis.dsgn_O_C(['901','903'],week_avg=False)
 
 #%%
 

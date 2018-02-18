@@ -281,25 +281,31 @@ class BR_Data_Tree():
             return F
     #PLOTTING FUNCTIONS FOR THE BRFRAME
     
-    def plot_PSD(self,fname=''):
+    def plot_file_PSD(self,fname=''):
         if fname != '':
             psd_interest = [(rr['Data']['Left'],rr['Data']['Right']) for rr in DataFrame.file_meta if rr['Filename'] == fname]
         
         plt.figure()
         plt.plot(psd_interest)
     
-    def plot_PSD(self):
+    def plot_PSD(self,pt='901'):
         #generate out F vector
         fvect = np.linspace(0,211,513)
         
         #quick way to plot all of a patient's recording
         #therapy_phases = dbo.all_phases
-        list1 = np.array([np.log10(rr['Data']['Left']) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'night' and rr['Phase'] in dbo.Phase_List('therapy')]).T
-        list2 = np.array([np.log10(rr['Data']['Left']) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'night' and rr['Phase'] in dbo.Phase_List('notherapy')]).T
+        psds = {'Left':0,'Right':0}
+        for ch in ['Left','Right']:
+            psds[ch] = np.array([np.log10(rr['Data'][ch]) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Phase'] in dbo.Phase_List('ephys')]).T
+        
+        #list2 = np.array([np.log10(rr['Data']['Left']) for rr in DataFrame.file_meta if rr['Patient'] == '901' and rr['Circadian'] == 'night' and rr['Phase'] in dbo.Phase_List('notherapy')]).T
         
         plt.figure()
-        plt.plot(fvect,list1,color='r',alpha=0.01)
-        plt.plot(fvect,list2,color='b',alpha=0.01)
+        plt.subplot(121)
+        plt.plot(fvect,psds['Left'],color='r',alpha=0.01)
+        plt.subplot(122)
+        plt.plot(fvect,psds['Right'],color='b',alpha=0.01)
+        
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Power (dB)')
         plt.legend({'Therapy','NoTherapy'})    

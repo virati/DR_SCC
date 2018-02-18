@@ -57,11 +57,8 @@ class PSD_EN:
         
         self.ENet.predict(X)
         
-        
-
-class DSV:
-    def __init__(self, BRFrame,CFrame):
-        #load in the BrainRadio DataFrame we want to work with
+class ORegress:
+    def __init__(self,BRFrame,CFrame):
         self.YFrame = BRFrame
         
         #Load in the clinical dataframe we will work with
@@ -69,7 +66,7 @@ class DSV:
         self.dsgn_shape_params = ['logged','polyrem']#,'detrendX','detrendY','zscoreX','zscoreY']
         
         self.Model = {}
-            
+        
     #This function will generate the full OSCILLATORY STATE for all desired observations/weeks
     def O_feat_extract(self):
         big_list = self.YFrame.file_meta
@@ -80,10 +77,17 @@ class DSV:
                 feat_dict[featname] = dofunc['fn'](datacontainer,self.YFrame.data_basis,dofunc['param'])
             rr.update({'FeatVect':feat_dict})
             
-    def plot_feat_scatters(self):
+    def plot_feat_scatters(self,week_avg=False,patients='all'):
         #Go to each feature in the feat_order
-        Otest,Ctest = self.dsgn_O_C(self.YFrame.do_pts,collapse_chann=False)
+        if patients == 'all':
+            patients = self.YFrame.do_pts
         
+        Otest,Ctest = self.dsgn_O_C(patients,collapse_chann=False,week_avg=week_avg)
+        
+        if week_avg:
+            plotalpha = 1
+        else:
+            plotalpha = 0.1
         for ff,feat in enumerate(dbo.feat_order):
             if feat == 'fSlope' or feat == 'nFloor':
                 dispfunc = dbo.unity
@@ -92,9 +96,9 @@ class DSV:
         
             plt.figure()
             plt.subplot(1,2,1)
-            plt.scatter(Ctest,dispfunc(Otest[:,ff,0]))
+            plt.scatter(Ctest,dispfunc(Otest[:,ff,0]),alpha=plotalpha)
             plt.subplot(1,2,2)
-            plt.scatter(Ctest,dispfunc(Otest[:,ff,1]))
+            plt.scatter(Ctest,dispfunc(Otest[:,ff,1]),alpha=plotalpha)
             plt.suptitle(feat)
     
     def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True):
@@ -105,151 +109,78 @@ class DSV:
         fmeta = self.YFrame.file_meta
         ptcdict = self.CFrame.clin_dict
         
+        ePhases = dbo.Phase_List(exprs='ephys')
+        
         #This one gives the FULL STACK
         #fullfilt_data = np.array([(dbo.featDict_to_Matr(rr['FeatVect']),ptcdict['DBS'+rr['Patient']][rr['Phase']][scale]) for rr in fmeta if rr['Patient'] in pts])
         
         
         #FURTHER SHAPING WILL HAPPEN HERE, for example Z-scoring within each patient, within each channel; averaging week, etc.
         
+        pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
+        
         if week_avg:
-            #collapse fullfilt_data along the desired week axis, which I don't know at this moment....
-            pt_dict = {pt:{phase:np.mean(np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]),axis=0) for phase in dbo.all_phases} for pt in pts}
-            
-            #pt_dict forms the core of where we will draw data from
-            #now we go to the fullfilt_data structure from the pt_dict structure
-            
-            #we want a matrix that is PTs x WEEKS x FEATS x Channs
-            BigMatrix = np.array([np.array([np.array(fmatr) for ph,fmatr in dic.items() if ph in dbo.Phase_List(exprs='ephys')]) for key,dic in pt_dict.items()])
-            BigClinVect = np.array([[ptcdict['DBS'+ pt][ph][scale] for ph in dbo.Phase_List(exprs='ephys')] for pt in pts])
-            #Now we want to zscore INSIDE a patient
-            
-            #Have to log10 first here
-            try:
-                BigMatrix = np.log10(BigMatrix.astype(np.float64))
-                BigClinVect = BigClinVect/self.CFrame.scale_max['HDRS17']
-            except:
-                pdb.set_trace()
-            
-            normscheme = 'zscore'
-            if normscheme=='zscore':
-                #This zscores all the features along the phases axis
-                BigMatrix = stats.zscore(BigMatrix,axis=1)
-            elif normscheme=='polyfit':
-                pass
+            #if we want the week average we now want to go into the deepest level here, which has an array, and just take the average across observations
+            pt_dict = {pt:{phase:[np.mean(featvect,axis=0)] for phase,featvect in pt_dict[pt].items()} for pt in pts}
+        #RIGHT NOW we should have a solid pt_dict
         
+        #Let's do a clugy zscore and dump it back into the pt_dict
+        #get all recordings for a given patient across all phases
         
-            #This collapses over patients so npts x obs becomes one dimension of obs without differentiating patients of size (npts x obs)
-            O_dsgn_prelim = BigMatrix.reshape((-1,nfeats,nchann),order='C')
-            C_dsgn_prelim = BigClinVect.reshape(-1,order='C')
-            
-        else:
-            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
-            
-            #THIs BLOCK GETS US END without the patients being split out into dimensions
-            fullfilt_data = [[(fvect,ptcdict['DBS'+pt][ph][scale])for ph,fvect in pt_dict[pt].items() if ph in dbo.Phase_List(exprs='ephys')] for pt in pts]
-            
-            O_dsgn_prelim = np.array([ff[week][0] for ff,week in itt.product(fullfilt_data,range(28))])
-            C_dsgn_prelim = np.array([ff[week][1] for ff,week in itt.product(fullfilt_data,range(28))])
-            
-            #fullfilt_data is still a bit weird here, need to listcompr to fix it
-            O_dsgn_prelim= np.array([ff[0] for ff in fullfilt_data])
-            #THIS LOOKS LIKE IT WORKS; it stacks the right vector UNDERNEIGHT the left; so we cycle through all left LFP features THEN the right LFP features
-            #the order of features is determined by dbo.feat_order
-            
+        #This forms a big list where we make tuples with all our feature vectors for all pt x ph
+        #rr goes through the number of observations in each week; which may be 1 if we are averaging
+        big_list = [[(rr,ptcdict['DBS'+pt][ph][scale],pt) for rr in pt_dict[pt][ph]] for pt,ph in itt.product(pts,ePhases)]
+        #Fully flatten now for all observations
+        #this is a big list that works great!
+        obs_list = [item for sublist in big_list for item in sublist]
         
-        pdb.set_trace()
+        #Piece out the obs_list
+        O_dsgn_intermed= np.array([ff[0] for ff in obs_list])
+        C_dsgn_intermed = np.array([ff[1] for ff in obs_list]) #to bring it into [0,1]
         
         if collapse_chann:
-            O_dsgn = O_dsgn_prelim.reshape(-1,nfeats*nchann,order='F')
+            O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
         else:
-            O_dsgn = O_dsgn_prelim
+            O_dsgn = O_dsgn_intermed
         
-        C_dsgn = C_dsgn_prelim
-
+        #pdb.set_trace()
+        C_dsgn = sig.detrend(C_dsgn_intermed,axis=-1)
         
-        
-        #C_dsgn = np.array([ff[1] for ff in fullfilt_data])
-        
-        #O_dsgn = np.squeeze(np.array(fullfilt_data)[:,0:-1])
-        #C_dsgn = np.squeeze(np.array(fullfilt_data)[:,-1])
+        #Final shaping of both outputs
+        O_dsgn = np.log10(O_dsgn)
+        O_dsgn = sig.detrend(O_dsgn,axis=0)
+        O_dsgn = sig.detrend(O_dsgn,axis=1)
         
         return O_dsgn, C_dsgn
     
     
-    
         
-    def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
-        #generate the X and Y needed for the regression
-        fmeta = self.YFrame.file_meta
-        ptcdict = self.CFrame.clin_dict
-        
-        if week_avg == False:
-            fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in fmeta if rr['Patient'] in pts]
+        # #The below is for zscoring
+        # O_dsgn_prelim = []
+        # C_dsgn_prelim = []
+        # for pt in pts:
+        #     pt_matr = np.array([rr[0] for rr in obs_list if rr[2] == pt])
+        #     pt_clin = np.array([rr[1] for rr in obs_list if rr[2] == pt])
             
-            #go search the clin vect and replace the last element of the tuple (phase) with the actual score
-            ALL_dsgn = np.array([np.vstack((a.reshape(-1,1),b.reshape(-1,1),ptcdict['DBS'+d][c][scale])) for a,b,c,d in fullfilt_data])
-        else:
-            phases = dbo.Phase_List(exprs='ephys')
-            #bigdict = {key:{phs:(0,0) for phs in phases} for key in pts}
-            biglist = []
-            
-            for pp in pts:
-                for ph in phases:
-                    leftavg = np.mean(np.array([rr['Data']['Left'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
-                    rightavg = np.mean(np.array([rr['Data']['Right'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
-                    
-                    #bigdict[pp][ph] = (leftavg,rightavg)
-                    biglist.append(np.vstack((leftavg,rightavg,ptcdict['DBS'+pp][ph][scale])))
-            ALL_dsgn = np.array(biglist)
+        #     pt_matr = stats.zscore(pt_matr,axis=0)
+        #     O_dsgn_prelim.append(pt_matr)
+        #     C_dsgn_prelim.append(pt_clin)
         
-        X_dsgn = np.squeeze(ALL_dsgn)[:,0:-2]
-        Y_dsgn = np.squeeze(ALL_dsgn)[:,-1].reshape(-1,1)
+        # O_dsgn_prelim = np.concatenate([matr for matr in O_dsgn_prelim],0)
+        # C_dsgn_prelim = np.concatenate([matr for matr in C_dsgn_prelim],0)
+        # #O_dsgn_prelim = [item for sublist in O_dsgn_prelim for item in sublist]
+                
+        # try:
+        #     O_dsgn_intermed = np.array(O_dsgn_prelim).reshape((-1,5,2),order='C')
+        #     C_dsgn_intermed = np.array(C_dsgn_prelim).reshape((-1,1),order='C')
+        # except:
+        #     pdb.set_trace()
             
-        #if we want to reshape, do it here!
-        F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
-        
-        return F_dsgn, C_dsgn
 
-    
-    def shape_F_C(self,X,Y,params):
-        
-        if 'logged' in params:
-            X = np.log10(X)
-        
-        if 'polyrem' in params:
-            
-            for obs in range(X.shape[0]):
-                Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
-                Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
-                pdb.set_trace()
-            
-        
-        if 'detrendX' in params:
-            X = sig.detrend(X.T).T
-        
-        if 'detrendY' in params:
-            Y = sig.detrend(Y)
-            
-        if 'zscoreX' in params:
-            X = stats.zscore(X.T).T
-            
-        if 'zscoreY' in params:
-            Y = stats.zscore(Y)
-            
-        return X,Y
-            
-    def get_dsgns(self):
-        assert self.X_dsgn.shape[1] == 1025
-        assert self.Y_dsgn.shape[1] == 1
-        
-        return self.X_dsgn, self.Y_dsgn
-    
     def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False):
         Otrain,Ctrain = self.dsgn_O_C(['901','903'],week_avg=avgweeks)
        
-        #Then detrend the ENTIRE SET
-        Otrain = sig.detrend(Otrain,axis=-1)
-        Ctrain = sig.detrend(Ctrain)
+        Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
         
         if method == 'OLS':
             regmodel = linear_model.LinearRegression()
@@ -264,9 +195,7 @@ class DSV:
         #Generate the testing set data
         Otest,Ctest = self.dsgn_O_C(['905','906','907','908'],week_avg=avgweeks)
         #Shape the input oscillatory state vectors
-        Otest = sig.detrend(Otest,axis=-1)
-        Ctest = sig.detrend(Ctest)
-                
+                        
         #Generate the predicted clinical states
         Cpredictions = regmodel.predict(Otest)
         
@@ -275,7 +204,7 @@ class DSV:
         noise = 1
         Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
         Ctest = sig.detrend(Ctest)
-        Ctest = stats.zscore(Ctest)
+        Ctest = Ctest
         
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
         #statistical correlation
@@ -284,11 +213,15 @@ class DSV:
         
         if doplot:
             plt.figure()
-            plt.plot(Cpredictions)
-            plt.plot(Ctest)
-            
+            plt.plot(Cpredictions,label='Predicted')
+            plt.plot(Ctest,label='Actual')
+            plt.legend()
             plt.figure()
             plt.scatter(Ctest,Cpredictions)
+            plt.xlabel('Actual')
+            plt.ylabel('Predicted')
+            plt.axis('equal')
+            plt.suptitle(method)
     
     #primary entry for OLS regression
     def run_OLS(self,doplot=False):
@@ -382,7 +315,90 @@ class DSV:
             
             plt.figure()
             plt.scatter(Ctest,Cpredictions)
+
+    
+    
+    
+        
+
+class DSV:
+    def __init__(self, BRFrame,CFrame):
+        #load in the BrainRadio DataFrame we want to work with
+        self.YFrame = BRFrame
+        
+        #Load in the clinical dataframe we will work with
+        self.CFrame = CFrame()
+        self.dsgn_shape_params = ['logged','polyrem']#,'detrendX','detrendY','zscoreX','zscoreY']
+        
+        self.Model = {}
             
+    
+    def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
+        #generate the X and Y needed for the regression
+        fmeta = self.YFrame.file_meta
+        ptcdict = self.CFrame.clin_dict
+        
+        if week_avg == False:
+            fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in fmeta if rr['Patient'] in pts]
+            
+            #go search the clin vect and replace the last element of the tuple (phase) with the actual score
+            ALL_dsgn = np.array([np.vstack((a.reshape(-1,1),b.reshape(-1,1),ptcdict['DBS'+d][c][scale])) for a,b,c,d in fullfilt_data])
+        else:
+            phases = dbo.Phase_List(exprs='ephys')
+            #bigdict = {key:{phs:(0,0) for phs in phases} for key in pts}
+            biglist = []
+            
+            for pp in pts:
+                for ph in phases:
+                    leftavg = np.mean(np.array([rr['Data']['Left'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
+                    rightavg = np.mean(np.array([rr['Data']['Right'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
+                    
+                    #bigdict[pp][ph] = (leftavg,rightavg)
+                    biglist.append(np.vstack((leftavg,rightavg,ptcdict['DBS'+pp][ph][scale])))
+            ALL_dsgn = np.array(biglist)
+        
+        X_dsgn = np.squeeze(ALL_dsgn)[:,0:-2]
+        Y_dsgn = np.squeeze(ALL_dsgn)[:,-1].reshape(-1,1)
+            
+        #if we want to reshape, do it here!
+        F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
+        
+        return F_dsgn, C_dsgn
+
+    
+    def shape_F_C(self,X,Y,params):
+        
+        if 'logged' in params:
+            X = np.log10(X)
+        
+        if 'polyrem' in params:
+            
+            for obs in range(X.shape[0]):
+                Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
+                Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
+                pdb.set_trace()
+            
+        
+        if 'detrendX' in params:
+            X = sig.detrend(X.T).T
+        
+        if 'detrendY' in params:
+            Y = sig.detrend(Y)
+            
+        if 'zscoreX' in params:
+            X = stats.zscore(X.T).T
+            
+        if 'zscoreY' in params:
+            Y = stats.zscore(Y)
+            
+        return X,Y
+            
+    def get_dsgns(self):
+        assert self.X_dsgn.shape[1] == 1025
+        assert self.Y_dsgn.shape[1] == 1
+        
+        return self.X_dsgn, self.Y_dsgn
+              
         
     #primary 
     def run_EN(self):
