@@ -24,6 +24,8 @@ BRFrame.check_empty_phases()
 analysis = DSV(BRFrame,CFrame)
 
 analysis.run_EN()
+plt.figure()
+plt.plot(analysis.ENet.ENet.coef_)
 
 #then call the premade methods for analysing EN results for this analysis
 

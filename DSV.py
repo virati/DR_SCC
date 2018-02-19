@@ -37,28 +37,223 @@ class PSD_EN:
     def __init__(self,cv=True,alpha=0.5):
 
         if cv:
-            self.ENet = ElasticNetCV()
+            self.ENet = ElasticNetCV(cv=10,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
         else:
-            self.ENet = ElasticNet()
+            self.ENet = ElasticNet(alpha=0.9,l1_ratio=0.5,max_iter=1000,normalize=False,positive=False,fit_intercept=True)
             
         self.performance = {'Train_Error':0}
             
     def Train(self,X,Y):
         #get the shape of the X and Y
-        assert X.shape[0] == Y.shape[0]
+        try:
+            assert X.shape[0] == Y.shape[0]
+        except:
+            pdb.set_trace()
         
         self.n_obs = Y.shape[0]
         
-        self.ENet.fit(X,Y)
+        try:
+            self.ENet.fit(X,Y)
+        except:
+            pdb.set_trace()
         self.performance['Train_Error'] = self.ENet.score(X,Y)
     
     def Test(self,X,Y_true):
         assert X.shape[0] == Y_true.shape[0]
         
         Y_Pred = self.ENet.predict(X)
-        plt.plot(Y_Pred,label='Predicted')
-        plt.plot(Y_true,label='Actual')
+        plt.figure()
+        plt.plot(stats.zscore(sig.detrend(Y_Pred)),label='Predicted')
+        plt.plot(stats.zscore(sig.detrend(Y_true)),label='Actual')
+        plt.legend()
         
+
+class DSV:
+    def __init__(self, BRFrame,CFrame):
+        #load in the BrainRadio DataFrame we want to work with
+        self.YFrame = BRFrame
+        
+        #Load in the clinical dataframe we will work with
+        self.CFrame = CFrame()
+        self.dsgn_shape_params = ['logged']#,'detrendX','detrendY','zscoreX','zscoreY']
+        
+        self.Model = {}
+            
+    
+    def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
+        #generate the X and Y needed for the regression
+        fmeta = self.YFrame.file_meta
+        ptcdict = self.CFrame.clin_dict
+        
+        if week_avg == False:
+            fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in fmeta if rr['Patient'] in pts]
+            
+            #go search the clin vect and replace the last element of the tuple (phase) with the actual score
+            ALL_dsgn = np.array([np.vstack((a.reshape(-1,1),b.reshape(-1,1),ptcdict['DBS'+d][c][scale])) for a,b,c,d in fullfilt_data])
+        else:
+            phases = dbo.Phase_List(exprs='ephys')
+            #bigdict = {key:{phs:(0,0) for phs in phases} for key in pts}
+            biglist = []
+            big_score = []
+            
+            for pp in pts:
+                pt_list = []
+                pt_score = []
+                for ph in phases:
+                    leftavg = np.mean(np.array([rr['Data']['Left'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
+                    rightavg = np.mean(np.array([rr['Data']['Right'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
+                    
+                    #bigdict[pp][ph] = (leftavg,rightavg)
+                    pt_list.append(np.vstack((leftavg,rightavg)))
+                    pt_score.append(ptcdict['DBS'+pp][ph][scale])
+                    
+                #after all the phases are done
+                pt_list = np.squeeze(np.array(pt_list))
+                
+                #THIS IS WHERE SHAPING WILL HAPPEN
+                pt_list = self.shape_PSD_stack(pt_list)
+                
+                biglist.append(pt_list)
+                big_score.append(pt_score)
+                
+            ALL_dsgn = np.array(biglist)
+            ALL_score = np.array(big_score)
+        
+        F_dsgn = np.squeeze(ALL_dsgn).reshape(-1,self.freq_bins,order='C')
+        C_dsgn = np.squeeze(ALL_score).reshape(-1,1,order='C')
+            
+        #if we want to reshape, do it here!
+        #F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
+        
+        return F_dsgn, C_dsgn
+
+    def shape_PSD_stack(self,pt_list,polyord=6,plot=False):
+        #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
+        #Do log transform of all of it
+        
+        preproc = ['log','zscore','limfreq']
+        
+        fix_pt_list = pt_list
+        
+        if 'log' in preproc:
+            pt_list = 20 * np.log10(pt_list[:,:].T)
+        
+            fit_pt_list = pt_list
+        
+        #just subtract the FIRST recording from all of them
+        print(pt_list.shape)
+        
+        #To subtract the average
+        #base_subtr = np.mean(pt_list,axis=1).reshape(-1,1)
+        base_subtr = np.zeros_like(pt_list)
+        
+        if 'polysub' in preproc:
+            #to take a polynomial fit to all and then subtract it from each week's avg
+            for ph in range(pt_list.shape[1]):
+                pLeft = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[0:513,ph],polyord))
+                pRight = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[513:,ph],polyord))
+                base_subtr[0:513,ph] = pLeft(np.linspace(0,211,513))
+                base_subtr[513:,ph] = pRight(np.linspace(0,211,513))
+            
+                fix_pt_list = pt_list - base_subtr
+        elif 'zscore' in preproc:
+            fix_pt_list = stats.zscore(pt_list,1)
+        #finally, detrend the WHOLE STACK
+        #fix_pt_list = sig.detrend(fix_pt_list,axis=0)
+        #fix_pt_list = stats.zscore(fix_pt_list,axis=0)
+        
+        #do we want to start cutting frequencies out???
+        self.freq_bins = 1026
+        if 'limfreq' in preproc:
+            freq_idx = np.tile(np.linspace(0,211,513),2)
+            fmax = 90
+            keep_idx = np.where(freq_idx < fmax)
+            
+            fix_pt_list = fix_pt_list[keep_idx,:]
+            
+            self.freq_bins = len(keep_idx[0])
+        
+        
+        if plot:
+            plt.figure()
+            #plt.plot(fix_pt_list)
+            plt.subplot(211)
+            plt.plot(base_subtr)
+            plt.plot(pt_list,alpha=0.2)
+            plt.subplot(212);
+            plt.plot(fix_pt_list)
+            
+        return fix_pt_list
+    
+    def shape_F_C(self,X,Y,params):
+        
+        if 'logged' in params:
+            X = np.log10(X)
+        
+        if 'polyrem' in params:
+            
+            for obs in range(X.shape[0]):
+                Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
+                Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
+                
+            
+        
+        if 'detrendX' in params:
+            X = sig.detrend(X.T).T
+        
+        if 'detrendY' in params:
+            Y = sig.detrend(Y)
+            
+        if 'zscoreX' in params:
+            X = stats.zscore(X.T).T
+            
+        if 'zscoreY' in params:
+            Y = stats.zscore(Y)
+            
+        return X,Y
+            
+    def get_dsgns(self):
+        assert self.X_dsgn.shape[1] == 1025
+        assert self.Y_dsgn.shape[1] == 1
+        
+        return self.X_dsgn, self.Y_dsgn
+              
+        
+    #primary 
+    def run_EN(self):
+        #first, learn the coefficients by training and testing
+        self.learn_ENcoeffs()
+        
+        
+    def learn_ENcoeffs(self):
+        self.train_F,self.train_C = self.dsgn_F_C(['901','903','905'],week_avg=True)
+        #setup our Elastic net here
+        Ealg = PSD_EN(cv=False)
+        
+        print("Training Elastic Net...")
+        #pdb.set_trace()
+        Ealg.Train(self.train_F,self.train_C)
+        
+        #coefficients available
+        
+        #test phase
+        Ftest,Ctest = self.dsgn_F_C(['906','907','908'],week_avg=True)
+        print("Testing Elastic Net...")
+        Ealg.Test(Ftest,Ctest)
+        
+        self.ENet = Ealg
+        
+        
+    ## Ephys shaping methods
+    def extract_DayNit(self):
+        #stratify recordings based on Day/Night
+        pass
+    
+    #This is the rPCA based method that generates the actual clinical measure on DSV and adds it to our CVect
+    def gen_D_latent(self):
+        pass    
+
+
 class ORegress:
     def __init__(self,BRFrame,CFrame):
         self.YFrame = BRFrame
@@ -334,164 +529,3 @@ class ORegress:
             
             plt.figure()
             plt.scatter(Ctest,Cpredictions)
-
-    
-    
-    
-        
-
-class DSV:
-    def __init__(self, BRFrame,CFrame):
-        #load in the BrainRadio DataFrame we want to work with
-        self.YFrame = BRFrame
-        
-        #Load in the clinical dataframe we will work with
-        self.CFrame = CFrame()
-        self.dsgn_shape_params = ['logged']#,'detrendX','detrendY','zscoreX','zscoreY']
-        
-        self.Model = {}
-            
-    
-    def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
-        #generate the X and Y needed for the regression
-        fmeta = self.YFrame.file_meta
-        ptcdict = self.CFrame.clin_dict
-        
-        if week_avg == False:
-            fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in fmeta if rr['Patient'] in pts]
-            
-            #go search the clin vect and replace the last element of the tuple (phase) with the actual score
-            ALL_dsgn = np.array([np.vstack((a.reshape(-1,1),b.reshape(-1,1),ptcdict['DBS'+d][c][scale])) for a,b,c,d in fullfilt_data])
-        else:
-            phases = dbo.Phase_List(exprs='ephys')
-            #bigdict = {key:{phs:(0,0) for phs in phases} for key in pts}
-            biglist = []
-            big_score = []
-            
-            for pp in pts:
-                pt_list = []
-                pt_score = []
-                for ph in phases:
-                    leftavg = np.mean(np.array([rr['Data']['Left'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
-                    rightavg = np.mean(np.array([rr['Data']['Right'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
-                    
-                    #bigdict[pp][ph] = (leftavg,rightavg)
-                    pt_list.append(np.vstack((leftavg,rightavg)))
-                    pt_score.append(ptcdict['DBS'+pp][ph][scale])
-                    
-                #after all the phases are done
-                pt_list = np.squeeze(np.array(pt_list))
-                
-                #THIS IS WHERE SHAPING WILL HAPPEN
-                self.shape_PSD_stack(pt_list)
-                
-                biglist.append(pt_list)
-                big_score.append(pt_score)
-                
-            ALL_dsgn = np.array(biglist)
-        
-        X_dsgn = np.squeeze(ALL_dsgn)[:,0:-2]
-        Y_dsgn = np.squeeze(ALL_dsgn)[:,-1].reshape(-1,1)
-            
-        #if we want to reshape, do it here!
-        #F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
-        
-        return F_dsgn, C_dsgn
-
-    def shape_PSD_stack(self,pt_list):
-        #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
-        #Do log transform of all of it
-        pt_list = 20 * np.log10(pt_list[:,:].T)
-        
-        #just subtract the FIRST recording from all of them
-        print(pt_list.shape)
-        
-        #To subtract the average
-        #base_subtr = np.mean(pt_list,axis=1).reshape(-1,1)
-        base_subtr = np.zeros_like(pt_list)
-        polyord = 0
-        #to take a polynomial fit to all and then subtract it from each week's avg
-        for ph in range(pt_list.shape[1]):
-            pLeft = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[0:513,ph],polyord))
-            pRight = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[513:,ph],polyord))
-            base_subtr[0:513,ph] = pLeft(np.linspace(0,211,513))
-            base_subtr[513:,ph] = pRight(np.linspace(0,211,513))
-        
-        fix_pt_list = pt_list - base_subtr
-        
-        #finally, detrend the WHOLE STACK
-        fix_pt_list = sig.detrend(fix_pt_list,axis=0)
-        plt.figure()
-        #plt.plot(fix_pt_list)
-        plt.subplot(211)
-        plt.plot(base_subtr)
-        plt.subplot(212);
-        plt.plot(fix_pt_list)
-    
-    def shape_F_C(self,X,Y,params):
-        
-        if 'logged' in params:
-            X = np.log10(X)
-        
-        if 'polyrem' in params:
-            
-            for obs in range(X.shape[0]):
-                Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
-                Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
-                pdb.set_trace()
-            
-        
-        if 'detrendX' in params:
-            X = sig.detrend(X.T).T
-        
-        if 'detrendY' in params:
-            Y = sig.detrend(Y)
-            
-        if 'zscoreX' in params:
-            X = stats.zscore(X.T).T
-            
-        if 'zscoreY' in params:
-            Y = stats.zscore(Y)
-            
-        return X,Y
-            
-    def get_dsgns(self):
-        assert self.X_dsgn.shape[1] == 1025
-        assert self.Y_dsgn.shape[1] == 1
-        
-        return self.X_dsgn, self.Y_dsgn
-              
-        
-    #primary 
-    def run_EN(self):
-        #first, learn the coefficients by training and testing
-        self.learn_ENcoeffs()
-        
-        
-    def learn_ENcoeffs(self):
-        self.train_F,self.train_C = self.dsgn_F_C(['901','903','905'],week_avg=True)
-        #setup our Elastic net here
-        Ealg = PSD_EN()
-        
-        print("Training Elastic Net...")
-        #pdb.set_trace()
-        Ealg.Train(self.train_F,self.train_C)
-        
-        #coefficients available
-        
-        #test phase
-        Ftest,Ctest = self.dsgn_F_C(['906','907','908'],week_avg=True)
-        print("Testing Elastic Net...")
-        Ealg.Test(Ftest,Ctest)
-        
-        self.ENet = Ealg
-        
-        
-    ## Ephys shaping methods
-    def extract_DayNit(self):
-        #stratify recordings based on Day/Night
-        pass
-    
-    #This is the rPCA based method that generates the actual clinical measure on DSV and adds it to our CVect
-    def gen_D_latent(self):
-        pass    
