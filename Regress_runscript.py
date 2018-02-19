@@ -32,8 +32,10 @@ analysis = ORegress(BRFrame,CFrame)
 analysis.O_feat_extract()
 
 #%%
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.6,avgweeks=False)
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.2,avgweeks=False)
+#%%
 analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
+#analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
 
 #%%
 
@@ -46,6 +48,8 @@ O1,C1 = analysis.dsgn_O_C(['901','903'],week_avg=False)
 #analysis.run_RANSAC(inpercent=0.4)
 
 
+#%%
+# Quick check of the bad flags to see what the thresholds should be
 
 #%%
 

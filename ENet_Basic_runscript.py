@@ -20,7 +20,7 @@ ClinFrame = CFrame()
 BRFrame = BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
 BRFrame.check_empty_phases()
-
+#%%
 analysis = DSV(BRFrame,CFrame)
 
 analysis.run_EN()

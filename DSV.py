@@ -55,7 +55,9 @@ class PSD_EN:
     def Test(self,X,Y_true):
         assert X.shape[0] == Y_true.shape[0]
         
-        self.ENet.predict(X)
+        Y_Pred = self.ENet.predict(X)
+        plt.plot(Y_Pred,label='Predicted')
+        plt.plot(Y_true,label='Actual')
         
 class ORegress:
     def __init__(self,BRFrame,CFrame):
@@ -101,7 +103,7 @@ class ORegress:
             plt.scatter(Ctest,dispfunc(Otest[:,ff,1]),alpha=plotalpha)
             plt.suptitle(feat)
     
-    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True):
+    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False):
         #hardcoded for now, remove later
         nchann = 2
         nfeats = len(dbo.feat_order)
@@ -117,7 +119,10 @@ class ORegress:
         
         #FURTHER SHAPING WILL HAPPEN HERE, for example Z-scoring within each patient, within each channel; averaging week, etc.
         
-        pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
+        if ignore_flags:
+            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag'] == False]) for phase in dbo.all_phases} for pt in pts}
+        else:
+            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
         
         if week_avg:
             #if we want the week average we now want to go into the deepest level here, which has an array, and just take the average across observations
@@ -138,10 +143,13 @@ class ORegress:
         O_dsgn_intermed= np.array([ff[0] for ff in obs_list])
         C_dsgn_intermed = np.array([ff[1] for ff in obs_list]) #to bring it into [0,1]
         
-        if collapse_chann:
-            O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
-        else:
-            O_dsgn = O_dsgn_intermed
+        try:
+            if collapse_chann:
+                O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
+            else:
+                O_dsgn = O_dsgn_intermed
+        except:
+            pdb.set_trace()
         
         #pdb.set_trace()
         C_dsgn = sig.detrend(C_dsgn_intermed,axis=-1)
@@ -177,8 +185,8 @@ class ORegress:
         #     pdb.set_trace()
             
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False):
-        Otrain,Ctrain = self.dsgn_O_C(['901','903'],week_avg=avgweeks)
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False):
+        Otrain,Ctrain = self.dsgn_O_C(['901','903'],week_avg=avgweeks,ignore_flags=ignore_flags)
        
         Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
         
@@ -209,13 +217,24 @@ class ORegress:
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
         #statistical correlation
         res = stats.pearsonr(Cpredictions,Ctest.astype(float).reshape(-1,1))
-        self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr_Zscore':res}}})
+        self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr':res,'Internal':0}}})
+        
+        #let's do internal scoring for a second
+        self.Model[method]['Performance']['Internal'] = regmodel.score(Otest,Ctest)
+        
+        #what if we do a final "logistic" part here...
+        
         
         if doplot:
             plt.figure()
+            
             plt.plot(Cpredictions,label='Predicted')
             plt.plot(Ctest,label='Actual')
             plt.legend()
+            plt.xlabel('Week')
+            plt.ylabel('Normalized Disease Severity')
+            plt.suptitle(method)
+            
             plt.figure()
             plt.scatter(Ctest,Cpredictions)
             plt.xlabel('Actual')
@@ -328,7 +347,7 @@ class DSV:
         
         #Load in the clinical dataframe we will work with
         self.CFrame = CFrame()
-        self.dsgn_shape_params = ['logged','polyrem']#,'detrendX','detrendY','zscoreX','zscoreY']
+        self.dsgn_shape_params = ['logged']#,'detrendX','detrendY','zscoreX','zscoreY']
         
         self.Model = {}
             
@@ -347,24 +366,67 @@ class DSV:
             phases = dbo.Phase_List(exprs='ephys')
             #bigdict = {key:{phs:(0,0) for phs in phases} for key in pts}
             biglist = []
+            big_score = []
             
             for pp in pts:
+                pt_list = []
+                pt_score = []
                 for ph in phases:
                     leftavg = np.mean(np.array([rr['Data']['Left'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
                     rightavg = np.mean(np.array([rr['Data']['Right'] for rr in fmeta if rr['Patient'] == pp and rr['Phase'] == ph]),axis=0).reshape(-1,1)
                     
                     #bigdict[pp][ph] = (leftavg,rightavg)
-                    biglist.append(np.vstack((leftavg,rightavg,ptcdict['DBS'+pp][ph][scale])))
+                    pt_list.append(np.vstack((leftavg,rightavg)))
+                    pt_score.append(ptcdict['DBS'+pp][ph][scale])
+                    
+                #after all the phases are done
+                pt_list = np.squeeze(np.array(pt_list))
+                
+                #THIS IS WHERE SHAPING WILL HAPPEN
+                self.shape_PSD_stack(pt_list)
+                
+                biglist.append(pt_list)
+                big_score.append(pt_score)
+                
             ALL_dsgn = np.array(biglist)
         
         X_dsgn = np.squeeze(ALL_dsgn)[:,0:-2]
         Y_dsgn = np.squeeze(ALL_dsgn)[:,-1].reshape(-1,1)
             
         #if we want to reshape, do it here!
-        F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
+        #F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
         
         return F_dsgn, C_dsgn
 
+    def shape_PSD_stack(self,pt_list):
+        #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
+        #Do log transform of all of it
+        pt_list = 20 * np.log10(pt_list[:,:].T)
+        
+        #just subtract the FIRST recording from all of them
+        print(pt_list.shape)
+        
+        #To subtract the average
+        #base_subtr = np.mean(pt_list,axis=1).reshape(-1,1)
+        base_subtr = np.zeros_like(pt_list)
+        polyord = 0
+        #to take a polynomial fit to all and then subtract it from each week's avg
+        for ph in range(pt_list.shape[1]):
+            pLeft = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[0:513,ph],polyord))
+            pRight = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[513:,ph],polyord))
+            base_subtr[0:513,ph] = pLeft(np.linspace(0,211,513))
+            base_subtr[513:,ph] = pRight(np.linspace(0,211,513))
+        
+        fix_pt_list = pt_list - base_subtr
+        
+        #finally, detrend the WHOLE STACK
+        fix_pt_list = sig.detrend(fix_pt_list,axis=0)
+        plt.figure()
+        #plt.plot(fix_pt_list)
+        plt.subplot(211)
+        plt.plot(base_subtr)
+        plt.subplot(212);
+        plt.plot(fix_pt_list)
     
     def shape_F_C(self,X,Y,params):
         
@@ -412,7 +474,7 @@ class DSV:
         Ealg = PSD_EN()
         
         print("Training Elastic Net...")
-        pdb.set_trace()
+        #pdb.set_trace()
         Ealg.Train(self.train_F,self.train_C)
         
         #coefficients available

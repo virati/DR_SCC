@@ -64,10 +64,28 @@ class BR_Data_Tree():
         #now go in and remove anything with a bad flag
         self.Remove_BadFlags()
         
+        self.Check_GC()
+        
         #take out the phases that don't exist, and any other stuff, but so far that's all this does
         self.prune_meta()
         #in case the meta-data isn't properly updated from the loaded in deta
         print('Data Loaded')
+        
+    def Check_GC(self):
+        #do just the key features
+        #get the stim-related and gc related measures
+        for rr in self.file_meta:
+            gc_measures = ['Stim','SHarm','THarm','fSlope','nFloor']
+            gc_results = defaultdict(dict)
+            for meas in gc_measures:
+                dofunc = dbo.feat_dict[meas]
+                gc_results[meas] = dofunc['fn'](rr['Data'],self.data_basis,dofunc['param'])
+        
+            # let's do some logic to find out if GC is happening
+            isgc = (gc_results['nFloor']['Left'] > 0.2 or gc_results['nFloor']['Right']) and (gc_results['SHarm']['Left'] / gc_results['THarm']['Left'] < 1 or gc_results['SHarm']['Right'] / gc_results['THarm']['Right'] < 1)
+            
+            rr.update({'GC_Flag':{'Flag':isgc,'Raw':gc_results}})
+        
         
     def Remove_BadFlags(self):
         self.file_meta = [rr for rr in self.file_meta if rr['BadFlag'] != True]
