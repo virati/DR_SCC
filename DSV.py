@@ -37,35 +37,43 @@ class PSD_EN:
     def __init__(self,cv=True,alpha=0.5):
 
         if cv:
-            self.ENet = ElasticNetCV(cv=10,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
+            print('Running ENet CV')
+            l_ratio = np.linspace(0.2,0.25,20)
+            alpha_list = np.linspace(0.10,0.14,50)
+            #self.ENet = ElasticNetCV(cv=10,tol=0.01,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
+            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.01,normalize=True,positive=False)
         else:
-            self.ENet = ElasticNet(alpha=0.9,l1_ratio=0.5,max_iter=1000,normalize=False,positive=False,fit_intercept=True)
+            alpha = 0.12
+            print('Running Normal ENet w/ alpha ' + str(alpha))
+            self.ENet = ElasticNet(alpha=alpha,l1_ratio=0.1,max_iter=1000,normalize=True,positive=False,fit_intercept=True,precompute=True)
             
         self.performance = {'Train_Error':0}
             
     def Train(self,X,Y):
         #get the shape of the X and Y
         try:
-            assert X.shape[0] == Y.shape[0]
+            assert X.shape[1] == Y.shape[1]
         except:
             pdb.set_trace()
         
         self.n_obs = Y.shape[0]
         
-        try:
-            self.ENet.fit(X,Y)
-        except:
-            pdb.set_trace()
+        
+        self.ENet.fit(X,Y)
+            
         self.performance['Train_Error'] = self.ENet.score(X,Y)
     
     def Test(self,X,Y_true):
         assert X.shape[0] == Y_true.shape[0]
         
-        Y_Pred = self.ENet.predict(X)
+        Y_Pred = self.ENet.predict(X).reshape(-1,1)
+        
         plt.figure()
-        plt.plot(stats.zscore(sig.detrend(Y_Pred)),label='Predicted')
-        plt.plot(stats.zscore(sig.detrend(Y_true)),label='Actual')
+        plt.plot((sig.detrend(Y_Pred,axis=0)),label='Predicted')
+        plt.plot((sig.detrend(Y_true,axis=0)),label='Actual')
         plt.legend()
+        
+        self.Ys = (Y_Pred,Y_true)
         
 
 class DSV:
@@ -86,11 +94,13 @@ class DSV:
         ptcdict = self.CFrame.clin_dict
         
         if week_avg == False:
+            print('Taking ALL Recordings')
             fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in fmeta if rr['Patient'] in pts]
             
             #go search the clin vect and replace the last element of the tuple (phase) with the actual score
             ALL_dsgn = np.array([np.vstack((a.reshape(-1,1),b.reshape(-1,1),ptcdict['DBS'+d][c][scale])) for a,b,c,d in fullfilt_data])
         else:
+            print('Taking Weekly Averages')
             phases = dbo.Phase_List(exprs='ephys')
             #bigdict = {key:{phs:(0,0) for phs in phases} for key in pts}
             biglist = []
@@ -111,7 +121,7 @@ class DSV:
                 pt_list = np.squeeze(np.array(pt_list))
                 
                 #THIS IS WHERE SHAPING WILL HAPPEN
-                pt_list = self.shape_PSD_stack(pt_list)
+                pt_list = self.shape_PSD_stack(pt_list,plot=True)
                 
                 biglist.append(pt_list)
                 big_score.append(pt_score)
@@ -120,10 +130,11 @@ class DSV:
             ALL_score = np.array(big_score)
         
         F_dsgn = np.squeeze(ALL_dsgn).reshape(-1,self.freq_bins,order='C')
-        C_dsgn = np.squeeze(ALL_score).reshape(-1,1,order='C')
+        C_dsgn = np.squeeze(ALL_score).reshape(-1,1,order='C').astype(np.float64)
             
         #if we want to reshape, do it here!
         #F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
+        
         
         return F_dsgn, C_dsgn
 
@@ -131,17 +142,16 @@ class DSV:
         #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
         #Do log transform of all of it
         
-        preproc = ['log','zscore','limfreq']
+        preproc = ['log','polysub','limfreq','detrend']
         
         fix_pt_list = pt_list
         
         if 'log' in preproc:
             pt_list = 20 * np.log10(pt_list[:,:].T)
         
-            fit_pt_list = pt_list
+            fix_pt_list = pt_list
         
         #just subtract the FIRST recording from all of them
-        print(pt_list.shape)
         
         #To subtract the average
         #base_subtr = np.mean(pt_list,axis=1).reshape(-1,1)
@@ -156,8 +166,10 @@ class DSV:
                 base_subtr[513:,ph] = pRight(np.linspace(0,211,513))
             
                 fix_pt_list = pt_list - base_subtr
+                
         elif 'zscore' in preproc:
-            fix_pt_list = stats.zscore(pt_list,1)
+            fix_pt_list = stats.zscore(pt_list,axis=1)
+        
         #finally, detrend the WHOLE STACK
         #fix_pt_list = sig.detrend(fix_pt_list,axis=0)
         #fix_pt_list = stats.zscore(fix_pt_list,axis=0)
@@ -165,21 +177,28 @@ class DSV:
         #do we want to start cutting frequencies out???
         self.freq_bins = 1026
         if 'limfreq' in preproc:
+            print('Limiting Frequency')
             freq_idx = np.tile(np.linspace(0,211,513),2)
-            fmax = 90
-            keep_idx = np.where(freq_idx < fmax)
+            fmax = 80
+            keep_idx = np.where(freq_idx <= fmax)
             
-            fix_pt_list = fix_pt_list[keep_idx,:]
+            fix_pt_list = fix_pt_list[keep_idx[0],:]
             
             self.freq_bins = len(keep_idx[0])
+            
         
+        if 'detrend':
+            fix_pt_list = sig.detrend(fix_pt_list,axis=0)
         
+        fix_pt_list = np.squeeze(fix_pt_list)
         if plot:
             plt.figure()
             #plt.plot(fix_pt_list)
             plt.subplot(211)
             plt.plot(base_subtr)
             plt.plot(pt_list,alpha=0.2)
+            
+            
             plt.subplot(212);
             plt.plot(fix_pt_list)
             
@@ -196,7 +215,6 @@ class DSV:
                 Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
                 Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
                 
-            
         
         if 'detrendX' in params:
             X = sig.detrend(X.T).T
@@ -221,28 +239,21 @@ class DSV:
         
     #primary 
     def run_EN(self):
-        #first, learn the coefficients by training and testing
-        self.learn_ENcoeffs()
-        
-        
-    def learn_ENcoeffs(self):
         self.train_F,self.train_C = self.dsgn_F_C(['901','903','905'],week_avg=True)
         #setup our Elastic net here
-        Ealg = PSD_EN(cv=False)
+        Ealg = PSD_EN(cv=True)
         
         print("Training Elastic Net...")
-        #pdb.set_trace()
-        Ealg.Train(self.train_F,self.train_C)
         
-        #coefficients available
+        
+        Ealg.Train(self.train_F,self.train_C)
         
         #test phase
         Ftest,Ctest = self.dsgn_F_C(['906','907','908'],week_avg=True)
         print("Testing Elastic Net...")
-        Ealg.Test(Ftest,Ctest)
+        Ealg.Test(Ftest.T,Ctest.T)
         
         self.ENet = Ealg
-        
         
     ## Ephys shaping methods
     def extract_DayNit(self):

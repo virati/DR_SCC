@@ -10,7 +10,9 @@ THIS USES THE NEW BR_DATAFRAME class
 
 from BR_DataFrame import *
 from ClinVect import CFrame
-from DSV import *
+
+import matplotlib.pyplot as plt
+plt.close('all')
 
 ClinFrame = CFrame()
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
@@ -21,6 +23,7 @@ BRFrame = BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
 BRFrame.check_empty_phases()
 #%%
+from DSV import *
 analysis = DSV(BRFrame,CFrame)
 
 analysis.run_EN()
