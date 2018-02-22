@@ -26,7 +26,10 @@ BRFrame.check_empty_phases()
 from DSV import *
 analysis = DSV(BRFrame,CFrame)
 
+
 analysis.run_EN()
+
+#%%
 plt.figure()
 plt.plot(analysis.ENet.ENet.coef_)
 

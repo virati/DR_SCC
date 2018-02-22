@@ -31,7 +31,17 @@ import DBS_Osc as dbo
 
 from sklearn import linear_model
 
-default_params = {'CrossValid':10}            
+default_params = {'CrossValid':10}
+
+#%%
+#OLD ELASTIC NET METHODS HERE
+
+
+
+
+
+
+#%%            
         
 class PSD_EN:
     def __init__(self,cv=True,alpha=0.5):
@@ -52,7 +62,7 @@ class PSD_EN:
     def Train(self,X,Y):
         #get the shape of the X and Y
         try:
-            assert X.shape[1] == Y.shape[1]
+            assert X.shape[0] == Y.shape[0]
         except:
             pdb.set_trace()
         
@@ -64,6 +74,7 @@ class PSD_EN:
         self.performance['Train_Error'] = self.ENet.score(X,Y)
     
     def Test(self,X,Y_true):
+        
         assert X.shape[0] == Y_true.shape[0]
         
         Y_Pred = self.ENet.predict(X).reshape(-1,1)
@@ -251,7 +262,7 @@ class DSV:
         #test phase
         Ftest,Ctest = self.dsgn_F_C(['906','907','908'],week_avg=True)
         print("Testing Elastic Net...")
-        Ealg.Test(Ftest.T,Ctest.T)
+        Ealg.Test(Ftest,Ctest)
         
         self.ENet = Ealg
         
