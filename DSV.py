@@ -23,8 +23,6 @@ import scipy.signal as sig
 
 import matplotlib.pyplot as plt
 
-from sklearn.linear_model import ElasticNet, ElasticNetCV
-
 import sys
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
 import DBS_Osc as dbo
@@ -32,6 +30,13 @@ import DBS_Osc as dbo
 from sklearn import linear_model
 
 default_params = {'CrossValid':10}
+
+import seaborn as sns
+#sns.set_context("paper")
+
+
+sns.set(font_scale=3)
+sns.set_style("white")
 
 #%%
 #OLD ELASTIC NET METHODS HERE
@@ -51,11 +56,11 @@ class PSD_EN:
             l_ratio = np.linspace(0.2,0.25,20)
             alpha_list = np.linspace(0.10,0.14,50)
             #self.ENet = ElasticNetCV(cv=10,tol=0.01,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
-            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.01,normalize=True,positive=False)
+            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.01,normalize=True,positive=False,copy_X=True)
         else:
             alpha = 0.12
             print('Running Normal ENet w/ alpha ' + str(alpha))
-            self.ENet = ElasticNet(alpha=alpha,l1_ratio=0.1,max_iter=1000,normalize=True,positive=False,fit_intercept=True,precompute=True)
+            self.ENet = ElasticNet(alpha=alpha,l1_ratio=0.1,max_iter=1000,normalize=True,positive=False,fit_intercept=True,precompute=True,copy_X=True)
             
         self.performance = {'Train_Error':0}
             
@@ -292,7 +297,8 @@ class ORegress:
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
             for featname,dofunc in dbo.feat_dict.items():
-                datacontainer = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
+                datacontainer = {ch: self.poly_subtr(rr['Data'][ch]) for ch in rr['Data'].keys()} #THIS OUTPUT IS POST-LOG10'd
+                
                 feat_dict[featname] = dofunc['fn'](datacontainer,self.YFrame.data_basis,dofunc['param'])
             rr.update({'FeatVect':feat_dict})
             
@@ -324,6 +330,7 @@ class ORegress:
         #hardcoded for now, remove later
         nchann = 2
         nfeats = len(dbo.feat_order)
+        label_dict={'Patient':[]}
         
         fmeta = self.YFrame.file_meta
         ptcdict = self.CFrame.clin_dict
@@ -352,31 +359,32 @@ class ORegress:
         #This forms a big list where we make tuples with all our feature vectors for all pt x ph
         #rr goes through the number of observations in each week; which may be 1 if we are averaging
         big_list = [[(rr,ptcdict['DBS'+pt][ph][scale],pt) for rr in pt_dict[pt][ph]] for pt,ph in itt.product(pts,ePhases)]
+        
         #Fully flatten now for all observations
         #this is a big list that works great!
         obs_list = [item for sublist in big_list for item in sublist]
         
+        
         #Piece out the obs_list
         O_dsgn_intermed= np.array([ff[0] for ff in obs_list])
         C_dsgn_intermed = np.array([ff[1] for ff in obs_list]) #to bring it into [0,1]
+        label_dict['Patient'] = [ff[2] for ff in obs_list]
         
-        try:
-            if collapse_chann:
-                O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
-            else:
-                O_dsgn = O_dsgn_intermed
-        except:
-            pdb.set_trace()
         
-        #pdb.set_trace()
-        C_dsgn = sig.detrend(C_dsgn_intermed,axis=-1)
+        if collapse_chann:
+            O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
+        else:
+            O_dsgn = O_dsgn_intermed
+    
         
-        #Final shaping of both outputs
-        O_dsgn = np.log10(O_dsgn)
-        O_dsgn = sig.detrend(O_dsgn,axis=0)
-        O_dsgn = sig.detrend(O_dsgn,axis=1)
+        #We will detrend the CLINICAL SCORES along the -1 axis: SHOULD BE Phase
+        #C_dsgn = sig.detrend(C_dsgn_intermed,axis=-1)
+        C_dsgn = C_dsgn_intermed
         
-        return O_dsgn, C_dsgn
+        #O_dsgn = sig.detrend(O_dsgn,axis=0)
+        #O_dsgn = sig.detrend(O_dsgn,axis=1)
+        
+        return O_dsgn, C_dsgn, label_dict
     
     
         
@@ -400,17 +408,44 @@ class ORegress:
         #     C_dsgn_intermed = np.array(C_dsgn_prelim).reshape((-1,1),order='C')
         # except:
         #     pdb.set_trace()
-            
+
+    def poly_subtr(self,inp_psd,polyord=5):
+        #log10 in_psd first
+        log_psd = 10*np.log10(inp_psd)
+        pchann = np.poly1d(np.polyfit(self.YFrame.data_basis,log_psd,polyord))
+        
+        bl_correction = pchann(self.YFrame.data_basis)
+        
+        return inp_psd - bl_correction
+
+    def O_models(self,plot=True):
+        plt.figure()
+        for meth,mod in self.Model.items():
+            if meth == 'OLS':
+                plt.plot(np.arange(10),mod['Model'].coef_[0],label=meth)
+            elif meth == 'RANSAC':
+                plt.plot(np.arange(10),mod['Model'].estimator_.coef_[0],label=meth)
+            elif meth == 'RIDGE':
+                plt.plot(np.arange(10),mod['Model'].coef_[0],label=meth)
+                
+        plt.legend()
 
     def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False):
-        Otrain,Ctrain = self.dsgn_O_C(['901','903'],week_avg=avgweeks,ignore_flags=ignore_flags)
+        train_pts = ['901','903']
+        test_pts = ['905','907','908','906']
+        Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags)
        
-        Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
+        #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
+        
         
         if method == 'OLS':
-            regmodel = linear_model.LinearRegression()
+            regmodel = linear_model.LinearRegression(normalize=True,copy_X=True,fit_intercept=True)
         elif method == 'RANSAC':
-            regmodel = linear_model.RANSACRegressor(min_samples=inpercent,max_trials=1000)
+            regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=True,copy_X=True),min_samples=inpercent,max_trials=1000)
+        elif method == 'RIDGE':
+            regmodel = linear_model.Ridge(alpha=1.0,copy_X=True,fit_intercept=True,normalize=True)
+            
+        
         
         #Do the model's fit
         #For this method, we'll do it on ALL available features
@@ -418,9 +453,10 @@ class ORegress:
         
         #Test the model's performance in the other patients
         #Generate the testing set data
-        Otest,Ctest = self.dsgn_O_C(['905','906','907','908'],week_avg=avgweeks)
+        
+        Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks)
         #Shape the input oscillatory state vectors
-                        
+        
         #Generate the predicted clinical states
         Cpredictions = regmodel.predict(Otest)
         
@@ -428,8 +464,8 @@ class ORegress:
         #DITHERING STEP?!?!?!?!?!?!?!
         noise = 1
         Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
-        Ctest = sig.detrend(Ctest)
-        Ctest = Ctest
+        #Ctest = sig.detrend(Ctest)
+        #Ctest = Ctest
         
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
         #statistical correlation
@@ -440,27 +476,42 @@ class ORegress:
         self.Model[method]['Performance']['Internal'] = regmodel.score(Otest,Ctest)
         
         #what if we do a final "logistic" part here...
-        
+        self.Otrain = Otrain
+        self.Ctrain = Ctrain
         
         if doplot:
-            plt.figure()
+            #do a plot for each patient on this?
+            for pt in test_pts:
+                plt.figure()
+                #check if the sizes are right
+                assert len(Cpredictions) == len(labels['Patient'])
+                
+                pt_preds = [cpred for cpred,pat in zip(Cpredictions,labels['Patient']) if pat == pt]
+                pt_actuals = [ctest for ctest,pat in zip(Ctest,labels['Patient']) if pat == pt]
+                
+                plt.plot(pt_preds,label='Predicted')
+                plt.plot(pt_actuals,label='Actual')
+                plt.legend()
+                plt.xlabel('Week')
+                plt.ylabel('Normalized Disease Severity')
+                plt.suptitle(pt + ' ' + method)
+                sns.despine()
             
-            plt.plot(Cpredictions,label='Predicted')
-            plt.plot(Ctest,label='Actual')
-            plt.legend()
-            plt.xlabel('Week')
-            plt.ylabel('Normalized Disease Severity')
-            plt.suptitle(method)
             
             plt.figure()
-            plt.scatter(Ctest,Cpredictions)
+            plt.scatter(Ctest,Cpredictions,alpha=0.3)
+            x,y = (np.max(Ctest),np.max(Cpredictions))
+            
+            plt.plot(np.linspace(-x,x,2),np.linspace(-y,y,2))
             plt.xlabel('Actual')
             plt.ylabel('Predicted')
             plt.axis('equal')
             plt.suptitle(method)
+            plt.title('All Observations')
+            sns.despine()
     
     #primary entry for OLS regression
-    def run_OLS(self,doplot=False):
+    def DEPRrun_OLS(self,doplot=False):
         #assumes we're running on \vec{O}
         Otrain,Ctrain = self.dsgn_O_C(['901','903'])
        
@@ -508,7 +559,7 @@ class ORegress:
             plt.scatter(Ctest,Cpredictions)
         
         
-    def run_RANSAC(self,inpercent=0.4,doplot=False):
+    def DEPRrun_RANSAC(self,inpercent=0.4,doplot=False):
         Otrain,Ctrain = self.dsgn_O_C(['901','903'])
        
         # Can probably just do a regression now...

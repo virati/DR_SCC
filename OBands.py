@@ -32,12 +32,21 @@ class OBands:
         #Bring in the BR Data Frame
         self.BRFrame = BRFrame
         
+    def poly_subtr(self,inp_psd,polyord=6):
+        pchann = np.poly1d(np.polyfit(self.BRFrame.data_basis,inp_psd,polyord))
+        
+        return inp_psd - pchann
+        
     def feat_extract(self):
         big_list = self.BRFrame.file_meta
+        #go through ALL files and do the feature extraction
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
             for featname,dofunc in dbo.feat_dict.items():
                 datacontainer = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
+                #Do we want to do any preprocessing for the PSDs before we send it to the next round?
+                #Maybe a poly-fit subtraction?
+                
                 feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
             rr.update({'FeatVect':feat_dict})
          

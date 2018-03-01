@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
+#%%
 
 ClinFrame = CFrame()
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
@@ -32,14 +33,21 @@ analysis = ORegress(BRFrame,CFrame)
 analysis.O_feat_extract()
 
 #%%
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.2,avgweeks=False)
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.8,avgweeks=False)
 #%%
-analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
+#analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
+analysis.O_regress(method='RIDGE',doplot=True,inpercent=0.6,avgweeks=True)
+#analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
+
+
+#%%
+#Plot model coefficients
+analysis.O_models(plot=True)
 
 #%%
 
-O1,C1 = analysis.dsgn_O_C(['901','903'],week_avg=False)
+#O1,C1 = analysis.dsgn_O_C(['901','903'],week_avg=False)
 
 #%%
 
