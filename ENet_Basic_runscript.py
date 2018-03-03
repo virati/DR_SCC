@@ -31,7 +31,11 @@ analysis.run_EN()
 
 #%%
 plt.figure()
-plt.plot(analysis.ENet.ENet.coef_)
+coeff_len = int(analysis.ENet.ENet.coef_.shape[0]/2)
+
+plt.plot(analysis.trunc_fvect,analysis.ENet.ENet.coef_[0:coeff_len],label='Left Feats')
+plt.plot(analysis.trunc_fvect,analysis.ENet.ENet.coef_[coeff_len:],label='Right Feats')
+plt.legend()
 
 #then call the premade methods for analysing EN results for this analysis
 

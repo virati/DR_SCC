@@ -15,7 +15,7 @@ import itertools as itt
 
 import json
 
-import pdb
+import ipdb
 
 import numpy as np
 import scipy.stats as stats
@@ -53,25 +53,26 @@ class PSD_EN:
 
         if cv:
             print('Running ENet CV')
-            l_ratio = np.linspace(0.2,0.25,20)
-            alpha_list = np.linspace(0.10,0.14,50)
+            l_ratio = np.linspace(0.2,0.3,50)
+            alpha_list = np.linspace(0.10,0.4,150)
             #self.ENet = ElasticNetCV(cv=10,tol=0.01,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
-            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.01,normalize=True,positive=False,copy_X=True)
+            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.01,normalize=True,positive=False,copy_X=True,fit_intercept=True)
         else:
             alpha = 0.12
             print('Running Normal ENet w/ alpha ' + str(alpha))
             self.ENet = ElasticNet(alpha=alpha,l1_ratio=0.1,max_iter=1000,normalize=True,positive=False,fit_intercept=True,precompute=True,copy_X=True)
             
-        self.performance = {'Train_Error':0}
+        self.performance = {'Train_Error':0,'Test_Error':0}
             
     def Train(self,X,Y):
         #get the shape of the X and Y
         try:
             assert X.shape[0] == Y.shape[0]
         except:
-            pdb.set_trace()
+            ipdb.set_trace()
         
         self.n_obs = Y.shape[0]
+        
         
         
         self.ENet.fit(X,Y)
@@ -85,11 +86,12 @@ class PSD_EN:
         Y_Pred = self.ENet.predict(X).reshape(-1,1)
         
         plt.figure()
-        plt.plot((sig.detrend(Y_Pred,axis=0)),label='Predicted')
-        plt.plot((sig.detrend(Y_true,axis=0)),label='Actual')
+        plt.plot(Y_Pred,label='Predicted')
+        plt.plot(Y_true,label='Actual')
         plt.legend()
         
         self.Ys = (Y_Pred,Y_true)
+        self.performance['Test_Error'] = self.ENet.score(X,Y_true)
         
 
 class DSV:
@@ -145,7 +147,10 @@ class DSV:
             ALL_dsgn = np.array(biglist)
             ALL_score = np.array(big_score)
         
-        F_dsgn = np.squeeze(ALL_dsgn).reshape(-1,self.freq_bins,order='C')
+        self.all_dsgn = ALL_dsgn
+        self.all_score = ALL_score
+        
+        F_dsgn = np.swapaxes(np.squeeze(ALL_dsgn),1,2).reshape(-1,self.freq_bins,order='C')
         C_dsgn = np.squeeze(ALL_score).reshape(-1,1,order='C').astype(np.float64)
             
         #if we want to reshape, do it here!
@@ -158,7 +163,7 @@ class DSV:
         #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
         #Do log transform of all of it
         
-        preproc = ['log','polysub','limfreq','detrend']
+        preproc = ['log','polysub','limfreq']
         
         fix_pt_list = pt_list
         
@@ -195,18 +200,20 @@ class DSV:
         if 'limfreq' in preproc:
             print('Limiting Frequency')
             freq_idx = np.tile(np.linspace(0,211,513),2)
-            fmax = 80
-            keep_idx = np.where(freq_idx <= fmax)
+            fmax = 90
+            keep_idx = np.where(freq_idx <= fmax)[0]
             
-            fix_pt_list = fix_pt_list[keep_idx[0],:]
+            fix_pt_list = fix_pt_list[keep_idx,:]
             
-            self.freq_bins = len(keep_idx[0])
+            self.freq_bins = len(keep_idx)
+            self.trunc_fvect = np.linspace(0,fmax,len(keep_idx)/2)
             
         
         if 'detrend':
             fix_pt_list = sig.detrend(fix_pt_list,axis=0)
         
         fix_pt_list = np.squeeze(fix_pt_list)
+        
         if plot:
             plt.figure()
             #plt.plot(fix_pt_list)
@@ -220,7 +227,7 @@ class DSV:
             
         return fix_pt_list
     
-    def shape_F_C(self,X,Y,params):
+    def DEPRshape_F_C(self,X,Y,params):
         
         if 'logged' in params:
             X = np.log10(X)
@@ -256,11 +263,12 @@ class DSV:
     #primary 
     def run_EN(self):
         self.train_F,self.train_C = self.dsgn_F_C(['901','903','905'],week_avg=True)
+        
+        
         #setup our Elastic net here
         Ealg = PSD_EN(cv=True)
         
         print("Training Elastic Net...")
-        
         
         Ealg.Train(self.train_F,self.train_C)
         
@@ -502,7 +510,7 @@ class ORegress:
             plt.scatter(Ctest,Cpredictions,alpha=0.3)
             x,y = (np.max(Ctest),np.max(Cpredictions))
             
-            plt.plot(np.linspace(-x,x,2),np.linspace(-y,y,2))
+            plt.plot(np.linspace(0,x,2),np.linspace(0,y,2))
             plt.xlabel('Actual')
             plt.ylabel('Predicted')
             plt.axis('equal')
