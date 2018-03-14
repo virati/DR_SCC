@@ -34,7 +34,7 @@ class Z_Frame:
         #compute the recording contacts
         pt_dict = self.pt_dict
         new_dict = {key:(np.array(val['OnT']) + 1, np.array(val['OnT']) - 1) for key,val in pt_dict.items()}
-        self.pt_dict.2
+        
         
             
         

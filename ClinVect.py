@@ -21,9 +21,9 @@ import matplotlib.pyplot as plt
 
 class CFrame:
     do_pts = ['901','903','905','906','907','908']
-    scale_max = {'HDRS17':40}
+    scale_max = {'HDRS17':40,'MADRS':50,'BDI':60,'GAF':100}
     
-    def __init__(self,incl_data = ['HDRS17','MADRS','BDI','GAF','dates']):
+    def __init__(self,incl_data = ['HDRS17','MADRS','BDI','GAF','dates'],norm_scales=False):
         #load in our JSON file
         #Import the data structure needed for the CVect
         ClinVect = json.load(open('/home/virati/Dropbox/ClinVec.json'))
@@ -33,7 +33,10 @@ class CFrame:
             clin_dict[ab['pt']] = defaultdict(dict)
             for phph,phase in enumerate(ClinVect['HAMDs'][pp]['phases']):
                 for ss,scale in enumerate(incl_data):
-                    clin_dict[ab['pt']][phase][scale] = ab[scale][phph]
+                    if norm_scales and scale != 'dates':
+                        clin_dict[ab['pt']][phase][scale] = ab[scale][phph] / self.scale_max[scale]
+                    else:
+                        clin_dict[ab['pt']][phase][scale] = ab[scale][phph]
         
         self.clin_dict = clin_dict
         

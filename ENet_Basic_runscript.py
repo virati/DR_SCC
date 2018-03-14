@@ -14,7 +14,7 @@ from ClinVect import CFrame
 import matplotlib.pyplot as plt
 plt.close('all')
 
-ClinFrame = CFrame()
+ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
@@ -24,18 +24,21 @@ BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
 BRFrame.check_empty_phases()
 #%%
 from DSV import *
-analysis = DSV(BRFrame,CFrame)
+analysis = DSV(BRFrame,ClinFrame)
 
+ENet_params = {'Alpha':(0.2,0.5),'Lambda':(0.5,0.6)}
 
 analysis.run_EN()
 
 #%%
-plt.figure()
-coeff_len = int(analysis.ENet.ENet.coef_.shape[0]/2)
+#aanalysis.plot_dsgn_matrix()
 
-plt.plot(analysis.trunc_fvect,analysis.ENet.ENet.coef_[0:coeff_len],label='Left Feats')
-plt.plot(analysis.trunc_fvect,analysis.ENet.ENet.coef_[coeff_len:],label='Right Feats')
-plt.legend()
+analysis.plot_tests()
+analysis.plot_EN_coeffs()
+
+#%%
+analysis.plot_dsgn_matrix()
+
 
 #then call the premade methods for analysing EN results for this analysis
 

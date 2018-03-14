@@ -53,16 +53,25 @@ class PSD_EN:
 
         if cv:
             print('Running ENet CV')
-            l_ratio = np.linspace(0.2,0.3,50)
-            alpha_list = np.linspace(0.10,0.4,150)
+            #This works great!
+            #l_ratio = np.linspace(0.1,0.2,50)
+            #alpha_list = np.linspace(0.2,0.5,150)
+            
+            #play around here
+            l_ratio = np.linspace(0.2,0.5,20)
+            alpha_list = np.linspace(0.7,0.9,10)
+            
+            
             #self.ENet = ElasticNetCV(cv=10,tol=0.01,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
-            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.01,normalize=True,positive=False,copy_X=True,fit_intercept=True)
+            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.001,normalize=True,positive=False,copy_X=True,fit_intercept=True)
         else:
+            raise ValueError
             alpha = 0.12
             print('Running Normal ENet w/ alpha ' + str(alpha))
             self.ENet = ElasticNet(alpha=alpha,l1_ratio=0.1,max_iter=1000,normalize=True,positive=False,fit_intercept=True,precompute=True,copy_X=True)
             
         self.performance = {'Train_Error':0,'Test_Error':0}
+        
             
     def Train(self,X,Y):
         #get the shape of the X and Y
@@ -75,9 +84,10 @@ class PSD_EN:
         
         
         
-        self.ENet.fit(X,Y)
+        self.ENet.fit(X,Y.reshape(-1))
             
         self.performance['Train_Error'] = self.ENet.score(X,Y)
+        print('ENet CV Params: Alpha: ' + str(self.ENet.alpha_) + ' l ratio: ' + str(self.ENet.l1_ratio_))
     
     def Test(self,X,Y_true):
         
@@ -85,25 +95,25 @@ class PSD_EN:
         
         Y_Pred = self.ENet.predict(X).reshape(-1,1)
         
-        plt.figure()
-        plt.plot(Y_Pred,label='Predicted')
-        plt.plot(Y_true,label='Actual')
-        plt.legend()
-        
         self.Ys = (Y_Pred,Y_true)
         self.performance['Test_Error'] = self.ENet.score(X,Y_true)
+        self.performance['PearsonR'] = stats.pearsonr(stats.zscore(Y_Pred),stats.zscore(Y_true))
         
 
 class DSV:
-    def __init__(self, BRFrame,CFrame):
+    def __init__(self, BRFrame,ClinFrame):
         #load in the BrainRadio DataFrame we want to work with
         self.YFrame = BRFrame
         
         #Load in the clinical dataframe we will work with
-        self.CFrame = CFrame()
+        self.CFrame = ClinFrame
         self.dsgn_shape_params = ['logged']#,'detrendX','detrendY','zscoreX','zscoreY']
         
         self.Model = {}
+        
+        self.train_pts = ['901','903','905']
+        self.test_pts = ['906','907','908']
+        
             
     
     def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
@@ -139,7 +149,7 @@ class DSV:
                 pt_list = np.squeeze(np.array(pt_list))
                 
                 #THIS IS WHERE SHAPING WILL HAPPEN
-                pt_list = self.shape_PSD_stack(pt_list,plot=True)
+                pt_list,polyvect = self.shape_PSD_stack(pt_list,plot=False)
                 
                 biglist.append(pt_list)
                 big_score.append(pt_score)
@@ -157,15 +167,19 @@ class DSV:
         #F_dsgn,C_dsgn = self.shape_F_C(X_dsgn,Y_dsgn,self.dsgn_shape_params)
         
         
-        return F_dsgn, C_dsgn
+        return F_dsgn, 100*C_dsgn
 
     def shape_PSD_stack(self,pt_list,polyord=6,plot=False):
         #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
         #Do log transform of all of it
         
         preproc = ['log','polysub','limfreq']
+        fmax = 140
         
         fix_pt_list = pt_list
+        
+        pLeft = []
+        pRight = []
         
         if 'log' in preproc:
             pt_list = 20 * np.log10(pt_list[:,:].T)
@@ -200,7 +214,7 @@ class DSV:
         if 'limfreq' in preproc:
             print('Limiting Frequency')
             freq_idx = np.tile(np.linspace(0,211,513),2)
-            fmax = 90
+            
             keep_idx = np.where(freq_idx <= fmax)[0]
             
             fix_pt_list = fix_pt_list[keep_idx,:]
@@ -225,33 +239,7 @@ class DSV:
             plt.subplot(212);
             plt.plot(fix_pt_list)
             
-        return fix_pt_list
-    
-    def DEPRshape_F_C(self,X,Y,params):
-        
-        if 'logged' in params:
-            X = np.log10(X)
-        
-        if 'polyrem' in params:
-            
-            for obs in range(X.shape[0]):
-                Pl = np.polyfit(self.YFrame.data_basis,X[obs,0:513],5)
-                Pr = np.polyfit(self.YFrame.data_basis,X[obs,512:],5)
-                
-        
-        if 'detrendX' in params:
-            X = sig.detrend(X.T).T
-        
-        if 'detrendY' in params:
-            Y = sig.detrend(Y)
-            
-        if 'zscoreX' in params:
-            X = stats.zscore(X.T).T
-            
-        if 'zscoreY' in params:
-            Y = stats.zscore(Y)
-            
-        return X,Y
+        return fix_pt_list,(pLeft,pRight)
             
     def get_dsgns(self):
         assert self.X_dsgn.shape[1] == 1025
@@ -259,11 +247,20 @@ class DSV:
         
         return self.X_dsgn, self.Y_dsgn
               
+    def plot_dsgn_matrix(self):
+        one_side_bins = int(self.freq_bins/2)
+        plt.figure()
+        plt.subplot(1,2,1)
+        plt.plot(self.trunc_fvect, self.train_F.T[:one_side_bins])
+        plt.title('Left Channel')
+        
+        plt.subplot(1,2,2)
+        plt.plot(self.trunc_fvect,self.train_F.T[one_side_bins:])
+        plt.title('Right Channel')
         
     #primary 
     def run_EN(self):
-        self.train_F,self.train_C = self.dsgn_F_C(['901','903','905'],week_avg=True)
-        
+        self.train_F,self.train_C = self.dsgn_F_C(self.train_pts,week_avg=True)
         
         #setup our Elastic net here
         Ealg = PSD_EN(cv=True)
@@ -273,12 +270,39 @@ class DSV:
         Ealg.Train(self.train_F,self.train_C)
         
         #test phase
-        Ftest,Ctest = self.dsgn_F_C(['906','907','908'],week_avg=True)
+        
+        Ftest,Ctest = self.dsgn_F_C(self.test_pts,week_avg=True)
         print("Testing Elastic Net...")
         Ealg.Test(Ftest,Ctest)
         
+        
+        
         self.ENet = Ealg
         
+    def plot_EN_coeffs(self):
+        plt.figure()
+        coeff_len = int(self.ENet.ENet.coef_.shape[0]/2)
+        
+        plt.plot(self.trunc_fvect,self.ENet.ENet.coef_[0:coeff_len],label='Left Feats')
+        plt.plot(self.trunc_fvect,self.ENet.ENet.coef_[coeff_len:],label='Right Feats')
+        plt.legend()
+        
+    def plot_tests(self):
+        
+        #Now plot them if we'd like
+        num_pts = len(self.test_pts)
+        total_obs = len(self.ENet.Ys[0])
+        per_pt_obs = int(total_obs / num_pts)
+    
+        norm_func = stats.zscore
+        for pp,pt in enumerate(self.test_pts):
+            plt.figure()
+            
+            plt.plot(stats.zscore(self.ENet.Ys[0][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Predicted')
+            plt.plot(stats.zscore(self.ENet.Ys[1][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Actual')
+            plt.legend()
+            plt.title(pt)
+            
     ## Ephys shaping methods
     def extract_DayNit(self):
         #stratify recordings based on Day/Night
@@ -290,11 +314,11 @@ class DSV:
 
 
 class ORegress:
-    def __init__(self,BRFrame,CFrame):
+    def __init__(self,BRFrame,inCFrame):
         self.YFrame = BRFrame
         
         #Load in the clinical dataframe we will work with
-        self.CFrame = CFrame()
+        self.CFrame = inCFrame
         self.dsgn_shape_params = ['logged','polyrem']#,'detrendX','detrendY','zscoreX','zscoreY']
         
         self.Model = {}
@@ -427,18 +451,61 @@ class ORegress:
         return inp_psd - bl_correction
 
     def O_models(self,plot=True):
+        sns.set_style("ticks")
         plt.figure()
-        for meth,mod in self.Model.items():
-            if meth == 'OLS':
-                plt.plot(np.arange(10),mod['Model'].coef_[0],label=meth)
-            elif meth == 'RANSAC':
-                plt.plot(np.arange(10),mod['Model'].estimator_.coef_[0],label=meth)
-            elif meth == 'RIDGE':
-                plt.plot(np.arange(10),mod['Model'].coef_[0],label=meth)
+        
+        mod = self.Model['RIDGE']
+    
+        sides = ['Left','Right']
+        
+        ridge_cs = {key:0 for key in sides}
+        rans_cs = {key:0 for key in sides}
+        ridge_cs['Left'] = mod['Model'].coef_[0][:5]
+        ridge_cs['Right'] = mod['Model'].coef_[0][5:]
+        
+        mod = self.Model['RANSAC']
+        rans_cs['Left'] = mod['Model'].estimator_.coef_[0][:5]
+        rans_cs['Right'] = mod['Model'].estimator_.coef_[0][5:]
+        
+        
+        plt.figure()
+        for ss,side in enumerate(sides):
+            plt.subplot(1,2,ss+1)
+            plt.plot(np.arange(5),ridge_cs[side],label='Ridge')
+            plt.plot(np.arange(5),rans_cs[side],label='RANSAC')
+            
+            plt.xticks(np.arange(5),['Delta','Theta','Alpha','Beta','Gamma*'],rotation=70)
+            plt.xlim((0,4))
+            
+            plt.xlabel('Feature')
+            plt.ylim((-0.3,0.3))
+            
+        plt.subplot(1,2,1)
+        plt.ylabel('Coefficient Value')
+            
+        # for meth,mod in self.Model.items():
+        #     if meth == 'RIDGE':
+        #         plt.subplot(2,2,1)
+        #         plt.plot(np.arange(5),mod['Model'].coef_[0][:5],label=meth)
+        #         plt.subplot(2,2,2)
+        #         plt.plot(np.arange(5),mod['Model'].coef_[0][5:],label=meth)
+        #     elif meth == 'RANSAC':
+        #         plt.subplot(2,2,3)
+        #         plt.plot(np.arange(5),mod['Model'].estimator_.coef_[0][:5],label=meth)
+        #         plt.subplot(2,2,4)
+        #         plt.plot(np.arange(5),mod['Model'].estimator_.coef_[0][5:],label=meth)
                 
+        # plt.subplot(2,2,1)
+        # #plt.plot(np.arange(-1,5),np.zeros((6,1)))
+        
+        # plt.subplot(2,2,2)
+        # #plt.plot(np.arange(-1,5),np.zeros((6,1)))
+        
+        
+        
         plt.legend()
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False):
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True):
         train_pts = ['901','903']
         test_pts = ['905','907','908','906']
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags)
@@ -448,10 +515,13 @@ class ORegress:
         
         if method == 'OLS':
             regmodel = linear_model.LinearRegression(normalize=True,copy_X=True,fit_intercept=True)
+            scatter_alpha = 0.9
         elif method == 'RANSAC':
-            regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=True,copy_X=True),min_samples=inpercent,max_trials=1000)
+            regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=False,fit_intercept=True,copy_X=True),min_samples=inpercent,max_trials=1000)
+            scatter_alpha = 0.1
         elif method == 'RIDGE':
-            regmodel = linear_model.Ridge(alpha=1.0,copy_X=True,fit_intercept=True,normalize=True)
+            regmodel = linear_model.Ridge(alpha=1.0,copy_X=True,fit_intercept=True,normalize=False)
+            scatter_alpha = 0.9
             
         
         
@@ -471,13 +541,17 @@ class ORegress:
         #Adding a bit of random noise may actually help, doesn't hurt
         #DITHERING STEP?!?!?!?!?!?!?!
         noise = 1
-        Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
+        #Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
         #Ctest = sig.detrend(Ctest)
         #Ctest = Ctest
         
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
         #statistical correlation
-        res = stats.pearsonr(Cpredictions,Ctest.astype(float).reshape(-1,1))
+        cpred_msub = sig.detrend(Cpredictions)
+        ctest_msub = sig.detrend(Ctest)
+        
+        res = stats.pearsonr(cpred_msub,ctest_msub.astype(float).reshape(-1,1))
+        
         self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr':res,'Internal':0}}})
         
         #let's do internal scoring for a second
@@ -486,6 +560,7 @@ class ORegress:
         #what if we do a final "logistic" part here...
         self.Otrain = Otrain
         self.Ctrain = Ctrain
+        
         
         if doplot:
             #do a plot for each patient on this?
@@ -500,113 +575,48 @@ class ORegress:
                 plt.plot(pt_preds,label='Predicted')
                 plt.plot(pt_actuals,label='Actual')
                 plt.legend()
+                
                 plt.xlabel('Week')
                 plt.ylabel('Normalized Disease Severity')
                 plt.suptitle(pt + ' ' + method)
                 sns.despine()
             
             
-            plt.figure()
-            plt.scatter(Ctest,Cpredictions,alpha=0.3)
-            x,y = (np.max(Ctest),np.max(Cpredictions))
             
-            plt.plot(np.linspace(0,x,2),np.linspace(0,y,2))
+            x,y = (1,1)
+            if ranson:
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.8)
+            else:
+                assesslr = linear_model.LinearRegression(fit_intercept=True)
+            
+            assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            line_x = np.linspace(0,1,20).reshape(-1,1)
+            line_y = assesslr.predict(line_x)
+            
+            if ranson:
+                inlier_mask = assesslr.inlier_mask_
+                corrcoef = assesslr.estimator_.coef_[0]
+                
+            else:
+                inlier_mask = np.ones_like(Ctest).astype(bool)
+                corrcoef = assesslr.coef_[0]
+                
+            outlier_mask = np.logical_not(inlier_mask)
+            
+            self.Model[method]['Performance']['Regression'] = assesslr
+            print('Model has ' + str(corrcoef) + ' correlation with real score')
+            
+            plt.figure()
+            plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
+            plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
+            plt.plot(np.linspace(0,x,2),np.linspace(0,y,2),alpha=0.2,color='gray')
+            plt.plot(line_x,line_y,color='red')
+            
             plt.xlabel('Actual')
             plt.ylabel('Predicted')
-            plt.axis('equal')
+            plt.xlim((0,1))
+            plt.ylim((0,1))
+            
             plt.suptitle(method)
-            plt.title('All Observations')
+            #plt.title('All Observations')
             sns.despine()
-    
-    #primary entry for OLS regression
-    def DEPRrun_OLS(self,doplot=False):
-        #assumes we're running on \vec{O}
-        Otrain,Ctrain = self.dsgn_O_C(['901','903'])
-       
-        # Can probably just do a regression now...
-        Otrain = np.log10(Otrain)
-        Otrain = sig.detrend(Otrain,axis=-1)
-        Otrain = stats.zscore(Otrain)
-        
-        Ctrain = sig.detrend(Ctrain)
-        Ctrain = stats.zscore(Ctrain)
-        
-        OLSapproach = linear_model.LinearRegression()
-        
-        side = 'all'
-        noise = 1
-        if side == 'left':
-            featidxs = range(0,5)
-        elif side == 'right':
-            featidxs = range(5,10)
-        elif side == 'all':
-            featidxs = range(0,10)
-        
-        OLSapproach.fit(Otrain[:,featidxs],Ctrain.reshape(-1,1))
-        
-        Otest,Ctest = self.dsgn_O_C(['905','906','907','908'])
-        Otest = sig.detrend(np.log10(Otest),axis=-1)
-        Otest = stats.zscore(Otest)
-        Cpredictions = OLSapproach.predict(Otest[:,featidxs])
-        
-        #DITHERING STEP?!?!?!?!?!?!?!
-        Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
-        Ctest = sig.detrend(Ctest)
-        Ctest = stats.zscore(Ctest)
-        
-        #statistical correlation
-        res = stats.pearsonr(Cpredictions,Ctest.astype(float).reshape(-1,1))
-        self.OLS = {'Model':OLSapproach,'Performance':{'PCorr_Zscore':res}}
-        
-        if doplot:
-            plt.figure()
-            plt.plot(Cpredictions)
-            plt.plot(Ctest)
-            
-            plt.figure()
-            plt.scatter(Ctest,Cpredictions)
-        
-        
-    def DEPRrun_RANSAC(self,inpercent=0.4,doplot=False):
-        Otrain,Ctrain = self.dsgn_O_C(['901','903'])
-       
-        # Can probably just do a regression now...
-        Otrain = np.log10(Otrain)
-        Otrain = sig.detrend(Otrain,axis=-1)
-        Otrain = stats.zscore(Otrain)
-        
-        Ctrain = sig.detrend(Ctrain)
-        Ctrain = stats.zscore(Ctrain)
-        
-        Rapproach = linear_model.RANSACRegressor(min_samples=inpercent,max_trials=1000)
-        
-        side = 'left'
-        noise = 1
-        if side == 'left':
-            featidxs = range(0,5)
-        else:
-            featidxs = range(5,10)
-        
-        Rapproach.fit(Otrain[:,featidxs],Ctrain.reshape(-1,1))
-        
-        Otest,Ctest = self.dsgn_O_C(['905','906','907','908'])
-        Otest = sig.detrend(np.log10(Otest),axis=-1)
-        Otest = stats.zscore(Otest)
-        Cpredictions = Rapproach.predict(Otest[:,featidxs])
-        
-        #DITHERING STEP?!?!?!?!?!?!?!
-        Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
-        Ctest = sig.detrend(Ctest)
-        Ctest = stats.zscore(Ctest)
-        
-        #statistical correlation
-        res = stats.pearsonr(Cpredictions,Ctest.astype(float).reshape(-1,1))
-        self.RANSAC = {'Model':Rapproach,'Performance':{'PCorr_Zscore':res}}
-        
-        if doplot:
-            plt.figure()
-            plt.plot(Cpredictions)
-            plt.plot(Ctest)
-            
-            plt.figure()
-            plt.scatter(Ctest,Cpredictions)

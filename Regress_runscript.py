@@ -17,7 +17,7 @@ plt.close('all')
 
 #%%
 
-ClinFrame = CFrame()
+ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
@@ -29,15 +29,17 @@ BRFrame.check_empty_phases()
 #%%
 from DSV import DSV, ORegress
 
-analysis = ORegress(BRFrame,CFrame)
+analysis = ORegress(BRFrame,ClinFrame)
 analysis.O_feat_extract()
 
 #%%
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.8,avgweeks=False)
-#%%
+dorsac = False
+
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.8,avgweeks=False,ranson=dorsac)
+
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-analysis.O_regress(method='RIDGE',doplot=True,inpercent=0.6,avgweeks=True)
+analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac)
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
 
 
