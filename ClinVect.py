@@ -13,6 +13,8 @@ import numpy as np
 import sys
 import pdb
 
+import scipy.signal as sig
+
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
 import DBS_Osc as dbo
 
@@ -38,9 +40,17 @@ class CFrame:
                     else:
                         clin_dict[ab['pt']][phase][scale] = ab[scale][phph]
         
+        self.do_scales = incl_data[0:-1]
         self.clin_dict = clin_dict
         
-    def gen_subdim(self,latentdim=1):
+        self.derived_measures()
+        self.load_stim_changes()
+        
+    def derived_measures(self):
+        self.mHDRS_gen()
+        self.dss_gen()
+        
+    def DEPRgen_subdim(self,latentdim=1):
         #just do it for all patients
         for pp,pat in enumerate(self.do_pts):
             all_cscores = (' '.join(w) for w in self.clin_dict[pat])
@@ -68,6 +78,23 @@ class CFrame:
         #return dictionary with all scales, and each element of that dictionary should be a NP vector
         pt_tcourse = {rr:self.clin_dict['DBS'+pt][rr] for rr in self.clin_dict['DBS'+pt]}
         return pt_tcourse
+    
+
+    def load_stim_changes(self):
+        pass
+    
+    def mHDRS_gen(self):
+        for ss,scale in enumerate(self.do_scales):
+            for pat in self.clin_dict.keys():
+                self.clin_dict[pat]['mHDRS'] = sig.medfilt(self.clin_dict[pat]['HDRS17'],5)
+                
+    def dss_gen(self):
+        pass
+    
+    def c_dict(self):
+        #This will generate a dictionary with each key being a scale, but each value being a matrix for all patients and timepoints
+        pass
+        
         
     def c_vect(self):
         #each patient will be a dict key

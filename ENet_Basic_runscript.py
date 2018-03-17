@@ -14,17 +14,18 @@ from ClinVect import CFrame
 import matplotlib.pyplot as plt
 plt.close('all')
 
+#%%
 ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 #%%
 BRFrame = BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_March.npy')
 BRFrame.check_empty_phases()
 #%%
 from DSV import *
-analysis = DSV(BRFrame,ClinFrame)
+analysis = DSV(BRFrame,ClinFrame,lim_freq=30)
 
 ENet_params = {'Alpha':(0.2,0.5),'Lambda':(0.5,0.6)}
 

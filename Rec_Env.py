@@ -24,8 +24,8 @@ class Z_Frame:
         Z_table = df.as_matrix()
         self.Z_table = Z_table
         
-        lefts = big_table[0::4,0::2]
-        rights = big_table[0::4,1::2]
+        lefts = Z_table[0::4,0::2]
+        rights = Z_table[0::4,1::2]
         #Z table is now loaded in
         
         #load in the active contacts

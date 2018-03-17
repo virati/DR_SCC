@@ -74,18 +74,30 @@ class BR_Data_Tree():
     def Check_GC(self):
         #do just the key features
         #get the stim-related and gc related measures
+        print('Checking for Gain Compression...')
         for rr in self.file_meta:
             gc_measures = ['Stim','SHarm','THarm','fSlope','nFloor']
-            gc_results = defaultdict(dict)
+            gc_results = {key:0 for key in gc_measures}
             for meas in gc_measures:
                 dofunc = dbo.feat_dict[meas]
                 gc_results[meas] = dofunc['fn'](rr['Data'],self.data_basis,dofunc['param'])
         
             # let's do some logic to find out if GC is happening
-            isgc = (gc_results['nFloor']['Left'] > 0.2 or gc_results['nFloor']['Right']) and (gc_results['SHarm']['Left'] / gc_results['THarm']['Left'] < 1 or gc_results['SHarm']['Right'] / gc_results['THarm']['Right'] < 1)
+            isgc = (gc_results['nFloor']['Left'] < -8 or gc_results['nFloor']['Right'] < -8) and (gc_results['SHarm']['Left'] / gc_results['THarm']['Left'] < 1 or gc_results['SHarm']['Right'] / gc_results['THarm']['Right'] < 1)
             
-            rr.update({'GC_Flag':{'Flag':isgc,'Raw':gc_results}})
+            #check if stim is on
+            isstim = (gc_results['Stim']['Left'] > 0.0001 or gc_results['Stim']['Right'] > 0.0001)
+            
+            rr.update({'GC_Flag':{'Flag':isgc,'Raw':gc_results,'Stim':isstim}})
         
+    def plot_GC_distribution(self):
+        gc_plot = [None] * len(self.file_meta)
+        
+        for rr,rec in enumerate(self.file_meta):
+            gc_plot[rr] = {side: rec['GC_Flag']['Raw']['SHarm'][side] / rec['GC_Flag']['Raw']['THarm'][side] for side in ['Left','Right']}
+            
+        plt.figure()
+        plt.plot(gc_plot)
         
     def Remove_BadFlags(self):
         self.file_meta = [rr for rr in self.file_meta if rr['BadFlag'] != True]
@@ -249,6 +261,7 @@ class BR_Data_Tree():
                 #load in the file
                 print('Loading in ' + rr['Filename'])
                 precheck_data = self.load_file(rr['Filename'],domain=domain)
+                
                 if precheck_data['Left'].all() != 0 and precheck_data['Right'].all() != 0:
                     rr.update({'Data':precheck_data})
                 else:
@@ -279,7 +292,7 @@ class BR_Data_Tree():
         sec_end = self.sec_end
         
         #extract channels
-        X = {'Left':txtdata[-(422*sec_end):-1,0],'Right':txtdata[-(422*sec_end):-1,2]}
+        X = {'Left':txtdata[-(422*sec_end):-1,0].reshape(-1,1),'Right':txtdata[-(422*sec_end):-1,2].reshape(-1,1)}
         
         F = defaultdict(dict)
         

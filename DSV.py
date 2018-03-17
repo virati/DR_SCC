@@ -34,7 +34,6 @@ default_params = {'CrossValid':10}
 import seaborn as sns
 #sns.set_context("paper")
 
-
 sns.set(font_scale=3)
 sns.set_style("white")
 
@@ -54,16 +53,16 @@ class PSD_EN:
         if cv:
             print('Running ENet CV')
             #This works great!
-            #l_ratio = np.linspace(0.1,0.2,50)
-            #alpha_list = np.linspace(0.2,0.5,150)
+            #l_ratio = np.linspace(0.2,0.5,20)
+            #alpha_list = np.linspace(0.7,0.9,10)
             
             #play around here
-            l_ratio = np.linspace(0.2,0.5,20)
-            alpha_list = np.linspace(0.7,0.9,10)
+            l_ratio = np.linspace(0.2,0.3,20)
+            alpha_list = np.linspace(0.7,0.8,10)
             
             
             #self.ENet = ElasticNetCV(cv=10,tol=0.01,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
-            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=5,tol=0.001,normalize=True,positive=False,copy_X=True,fit_intercept=True)
+            self.ENet = ElasticNetCV(l1_ratio=l_ratio,alphas=alpha_list,cv=15,tol=0.001,normalize=True,positive=False,copy_X=True,fit_intercept=True)
         else:
             raise ValueError
             alpha = 0.12
@@ -85,7 +84,12 @@ class PSD_EN:
         
         
         self.ENet.fit(X,Y.reshape(-1))
-            
+        
+        #do a predict to see what the fit is for
+        Y_train_pred = self.ENet.predict(X).reshape(-1,1)
+        
+        self.train_Ys = (Y_train_pred,Y)
+        
         self.performance['Train_Error'] = self.ENet.score(X,Y)
         print('ENet CV Params: Alpha: ' + str(self.ENet.alpha_) + ' l ratio: ' + str(self.ENet.l1_ratio_))
     
@@ -101,7 +105,7 @@ class PSD_EN:
         
 
 class DSV:
-    def __init__(self, BRFrame,ClinFrame):
+    def __init__(self, BRFrame,ClinFrame,lim_freq=50):
         #load in the BrainRadio DataFrame we want to work with
         self.YFrame = BRFrame
         
@@ -111,10 +115,9 @@ class DSV:
         
         self.Model = {}
         
-        self.train_pts = ['901','903','905']
-        self.test_pts = ['906','907','908']
-        
-            
+        self.lim_freq = lim_freq
+        self.train_pts = ['901','903','908']
+        self.test_pts = ['906','907','905']
     
     def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
         #generate the X and Y needed for the regression
@@ -149,7 +152,7 @@ class DSV:
                 pt_list = np.squeeze(np.array(pt_list))
                 
                 #THIS IS WHERE SHAPING WILL HAPPEN
-                pt_list,polyvect = self.shape_PSD_stack(pt_list,plot=False)
+                pt_list,polyvect = self.shape_PSD_stack(pt_list,plot=False,polyord=4)
                 
                 biglist.append(pt_list)
                 big_score.append(pt_score)
@@ -169,12 +172,12 @@ class DSV:
         
         return F_dsgn, 100*C_dsgn
 
-    def shape_PSD_stack(self,pt_list,polyord=6,plot=False):
+    def shape_PSD_stack(self,pt_list,polyord=4,plot=False):
         #input list is the per-patient stack of all PSDs for all phases, along with the HDRS
         #Do log transform of all of it
         
         preproc = ['log','polysub','limfreq']
-        fmax = 140
+        fmax = self.lim_freq
         
         fix_pt_list = pt_list
         
@@ -193,6 +196,7 @@ class DSV:
         base_subtr = np.zeros_like(pt_list)
         
         if 'polysub' in preproc:
+            print('Polynomial Subtraction of order ' + str(polyord))
             #to take a polynomial fit to all and then subtract it from each week's avg
             for ph in range(pt_list.shape[1]):
                 pLeft = np.poly1d(np.polyfit(np.linspace(0,211,513),pt_list[0:513,ph],polyord))
@@ -303,6 +307,23 @@ class DSV:
             plt.legend()
             plt.title(pt)
             
+    def plot_trains(self):
+        
+        #Now plot them if we'd like
+        num_pts = len(self.train_pts)
+        total_obs = len(self.ENet.train_Ys[0])
+        per_pt_obs = int(total_obs / num_pts)
+    
+        norm_func = stats.zscore
+        for pp,pt in enumerate(self.train_pts):
+            plt.figure()
+            
+            plt.plot(stats.zscore(self.ENet.train_Ys[0][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Predicted')
+            plt.plot(stats.zscore(self.ENet.train_Ys[1][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Actual')
+            plt.legend()
+            plt.title(pt)
+                
+            
     ## Ephys shaping methods
     def extract_DayNit(self):
         #stratify recordings based on Day/Night
@@ -329,7 +350,8 @@ class ORegress:
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
             for featname,dofunc in dbo.feat_dict.items():
-                datacontainer = {ch: self.poly_subtr(rr['Data'][ch]) for ch in rr['Data'].keys()} #THIS OUTPUT IS POST-LOG10'd
+                #Choose the zero index of the poly_subtr return because we are not messing with the polynomial vector itself
+                datacontainer = {ch: self.poly_subtr(rr['Data'][ch])[0] for ch in rr['Data'].keys()} #THIS OUTPUT IS POST-LOG10'd
                 
                 feat_dict[featname] = dofunc['fn'](datacontainer,self.YFrame.data_basis,dofunc['param'])
             rr.update({'FeatVect':feat_dict})
@@ -358,7 +380,7 @@ class ORegress:
             plt.scatter(Ctest,dispfunc(Otest[:,ff,1]),alpha=plotalpha)
             plt.suptitle(feat)
     
-    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False):
+    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False,circ=''):
         #hardcoded for now, remove later
         nchann = 2
         nfeats = len(dbo.feat_order)
@@ -372,17 +394,21 @@ class ORegress:
         #This one gives the FULL STACK
         #fullfilt_data = np.array([(dbo.featDict_to_Matr(rr['FeatVect']),ptcdict['DBS'+rr['Patient']][rr['Phase']][scale]) for rr in fmeta if rr['Patient'] in pts])
         
+        #generate our stack of interest, with all the flags and all
+        pt_dict_post_gc = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False] for phase in dbo.all_phases} for pt in pts}
+        pt_dict_post_circ = {pt:{phase:[rec for rec in pt_dict_post_gc[pt][phase] if rec['Circadian'] == circ] for phase in dbo.all_phases} for pt in pts}
+        #this should give us a good list of pt_dict recordings we care about for further processing
         
         #FURTHER SHAPING WILL HAPPEN HERE, for example Z-scoring within each patient, within each channel; averaging week, etc.
         
         if ignore_flags:
-            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag'] == False]) for phase in dbo.all_phases} for pt in pts}
+            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False]) for phase in dbo.all_phases} for pt in pts}
         else:
             pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
         
         if week_avg:
             #if we want the week average we now want to go into the deepest level here, which has an array, and just take the average across observations
-            pt_dict = {pt:{phase:[np.mean(featvect,axis=0)] for phase,featvect in pt_dict[pt].items()} for pt in pts}
+            pt_dict = {pt:{phase:[np.median(featvect,axis=0)] for phase,featvect in pt_dict[pt].items()} for pt in pts}
         #RIGHT NOW we should have a solid pt_dict
         
         #Let's do a clugy zscore and dump it back into the pt_dict
@@ -402,9 +428,12 @@ class ORegress:
         C_dsgn_intermed = np.array([ff[1] for ff in obs_list]) #to bring it into [0,1]
         label_dict['Patient'] = [ff[2] for ff in obs_list]
         
-        
+        #ipdb.set_trace()
         if collapse_chann:
-            O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
+            try:
+                O_dsgn = O_dsgn_intermed.reshape(-1,nfeats*nchann,order='F')
+            except:
+                ipdb.set_trace()
         else:
             O_dsgn = O_dsgn_intermed
     
@@ -441,14 +470,15 @@ class ORegress:
         # except:
         #     pdb.set_trace()
 
-    def poly_subtr(self,inp_psd,polyord=5):
+    def poly_subtr(self,inp_psd,polyord=4):
         #log10 in_psd first
         log_psd = 10*np.log10(inp_psd)
-        pchann = np.poly1d(np.polyfit(self.YFrame.data_basis,log_psd,polyord))
+        pfit = np.polyfit(self.YFrame.data_basis,log_psd,polyord)
+        pchann = np.poly1d(pfit)
         
         bl_correction = pchann(self.YFrame.data_basis)
         
-        return inp_psd - bl_correction
+        return inp_psd - bl_correction, pfit
 
     def O_models(self,plot=True):
         sns.set_style("ticks")
@@ -505,10 +535,10 @@ class ORegress:
         
         plt.legend()
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True):
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ=''):
         train_pts = ['901','903']
         test_pts = ['905','907','908','906']
-        Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags)
+        Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ)
        
         #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
         
@@ -532,11 +562,14 @@ class ORegress:
         #Test the model's performance in the other patients
         #Generate the testing set data
         
-        Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks)
+        Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks,circ=circ,ignore_flags=ignore_flags)
         #Shape the input oscillatory state vectors
         
         #Generate the predicted clinical states
         Cpredictions = regmodel.predict(Otest)
+        
+        #% PREDICTIONS DONE
+        
         
         #Adding a bit of random noise may actually help, doesn't hurt
         #DITHERING STEP?!?!?!?!?!?!?!
@@ -560,6 +593,7 @@ class ORegress:
         #what if we do a final "logistic" part here...
         self.Otrain = Otrain
         self.Ctrain = Ctrain
+        self.Last_Model = method
         
         
         if doplot:
@@ -585,7 +619,7 @@ class ORegress:
             
             x,y = (1,1)
             if ranson:
-                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.8)
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.7)
             else:
                 assesslr = linear_model.LinearRegression(fit_intercept=True)
             
@@ -604,7 +638,7 @@ class ORegress:
             outlier_mask = np.logical_not(inlier_mask)
             
             self.Model[method]['Performance']['Regression'] = assesslr
-            print('Model has ' + str(corrcoef) + ' correlation with real score')
+            print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
             
             plt.figure()
             plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')

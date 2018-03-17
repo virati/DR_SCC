@@ -22,7 +22,7 @@ ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_March.npy')
 BRFrame.check_empty_phases()
 
 
@@ -35,11 +35,12 @@ analysis.O_feat_extract()
 #%%
 dorsac = False
 
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.8,avgweeks=False,ranson=dorsac)
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=dorsac) 
 
+#%%
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac)
+analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=True,circ='Day')
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
 
 
