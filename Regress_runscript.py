@@ -33,14 +33,14 @@ analysis = ORegress(BRFrame,ClinFrame)
 analysis.O_feat_extract()
 
 #%%
-dorsac = False
 
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=dorsac) 
-
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,circ='night') 
 #%%
+dorsac = True
+
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=True,circ='Day')
+analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='')
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
 
 

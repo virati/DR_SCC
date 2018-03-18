@@ -346,12 +346,14 @@ class ORegress:
         
     #This function will generate the full OSCILLATORY STATE for all desired observations/weeks
     def O_feat_extract(self):
+        print('Extracting Oscillatory Features')
         big_list = self.YFrame.file_meta
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
             for featname,dofunc in dbo.feat_dict.items():
                 #Choose the zero index of the poly_subtr return because we are not messing with the polynomial vector itself
-                datacontainer = {ch: self.poly_subtr(rr['Data'][ch])[0] for ch in rr['Data'].keys()} #THIS OUTPUT IS POST-LOG10'd
+                #rr['data'] is NOT log10 transformed, so makes no sense to do the poly subtr
+                datacontainer = {ch: self.poly_subtr(rr['Data'][ch])[0] for ch in rr['Data'].keys()} #THIS RETURNS a PSD, un-log transformed
                 
                 feat_dict[featname] = dofunc['fn'](datacontainer,self.YFrame.data_basis,dofunc['param'])
             rr.update({'FeatVect':feat_dict})
@@ -394,18 +396,44 @@ class ORegress:
         #This one gives the FULL STACK
         #fullfilt_data = np.array([(dbo.featDict_to_Matr(rr['FeatVect']),ptcdict['DBS'+rr['Patient']][rr['Phase']][scale]) for rr in fmeta if rr['Patient'] in pts])
         
+        ###THIS IS NEW
         #generate our stack of interest, with all the flags and all
-        pt_dict_post_gc = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False] for phase in dbo.all_phases} for pt in pts}
-        pt_dict_post_circ = {pt:{phase:[rec for rec in pt_dict_post_gc[pt][phase] if rec['Circadian'] == circ] for phase in dbo.all_phases} for pt in pts}
+        pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase] for phase in dbo.all_phases} for pt in pts}
+        
+        if ignore_flags:
+            pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False] for phase in dbo.all_phases} for pt in pts}
+            pt_dict_gc = pt_dict_flags
+        
+        if circ != '':
+            pt_dict_flags = {pt:{phase:[rec for rec in pt_dict_flags[pt][phase] if rec['Circadian'] == circ] for phase in dbo.all_phases} for pt in pts}
+            pt_dict_circ = pt_dict_flags
+        
+        ##
         #this should give us a good list of pt_dict recordings we care about for further processing
         
         #FURTHER SHAPING WILL HAPPEN HERE, for example Z-scoring within each patient, within each channel; averaging week, etc.
         
         if ignore_flags:
-            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False]) for phase in dbo.all_phases} for pt in pts}
+          
+            #WORKING VERSION
+            #pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False]) for phase in dbo.all_phases} for pt in pts}
+              pass
         else:
-            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
+            
+            #pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
+            pass
         
+        ##THIS IS NEW
+        print('Generating Pre-filtered Recordings - GC ignore:' + str(ignore_flags) + ' circadian:' + circ)
+        try:
+            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in pt_dict_flags[pt][phase]]) for phase in dbo.all_phases} for pt in pts}
+        except Exception as e:
+            print(e)
+            ipdb.set_trace()
+        ##
+        
+        
+        #first step, find feat vect for all
         if week_avg:
             #if we want the week average we now want to go into the deepest level here, which has an array, and just take the average across observations
             pt_dict = {pt:{phase:[np.median(featvect,axis=0)] for phase,featvect in pt_dict[pt].items()} for pt in pts}
@@ -470,7 +498,7 @@ class ORegress:
         # except:
         #     pdb.set_trace()
 
-    def poly_subtr(self,inp_psd,polyord=4):
+    def poly_subtr(self,inp_psd,polyord=5):
         #log10 in_psd first
         log_psd = 10*np.log10(inp_psd)
         pfit = np.polyfit(self.YFrame.data_basis,log_psd,polyord)
@@ -478,7 +506,7 @@ class ORegress:
         
         bl_correction = pchann(self.YFrame.data_basis)
         
-        return inp_psd - bl_correction, pfit
+        return 10**((log_psd - bl_correction)/10), pfit
 
     def O_models(self,plot=True):
         sns.set_style("ticks")
@@ -498,7 +526,7 @@ class ORegress:
         rans_cs['Right'] = mod['Model'].estimator_.coef_[0][5:]
         
         
-        plt.figure()
+        
         for ss,side in enumerate(sides):
             plt.subplot(1,2,ss+1)
             plt.plot(np.arange(5),ridge_cs[side],label='Ridge')
@@ -508,7 +536,7 @@ class ORegress:
             plt.xlim((0,4))
             
             plt.xlabel('Feature')
-            plt.ylim((-0.3,0.3))
+            plt.ylim((-0.03,0.03))
             
         plt.subplot(1,2,1)
         plt.ylabel('Coefficient Value')
@@ -550,7 +578,7 @@ class ORegress:
             regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=False,fit_intercept=True,copy_X=True),min_samples=inpercent,max_trials=1000)
             scatter_alpha = 0.1
         elif method == 'RIDGE':
-            regmodel = linear_model.Ridge(alpha=1.0,copy_X=True,fit_intercept=True,normalize=False)
+            regmodel = linear_model.Ridge(alpha=1.0,copy_X=True,fit_intercept=True,normalize=True)
             scatter_alpha = 0.9
             
         
@@ -622,6 +650,7 @@ class ORegress:
                 assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.7)
             else:
                 assesslr = linear_model.LinearRegression(fit_intercept=True)
+                
             
             assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
             line_x = np.linspace(0,1,20).reshape(-1,1)
@@ -637,8 +666,14 @@ class ORegress:
                 
             outlier_mask = np.logical_not(inlier_mask)
             
+            #FINALLY just do a stats package linear regression
+            slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            
             self.Model[method]['Performance']['Regression'] = assesslr
-            print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
+            if ranson:
+                print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
+            else:
+                print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
             
             plt.figure()
             plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
