@@ -35,6 +35,8 @@ analysis.run_EN()
 #aanalysis.plot_dsgn_matrix()
 
 analysis.plot_tests()
+#%%
+analysis.plot_performance()
 analysis.plot_EN_coeffs()
 
 #%%

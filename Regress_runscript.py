@@ -34,19 +34,24 @@ analysis.O_feat_extract()
 
 #%%
 
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,circ='night') 
+analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ='day') 
+analysis.O_models(plot=True,models=['RANSAC'])
 #%%
 dorsac = True
 
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='')
+analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',plot_indiv=True)
+analysis.O_models(plot=True,models=['RIDGE'])
+#%%
+analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='',plot_indiv=True)
+analysis.O_models(plot=True,models=['LASSO'])
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
 
 
 #%%
 #Plot model coefficients
-analysis.O_models(plot=True)
+
 
 #%%
 

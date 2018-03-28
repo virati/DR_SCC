@@ -100,7 +100,10 @@ class BR_Data_Tree():
         plt.plot(gc_plot)
         
     def Remove_BadFlags(self):
-        self.file_meta = [rr for rr in self.file_meta if rr['BadFlag'] != True]
+        try:
+            self.file_meta = [rr for rr in self.file_meta if rr['BadFlag'] != True]
+        except:
+            pdb.set_trace()
         
     #First, the goal is to literally come up with a big list of all the recordings
     def list_files(self,rootdir='/home/virati/MDD_Data/BR/'):

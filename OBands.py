@@ -24,8 +24,10 @@ import seaborn as sns
 from collections import defaultdict
 
 #sns.set()
-sns.set_style('white')
+
 sns.set_context('talk')
+sns.set(font_scale=4)
+sns.set_style('white')
 
 class OBands:
     def __init__(self,BRFrame):
@@ -119,7 +121,7 @@ class OBands:
         if feat == 'fSlope' or feat == 'nFloor':
             dispfunc = unity
         else:
-            dispfunc = displog
+            dispfunc = unity
         
         #do day and night here
         if circ != '':
@@ -133,7 +135,7 @@ class OBands:
         feats['Left'] = [(dispfunc(rr['FeatVect'][feat]['Left']),rr['Phase']) for rr in fdnmeta if rr['Patient'] in pt and rr['Phase'] in weeks]
         feats['Right'] = [(dispfunc(rr['FeatVect'][feat]['Right']),rr['Phase']) for rr in fdnmeta if rr['Patient'] in pt and rr['Phase'] in weeks]
 
-        
+        outstats = defaultdict(dict)
         #plot the figure
         if plot:
             plt.figure()
@@ -146,8 +148,8 @@ class OBands:
                     plt.scatter(week_data,feat_data,alpha=0.1)
                     #stats time here
                     weekdistr = {week:[a for (a,b) in feats[ch] if b == week] for week in weeks}
-                    outstats = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
-                    print(outstats)
+                    outstats[ch] = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
+                    print(outstats[ch])
                     sns.despine(top=True,right=True)
                 elif plot_type == 'boxplot':
                     #THIS PART IS CLUGE
@@ -162,8 +164,8 @@ class OBands:
                 plt.xlabel('Week')
                 plt.ylabel('Power (dB)')
 
-                
+            #plt.tight_layout()
             plt.suptitle(feat + ' over weeks; ' + str(pt))
                     
         
-        return feats
+        return feats,outstats

@@ -22,6 +22,7 @@ import scipy.stats as stats
 import scipy.signal as sig
 
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 import sys
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
@@ -34,7 +35,7 @@ default_params = {'CrossValid':10}
 import seaborn as sns
 #sns.set_context("paper")
 
-sns.set(font_scale=3)
+sns.set(font_scale=4)
 sns.set_style("white")
 
 #%%
@@ -255,11 +256,12 @@ class DSV:
         one_side_bins = int(self.freq_bins/2)
         plt.figure()
         plt.subplot(1,2,1)
-        plt.plot(self.trunc_fvect, self.train_F.T[:one_side_bins])
+        
+        plt.plot(self.trunc_fvect, self.train_F.T[:one_side_bins])#,color=cm.hot(self.train_C/70).squeeze())
         plt.title('Left Channel')
         
         plt.subplot(1,2,2)
-        plt.plot(self.trunc_fvect,self.train_F.T[one_side_bins:])
+        plt.plot(self.trunc_fvect,self.train_F.T[one_side_bins:])#,color=cm.hot(self.train_C/70).squeeze())
         plt.title('Right Channel')
         
     #primary 
@@ -278,8 +280,6 @@ class DSV:
         Ftest,Ctest = self.dsgn_F_C(self.test_pts,week_avg=True)
         print("Testing Elastic Net...")
         Ealg.Test(Ftest,Ctest)
-        
-        
         
         self.ENet = Ealg
         
@@ -307,6 +307,102 @@ class DSV:
             plt.legend()
             plt.title(pt)
             
+    def plot_performance(self,plot_indiv=False,doplot = True,ranson=True):
+        Cpredictions = (self.ENet.Ys[0])
+        Ctest = (self.ENet.Ys[1])/100
+        
+        scatter_alpha = 0.8
+        
+        cpred_msub = sig.detrend(Cpredictions)
+        ctest_msub = sig.detrend(Ctest)
+
+        try:
+            res = stats.pearsonr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
+        except : ipdb.set_trace()
+        
+        
+        #post-process the test and predicted things
+        Cpredictions = sig.detrend(Cpredictions.reshape(-1,1),axis=0)
+        Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0)
+        
+        if plot_indiv:
+        #do a plot for each patient on this?
+            for pt in test_pts:
+                plt.figure()
+                #check if the sizes are right
+                assert len(Cpredictions) == len(labels['Patient'])
+                
+                pt_preds = [cpred for cpred,pat in zip(Cpredictions,labels['Patient']) if pat == pt]
+                pt_actuals = [ctest for ctest,pat in zip(Ctest,labels['Patient']) if pat == pt]
+                
+                
+                plt.plot(pt_preds,label='Predicted')
+                plt.plot(pt_actuals,label='Actual')
+                plt.legend()
+                
+                plt.xlabel('Week')
+                plt.ylabel('Normalized Disease Severity')
+                plt.suptitle(pt + ' ' + 'ENR')
+                sns.despine()
+        
+        if doplot:
+            
+            x,y = (1,1)
+            if ranson:
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.8)
+            else:
+                assesslr = linear_model.LinearRegression(fit_intercept=True)
+                
+            
+            #assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            #THIS ELIMATES BROAD DECREASES OVER TIME, a linear detrend
+            assesslr.fit(Ctest,Cpredictions)
+            
+            line_x = np.linspace(0,1,20).reshape(-1,1)
+            line_y = assesslr.predict(line_x)
+            
+            if ranson:
+                inlier_mask = assesslr.inlier_mask_
+                corrcoef = assesslr.estimator_.coef_[0]
+                
+            else:
+                inlier_mask = np.ones_like(Ctest).astype(bool)
+                corrcoef = assesslr.coef_[0]
+                
+            outlier_mask = np.logical_not(inlier_mask)
+            
+            #FINALLY just do a stats package linear regression
+            if ranson:
+                slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest[inlier_mask].reshape(-1,1),Cpredictions[inlier_mask].reshape(-1,1))
+            else:
+                slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            
+            
+            # if ranson:
+            #     print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
+            # else:
+            print('ENR' + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+            
+            plt.figure()
+            plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
+            plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
+            plt.plot(np.linspace(0,x,2),np.linspace(0,y,2),alpha=0.2,color='gray')
+            plt.plot(line_x,line_y,color='red')
+            
+            plt.xlabel('Actual')
+            plt.ylabel('Predicted')
+            #plt.xlim((0,1))
+            #plt.ylim((-0.2,1))
+            
+            plt.suptitle('ENR')
+            #plt.title('All Observations')
+            sns.despine()
+            
+        plt.figure()
+        predicted = stats.zscore(self.ENet.Ys[0],axis=0)
+        actuals = stats.zscore(self.ENet.Ys[1],axis=0)
+        plt.scatter(actuals,predicted)
+        
     def plot_trains(self):
         
         #Now plot them if we'd like
@@ -508,29 +604,46 @@ class ORegress:
         
         return 10**((log_psd - bl_correction)/10), pfit
 
-    def O_models(self,plot=True):
+    def O_models(self,plot=True,models=['RANSAC','RIDGE']):
         sns.set_style("ticks")
         plt.figure()
         
-        mod = self.Model['RIDGE']
-    
         sides = ['Left','Right']
+        sides_idxs = {'Left':np.arange(0,5),'Right':np.arange(5,10)}
         
-        ridge_cs = {key:0 for key in sides}
-        rans_cs = {key:0 for key in sides}
-        ridge_cs['Left'] = mod['Model'].coef_[0][:5]
-        ridge_cs['Right'] = mod['Model'].coef_[0][5:]
+        Coefs = {key:{sid:[] for sid in sides} for key in models}
         
-        mod = self.Model['RANSAC']
-        rans_cs['Left'] = mod['Model'].estimator_.coef_[0][:5]
-        rans_cs['Right'] = mod['Model'].estimator_.coef_[0][5:]
+        for mtype in models:
+            mod = self.Model[mtype]
         
+            for sid in sides:
+                if mtype == 'RANSAC': 
+                    Coefs[mtype][sid] = mod['Model'].estimator_.coef_[0][sides_idxs[sid]]
+                elif mtype == 'LASSO':
+                    Coefs[mtype][sid] = mod['Model'].coef_[sides_idxs[sid]]
+                else: 
+                    Coefs[mtype][sid] = mod['Model'].coef_[0][sides_idxs[sid]]
+            
+#            
+#        mod = self.Model['RIDGE']
+#        ridge_cs = {key:0 for key in sides}
+#        rans_cs = {key:0 for key in sides}
+#        ridge_cs['Left'] = mod['Model'].coef_[0][:5]
+#        ridge_cs['Right'] = mod['Model'].coef_[0][5:]
+#        
+#        mod = self.Model['RANSAC']
+#        rans_cs['Left'] = mod['Model'].estimator_.coef_[0][:5]
+#        rans_cs['Right'] = mod['Model'].estimator_.coef_[0][5:]
+#        
         
         
         for ss,side in enumerate(sides):
             plt.subplot(1,2,ss+1)
-            plt.plot(np.arange(5),ridge_cs[side],label='Ridge')
-            plt.plot(np.arange(5),rans_cs[side],label='RANSAC')
+            for mtype in models:
+                plt.plot(np.arange(5),Coefs[mtype][side],label=mtype)
+                
+            #plt.plot(np.arange(5),ridge_cs[side],label='Ridge')
+            #plt.plot(np.arange(5),rans_cs[side],label='RANSAC')
             
             plt.xticks(np.arange(5),['Delta','Theta','Alpha','Beta','Gamma*'],rotation=70)
             plt.xlim((0,4))
@@ -563,7 +676,7 @@ class ORegress:
         
         plt.legend()
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ=''):
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False):
         train_pts = ['901','903']
         test_pts = ['905','907','908','906']
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ)
@@ -578,8 +691,12 @@ class ORegress:
             regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=False,fit_intercept=True,copy_X=True),min_samples=inpercent,max_trials=1000)
             scatter_alpha = 0.1
         elif method == 'RIDGE':
-            regmodel = linear_model.Ridge(alpha=1.0,copy_X=True,fit_intercept=True,normalize=True)
+            regmodel = linear_model.Ridge(alpha=0.36,copy_X=True,fit_intercept=True,normalize=True)
+            #regmodel = linear_model.RidgeCV(alphas=np.linspace(0.3,1,50),fit_intercept=True,normalize=True,cv=10)
             scatter_alpha = 0.9
+        elif method == 'LASSO':
+            regmodel = linear_model.Lasso(alpha=0.01, copy_X=True,fit_intercept=True,normalize=True)
+            scatter_alpha=0.9
             
         
         
@@ -610,8 +727,10 @@ class ORegress:
         #statistical correlation
         cpred_msub = sig.detrend(Cpredictions)
         ctest_msub = sig.detrend(Ctest)
-        
-        res = stats.pearsonr(cpred_msub,ctest_msub.astype(float).reshape(-1,1))
+
+        try:
+            res = stats.pearsonr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
+        except : ipdb.set_trace()
         
         self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr':res,'Internal':0}}})
         
@@ -624,8 +743,12 @@ class ORegress:
         self.Last_Model = method
         
         
-        if doplot:
-            #do a plot for each patient on this?
+        #post-process the test and predicted things
+        Cpredictions = sig.detrend(Cpredictions.reshape(-1,1),axis=0)
+        Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0)
+        
+        if plot_indiv:
+        #do a plot for each patient on this?
             for pt in test_pts:
                 plt.figure()
                 #check if the sizes are right
@@ -633,6 +756,7 @@ class ORegress:
                 
                 pt_preds = [cpred for cpred,pat in zip(Cpredictions,labels['Patient']) if pat == pt]
                 pt_actuals = [ctest for ctest,pat in zip(Ctest,labels['Patient']) if pat == pt]
+                
                 
                 plt.plot(pt_preds,label='Predicted')
                 plt.plot(pt_actuals,label='Actual')
@@ -642,17 +766,20 @@ class ORegress:
                 plt.ylabel('Normalized Disease Severity')
                 plt.suptitle(pt + ' ' + method)
                 sns.despine()
-            
-            
+        
+        if doplot:
             
             x,y = (1,1)
             if ranson:
-                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.7)
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.8)
             else:
                 assesslr = linear_model.LinearRegression(fit_intercept=True)
                 
             
-            assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            #assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            #THIS ELIMATES BROAD DECREASES OVER TIME, a linear detrend
+            assesslr.fit(Ctest,Cpredictions)
+            
             line_x = np.linspace(0,1,20).reshape(-1,1)
             line_y = assesslr.predict(line_x)
             
@@ -667,13 +794,16 @@ class ORegress:
             outlier_mask = np.logical_not(inlier_mask)
             
             #FINALLY just do a stats package linear regression
-            slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+            if ranson:
+                slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest[inlier_mask].reshape(-1,1),Cpredictions[inlier_mask].reshape(-1,1))
+            else:
+                slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
             
             self.Model[method]['Performance']['Regression'] = assesslr
-            if ranson:
-                print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
-            else:
-                print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+            # if ranson:
+            #     print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
+            # else:
+            print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
             
             plt.figure()
             plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
@@ -684,8 +814,8 @@ class ORegress:
             plt.xlabel('Actual')
             plt.ylabel('Predicted')
             plt.xlim((0,1))
-            plt.ylim((0,1))
+            plt.ylim((-0.2,1))
             
-            plt.suptitle(method)
+            plt.suptitle(method + ' | recordings: ' + circ)
             #plt.title('All Observations')
             sns.despine()
