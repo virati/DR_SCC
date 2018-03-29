@@ -9,6 +9,7 @@ MAIN Library for the DSV methodology
 """
 import sklearn
 from sklearn.linear_model import ElasticNet, ElasticNetCV
+from sklearn.utils import shuffle
 
 from collections import defaultdict
 import itertools as itt
@@ -37,6 +38,8 @@ import seaborn as sns
 
 sns.set(font_scale=4)
 sns.set_style("white")
+
+import time
 
 #%%
 #OLD ELASTIC NET METHODS HERE
@@ -675,6 +678,37 @@ class ORegress:
         
         
         plt.legend()
+        
+    def shuffle_dprods(self,regmodel,Otest,Ctest,numshuff=100):
+        print('Starting Shuffle Test...')
+        res_dot = np.zeros((numshuff,1))
+        
+        
+        for ss in range(numshuff):
+            Oshuff,Cshuff = shuffle(Otest,Ctest,random_state=ss)
+            #compare our Oshuff to Ctest
+            Cspred = regmodel.predict(Oshuff).reshape(-1,1)
+            Cspred = sig.detrend(Cspred,axis=0)
+            
+            Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0)
+            
+            res_dot[ss] = np.dot(Cspred.T,Ctest)
+            
+            #ipdb.set_trace()
+            #plt.plot(Cspred - Ctest)
+            #plt.plot(Ctest)
+            #print((Cspred - Ctest).shape)
+            
+        return res_dot
+
+    def shuffle_summary(self,method='RIDGE'):
+        #First, let's do shuffled version of IPs
+        print('Percentage of surrogate IPs larger: ' + str(np.sum(self.Model[method]['Performance']['DProd']['Distr'] > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])))
+        plt.figure();plt.hist(self.Model[method]['Performance']['DProd']['Distr'])
+        
+        #Then we do Spearman's R
+        print('Spearmans R: ' + str())
+
 
     def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False):
         train_pts = ['901','903']
@@ -739,8 +773,11 @@ class ORegress:
         
         #let's do internal scoring for a second
         self.Model[method]['Performance']['Internal'] = regmodel.score(Otest,Ctest)
-        self.Model[method]['Performance']['DProd'] = np.dot(cpred_msub,ctest_msub)
+        #self.Model[method]['Performance']['DProd'] = np.dot(cpred_msub.T,ctest_msub)
         
+        #do some shuffling here and try to see how well the model does
+        shuff_distr = self.shuffle_dprods(regmodel,Otest,Ctest,numshuff=1000)
+        self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(cpred_msub.T,ctest_msub),'Distr':shuff_distr}
         #what if we do a final "logistic" part here...
         self.Otrain = Otrain
         self.Ctrain = Ctrain

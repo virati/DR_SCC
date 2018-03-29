@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
-#%%
+
 
 ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
@@ -26,7 +26,7 @@ BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_March.npy')
 BRFrame.check_empty_phases()
 
 
-#%%
+
 from DSV import DSV, ORegress
 
 analysis = ORegress(BRFrame,ClinFrame)
@@ -41,11 +41,18 @@ dorsac = True
 
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
 #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',plot_indiv=True)
+analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',plot_indiv=False)
 analysis.O_models(plot=True,models=['RIDGE'])
+analysis.shuffle_summary('RIDGE')
+#plt.figure();plt.hist(analysis.Model['RIDGE']['Performance']['DProd']['Distr'])
+#print(np.sum(analysis.Model['RIDGE']['Performance']['DProd']['Distr'] > analysis.Model['RIDGE']['Performance']['DProd']['Dot'])/len(analysis.Model['RIDGE']['Performance']['DProd']['Distr']))
+
 #%%
-analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='',plot_indiv=True)
+analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='',plot_indiv=False)
 analysis.O_models(plot=True,models=['LASSO'])
+analysis.shuffle_summary('LASSO')
+#plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])
+#print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
 
 
