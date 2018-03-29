@@ -103,7 +103,7 @@ class PSD_EN:
         self.Ys = (Y_Pred,Y_true)
         self.performance['Test_Error'] = self.ENet.score(X,Y_true)
         self.performance['PearsonR'] = stats.pearsonr(stats.zscore(Y_Pred),stats.zscore(Y_true))
-        
+        self.performance['SpearmanR'] = stats.spearmanr(stats.zscore(Y_Pred),stats.zscore(Y_true))
 
 class DSV:
     def __init__(self, BRFrame,ClinFrame,lim_freq=50):
@@ -317,7 +317,7 @@ class DSV:
         ctest_msub = sig.detrend(Ctest)
 
         try:
-            res = stats.pearsonr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
+            res = stats.spearmanr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
         except : ipdb.set_trace()
         
         
@@ -725,17 +725,21 @@ class ORegress:
         
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
         #statistical correlation
-        cpred_msub = sig.detrend(Cpredictions)
-        ctest_msub = sig.detrend(Ctest)
+        cpred_msub = sig.detrend(Cpredictions.reshape(-1,1),axis=0)
+        ctest_msub = sig.detrend(Ctest.reshape(-1,1),axis=0)
 
-        try:
-            res = stats.pearsonr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
-        except : ipdb.set_trace()
         
-        self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr':res,'Internal':0}}})
+        #res = stats.pearsonr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
+        res = stats.spearmanr(cpred_msub.reshape(-1,1),ctest_msub.astype(float))
+
+        self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr':res,'Internal':0,'DProd':0}}})
+        
+        #just do straight up inner prod on detrended data
+        
         
         #let's do internal scoring for a second
         self.Model[method]['Performance']['Internal'] = regmodel.score(Otest,Ctest)
+        self.Model[method]['Performance']['DProd'] = np.dot(cpred_msub,ctest_msub)
         
         #what if we do a final "logistic" part here...
         self.Otrain = Otrain
@@ -744,8 +748,8 @@ class ORegress:
         
         
         #post-process the test and predicted things
-        Cpredictions = sig.detrend(Cpredictions.reshape(-1,1),axis=0)
-        Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0)
+        Cpredictions = cpred_msub
+        Ctest = ctest_msub
         
         if plot_indiv:
         #do a plot for each patient on this?
