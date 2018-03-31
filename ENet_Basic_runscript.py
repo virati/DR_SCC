@@ -29,7 +29,7 @@ analysis = DSV(BRFrame,ClinFrame,lim_freq=30)
 
 ENet_params = {'Alpha':(0.2,0.5),'Lambda':(0.5,0.6)}
 
-analysis.run_EN()
+analysis.run_EN(alpha_list=np.linspace(0.2,0.5,100))
 
 #%%
 #aanalysis.plot_dsgn_matrix()
@@ -37,6 +37,8 @@ analysis.run_EN()
 analysis.plot_tests()
 #%%
 analysis.plot_performance()
+
+#%%
 analysis.plot_EN_coeffs()
 
 #%%

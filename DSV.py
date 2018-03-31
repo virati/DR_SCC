@@ -28,6 +28,7 @@ import matplotlib.cm as cm
 import sys
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
 import DBS_Osc as dbo
+from DBS_Osc import nestdict
 
 from sklearn import linear_model
 
@@ -52,7 +53,7 @@ import time
 #%%            
         
 class PSD_EN:
-    def __init__(self,cv=True,alpha=0.5):
+    def __init__(self,cv=True,alphas=np.linspace(0.7,0.8,10),alpha=0.5):
 
         if cv:
             print('Running ENet CV')
@@ -61,8 +62,9 @@ class PSD_EN:
             #alpha_list = np.linspace(0.7,0.9,10)
             
             #play around here
-            l_ratio = np.linspace(0.2,0.3,20)
-            alpha_list = np.linspace(0.7,0.8,10)
+            #THIS WORKS WELL#l_ratio = np.linspace(0.2,0.3,20)
+            l_ratio = np.linspace(0.3,0.5,30)
+            alpha_list = alphas
             
             
             #self.ENet = ElasticNetCV(cv=10,tol=0.01,fit_intercept=True,l1_ratio=np.linspace(0.1,0.1,20),alphas=np.linspace(0.1,0.15,20))
@@ -120,8 +122,8 @@ class DSV:
         self.Model = {}
         
         self.lim_freq = lim_freq
-        self.train_pts = ['901','903','908']
-        self.test_pts = ['906','907','905']
+        self.train_pts = ['901','903']
+        self.test_pts = ['906','907','905','908']
     
     def dsgn_F_C(self,pts,scale='HDRS17',week_avg=True):
         #generate the X and Y needed for the regression
@@ -268,11 +270,11 @@ class DSV:
         plt.title('Right Channel')
         
     #primary 
-    def run_EN(self):
+    def run_EN(self,alpha_list):
         self.train_F,self.train_C = self.dsgn_F_C(self.train_pts,week_avg=True)
         
         #setup our Elastic net here
-        Ealg = PSD_EN(cv=True)
+        Ealg = PSD_EN(cv=True,alphas=alpha_list)
         
         print("Training Elastic Net...")
         
@@ -301,32 +303,46 @@ class DSV:
         total_obs = len(self.ENet.Ys[0])
         per_pt_obs = int(total_obs / num_pts)
     
+        pt_zscored = defaultdict(dict)
         norm_func = stats.zscore
         for pp,pt in enumerate(self.test_pts):
             plt.figure()
+            pt_zscored[pt] = {'Predicted':stats.zscore(self.ENet.Ys[0][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),'HDRS17':stats.zscore(self.ENet.Ys[1][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0)}
             
-            plt.plot(stats.zscore(self.ENet.Ys[0][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Predicted')
-            plt.plot(stats.zscore(self.ENet.Ys[1][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Actual')
+            plt.plot(pt_zscored[pt]['Predicted'],label='Predicted')
+            plt.plot(pt_zscored[pt]['HDRS17'],label='HDRS17')
             plt.legend()
             plt.title(pt)
             
+            spearm = stats.spearmanr(pt_zscored[pt]['Predicted'],pt_zscored[pt]['HDRS17'])
+            print(pt + ' Spearman:')
+            print(spearm)
+            
+        self.Zscore_Results = pt_zscored
+        
     def plot_performance(self,plot_indiv=False,doplot = True,ranson=True):
         Cpredictions = (self.ENet.Ys[0])
-        Ctest = (self.ENet.Ys[1])/100
+        Ctest = (self.ENet.Ys[1])
+        
+        Cpredictions = stats.zscore((Cpredictions.reshape(-1,1)))
+        Ctest = stats.zscore((Ctest.reshape(-1,1)))
         
         scatter_alpha = 0.8
         
-        cpred_msub = sig.detrend(Cpredictions)
-        ctest_msub = sig.detrend(Ctest)
+        #cpred_msub = sig.detrend(Cpredictions,type='linear')
+        #ctest_msub = sig.detrend(Ctest,type='linear')
 
-        try:
-            res = stats.spearmanr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
-        except : ipdb.set_trace()
+        plt.figure()
+        plt.plot(Cpredictions)
+        plt.plot(Ctest)
         
+        spearm = stats.spearmanr(Cpredictions,Ctest)
+        
+        
+        print('ENR has Spearman: ' + str(spearm))
         
         #post-process the test and predicted things
-        Cpredictions = sig.detrend(Cpredictions.reshape(-1,1),axis=0)
-        Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0)
+        
         
         if plot_indiv:
         #do a plot for each patient on this?
@@ -340,7 +356,7 @@ class DSV:
                 
                 
                 plt.plot(pt_preds,label='Predicted')
-                plt.plot(pt_actuals,label='Actual')
+                plt.plot(pt_actuals,label='HDRS17')
                 plt.legend()
                 
                 plt.xlabel('Week')
@@ -391,8 +407,11 @@ class DSV:
             plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
             plt.plot(np.linspace(0,x,2),np.linspace(0,y,2),alpha=0.2,color='gray')
             plt.plot(line_x,line_y,color='red')
+            plt.ylim((-4,4))
+            plt.xlim((-2.5,2.5))
+            plt.axes().set_aspect('equal')
             
-            plt.xlabel('Actual')
+            plt.xlabel('HDRS17')
             plt.ylabel('Predicted')
             #plt.xlim((0,1))
             #plt.ylim((-0.2,1))
@@ -418,7 +437,6 @@ class DSV:
             plt.figure()
             
             plt.plot(stats.zscore(self.ENet.train_Ys[0][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Predicted')
-            plt.plot(stats.zscore(self.ENet.train_Ys[1][pp*per_pt_obs:per_pt_obs*(pp+1)],axis=0),label='Actual')
             plt.legend()
             plt.title(pt)
                 
@@ -688,31 +706,38 @@ class ORegress:
             Oshuff,Cshuff = shuffle(Otest,Ctest,random_state=ss)
             #compare our Oshuff to Ctest
             Cspred = regmodel.predict(Oshuff).reshape(-1,1)
-            Cspred = sig.detrend(Cspred,axis=0)
             
-            Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0)
+            #DETREND HERE
+            Cspred = sig.detrend(Cspred,axis=0,type='linear')
+            Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0,type='linear')
             
             res_dot[ss] = np.dot(Cspred.T,Ctest)
-            
-            #ipdb.set_trace()
-            #plt.plot(Cspred - Ctest)
-            #plt.plot(Ctest)
-            #print((Cspred - Ctest).shape)
-            
+                        
         return res_dot
 
-    def shuffle_summary(self,method='RIDGE'):
+    def shuffle_summary(self,method='RIDGE',score_detrend=True):
+        if score_detrend:
+            print('Detrending Predictions and Test-HDRS17')
+            Cpredictions = sig.detrend(self.Model[method]['Cpredictions'].reshape(-1,1),axis=0,type='linear')
+            Ctest = sig.detrend(self.Model[method]['Ctest'].reshape(-1,1),axis=0,type='linear')
+        else:
+            print('Reshaping only: Predictions and Test-HDRS17')
+            Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
+            Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
+        #do some shuffling here and try to see how well the model does
+        shuff_distr = self.shuffle_dprods(self.Model[method]['Model'],self.Model[method]['Otest'],self.Model[method]['Ctest'],numshuff=1000)
+        self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(Cpredictions.T,Ctest),'Distr':shuff_distr,'Perfect':np.dot(Ctest.T,Ctest)}
+
         #First, let's do shuffled version of IPs
-        print('Percentage of surrogate IPs larger: ' + str(np.sum(self.Model[method]['Performance']['DProd']['Distr'] > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])))
+        print('IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(self.Model[method]['Performance']['DProd']['Distr'] > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])))
         plt.figure();plt.hist(self.Model[method]['Performance']['DProd']['Distr'])
         
-        #Then we do Spearman's R
-        print('Spearmans R: ' + str())
+
 
 
     def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False):
         train_pts = ['901','903']
-        test_pts = ['905','907','908','906']
+        test_pts = ['905','908','907','906']
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ)
        
         #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
@@ -740,6 +765,7 @@ class ORegress:
         
         #Test the model's performance in the other patients
         #Generate the testing set data
+        self.Model = nestdict()
         
         Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks,circ=circ,ignore_flags=ignore_flags)
         #Shape the input oscillatory state vectors
@@ -750,64 +776,94 @@ class ORegress:
         #% PREDICTIONS DONE
         
         
-        #Adding a bit of random noise may actually help, doesn't hurt
-        #DITHERING STEP?!?!?!?!?!?!?!
-        noise = 1
-        #Ctest = Ctest  + np.random.uniform(-noise,noise,Ctest.shape)
-        #Ctest = sig.detrend(Ctest)
-        #Ctest = Ctest
-        
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
         #statistical correlation
-        cpred_msub = sig.detrend(Cpredictions.reshape(-1,1),axis=0)
-        ctest_msub = sig.detrend(Ctest.reshape(-1,1),axis=0)
-
         
-        #res = stats.pearsonr(cpred_msub.reshape(-1,1),ctest_msub.astype(float).reshape(-1,1))
-        res = stats.spearmanr(cpred_msub.reshape(-1,1),ctest_msub.astype(float))
+        #Detrend for stats
+        #cpred_stats = sig.detrend(Cpredictions.reshape(-1,1),axis=0,type='linear')
+        #ctest_stats = sig.detrend(Ctest.reshape(-1,1),axis=0,type='linear')
 
-        self.Model.update({method:{'Model':regmodel,'Performance':{'PCorr':res,'Internal':0,'DProd':0}}})
+        #what if we do a final "logistic" part here...
+        self.Model[method]['Model'] = regmodel
+        self.Model[method]['OTrain'] = Otrain
+        self.Model[method]['Ctrain'] = Ctrain
+        self.Model[method]['Cpredictions'] = Cpredictions
+        self.Model[method]['Otest'] = Otest
+        self.Model[method]['Ctest'] = Ctest
+        self.Model[method]['TestPts'] = test_pts
+        self.Model[method]['TrainPts'] = train_pts
+        self.Model[method]['Circ'] = circ
+        self.Model[method]['Labels'] = labels
+        
+        
+        #post-process the test and predicted things
+        #Cpredictions = cpred_msub
+        #Ctest = ctest_msub
+        
+        #now we can do other stuff I suppose...
+    
+    def Clinical_Summary(self,method='RIDGE',plot_indiv=False,score_detrend=True,ranson=True):
+        if score_detrend:
+            print('Detrending Predictions and Test-HDRS17')
+            Cpredictions = sig.detrend(self.Model[method]['Cpredictions'].reshape(-1,1),axis=0,type='linear')
+            Ctest = sig.detrend(self.Model[method]['Ctest'].reshape(-1,1),axis=0,type='linear')
+        else:
+            print('Reshaping only: Predictions and Test-HDRS17')
+            Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
+            Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
+        
+        
+        #Do the stats here
+        self.Model[method]['Performance']['PearsCorr'] = stats.pearsonr(Cpredictions.reshape(-1,1),Ctest.astype(float).reshape(-1,1))
+        self.Model[method]['Performance']['SpearCorr'] = stats.spearmanr(Cpredictions.reshape(-1,1),Ctest.astype(float))
+
+        #Then we do Spearman's R
+        print('Spearmans R: ' + str(self.Model[method]['Performance']['SpearCorr']))
+        print('Pearsons R: ' + str(self.Model[method]['Performance']['PearsCorr']))
+
+        #self.Model.update({method:{'Performance':{'SpearCorr':spearcorr,'PearsCorr':pecorr,'Internal':0,'DProd':0}}})
+        #self.Model['Performance'] = {'SpearCorr':spearcorr,'PearsCorr':pecorr,'Internal':0,'DProd':0}
         
         #just do straight up inner prod on detrended data
         
         
         #let's do internal scoring for a second
-        self.Model[method]['Performance']['Internal'] = regmodel.score(Otest,Ctest)
+        self.Model[method]['Performance']['Internal'] = self.Model[method]['Model'].score(self.Model[method]['Otest'],self.Model[method]['Ctest'])
         #self.Model[method]['Performance']['DProd'] = np.dot(cpred_msub.T,ctest_msub)
         
-        #do some shuffling here and try to see how well the model does
-        shuff_distr = self.shuffle_dprods(regmodel,Otest,Ctest,numshuff=1000)
-        self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(cpred_msub.T,ctest_msub),'Distr':shuff_distr}
-        #what if we do a final "logistic" part here...
-        self.Otrain = Otrain
-        self.Ctrain = Ctrain
-        self.Last_Model = method
+        # Get the Test Patients used
+        test_pts = self.Model[method]['TestPts']
+        #Get the labels        
+        labels = self.Model[method]['Labels']
         
         
-        #post-process the test and predicted things
-        Cpredictions = cpred_msub
-        Ctest = ctest_msub
-        
+        #Plot individually
         if plot_indiv:
         #do a plot for each patient on this?
             for pt in test_pts:
                 plt.figure()
                 #check if the sizes are right
-                assert len(Cpredictions) == len(labels['Patient'])
+                try:
+                    assert len(Cpredictions) == len(labels['Patient'])
+                except:
+                    ipdb.set_trace()
                 
                 pt_preds = [cpred for cpred,pat in zip(Cpredictions,labels['Patient']) if pat == pt]
                 pt_actuals = [ctest for ctest,pat in zip(Ctest,labels['Patient']) if pat == pt]
                 
                 
                 plt.plot(pt_preds,label='Predicted')
-                plt.plot(pt_actuals,label='Actual')
+                plt.plot(pt_actuals,label='HDRS17')
                 plt.legend()
                 
                 plt.xlabel('Week')
                 plt.ylabel('Normalized Disease Severity')
                 plt.suptitle(pt + ' ' + method)
                 sns.despine()
-        
+                
+                
+        #Do summary plots
+        doplot = True
         if doplot:
             
             x,y = (1,1)
@@ -818,10 +874,12 @@ class ORegress:
                 
             
             #assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
-            #THIS ELIMATES BROAD DECREASES OVER TIME, a linear detrend
+
+            #Maybe flip this? Due to paper: https://www.researchgate.net/publication/230692926_How_to_Evaluate_Models_Observed_vs_Predicted_or_Predicted_vs_Observed
             assesslr.fit(Ctest,Cpredictions)
             
-            line_x = np.linspace(0,1,20).reshape(-1,1)
+            
+            line_x = np.linspace(-1,1,20).reshape(-1,1)
             line_y = assesslr.predict(line_x)
             
             if ranson:
@@ -845,18 +903,26 @@ class ORegress:
             #     print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
             # else:
             print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+            #THESE TWO ARE THE SAME!!
+            #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
             
+            
+            #plotting work
+            scatter_alpha = 0.5
             plt.figure()
             plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
             plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
-            plt.plot(np.linspace(0,x,2),np.linspace(0,y,2),alpha=0.2,color='gray')
+            plt.plot(np.linspace(-x,x,2),np.linspace(-y,y,2),alpha=0.2,color='gray')
             plt.plot(line_x,line_y,color='red')
+            plt.axes().set_aspect('equal')
             
-            plt.xlabel('Actual')
+            plt.xlabel('HDRS17')
             plt.ylabel('Predicted')
-            plt.xlim((0,1))
-            plt.ylim((-0.2,1))
+            plt.xlim((-0.5,0.5))
+            plt.ylim((-0.5,0.5))
             
-            plt.suptitle(method + ' | recordings: ' + circ)
+            plt.suptitle(method + ' | recordings: ' + self.Model[method]['Circ'])
             #plt.title('All Observations')
             sns.despine()
+            print('There are ' + str(sum(outlier_mask)/len(outlier_mask)*100) + '% outliers')
+            plt.suptitle(method)
