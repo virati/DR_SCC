@@ -735,17 +735,19 @@ class ORegress:
 
 
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False):
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17'):
         train_pts = ['901','903']
         test_pts = ['905','908','907','906']
-        Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ)
+        #ALWAYS train on the HDRS17
+        Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ,scale='HDRS17')
        
         #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
         
         
-        if method == 'OLS':
+        if method[0:3] == 'OLS':
             regmodel = linear_model.LinearRegression(normalize=True,copy_X=True,fit_intercept=True)
             scatter_alpha = 0.9
+            method = method + circ
         elif method == 'RANSAC':
             regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=False,fit_intercept=True,copy_X=True),min_samples=inpercent,max_trials=1000)
             scatter_alpha = 0.1
@@ -767,7 +769,7 @@ class ORegress:
         #Generate the testing set data
         self.Model = nestdict()
         
-        Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks,circ=circ,ignore_flags=ignore_flags)
+        Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks,circ=circ,ignore_flags=ignore_flags,scale=scale)
         #Shape the input oscillatory state vectors
         
         #Generate the predicted clinical states
