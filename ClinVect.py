@@ -151,6 +151,7 @@ class CFrame:
             
             DSC_scores= -stats.zscore(np.mean(Lrcomp[:,:],axis=1))
             
+            self.DSS_dict[pat]['DSC'] = DSC_scores
             for phph in range(DSC_scores.shape[0]):
                 #self.clin_dict[pt][ph_lut[phph]]['DSC']= new_scores[phph]
                 self.clin_dict['DBS'+pat][ph_lut[phph]]['DSC'] = DSC_scores[phph]/3
@@ -197,10 +198,31 @@ class CFrame:
             #vector with all clinical measures in the thing
             #return will be phase x clinscores
             c_vect[pt] = 0
+            
+    def c_vs_c_plot(self,c1='HDRS17',c2='HDRS17'):
+        plt.figure()
+        
+        for pat in self.do_pts:
+            plt.scatter(self.DSS_dict['DBS'+pat][c1][0:32],self.DSS_dict['DBS'+pat][c2][0:32])
+        plt.xlabel(c1)
+        plt.ylabel(c2)
+        
+        corr_matr = np.array([(self.DSS_dict['DBS'+pat][c1][0:32],self.DSS_dict['DBS'+pat][c2][0:32]) for pat in self.do_pts])
+        corr_matr = np.swapaxes(corr_matr,0,1)
+        corr_matr = corr_matr.reshape(2,-1,order='C')
+        
+        spearm = stats.spearmanr(corr_matr[0,:],corr_matr[1,:])
+        print('Corr between ' + c1 + ' and ' + c2 + ' is: ' + str(spearm))
+        
+        plt.plot([-1,60],[-1,60])
+        plt.axes().set_aspect('equal')
+        
+        #plt.legend(self.do_pts)
 
 
 if __name__=='__main__':
     TestFrame = CFrame()
-    TestFrame.plot_scale(scale='DSC')
-    TestFrame.plot_scale(scale='HDRS17')
+    TestFrame.c_vs_c_plot(c1='MADRS',c2='BDI')
+    #TestFrame.plot_scale(scale='DSC')
+    #TestFrame.plot_scale(scale='HDRS17')
     #TestFrame.c_dict()

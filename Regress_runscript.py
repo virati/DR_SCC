@@ -35,47 +35,58 @@ analysis.O_feat_extract()
 
 #%%
 
-circ = 'day'
-print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
-analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ=circ,scale='mHDRS')
-analysis.O_models(plot=True,models=['OLS'+circ])
-analysis.Clinical_Summary('OLS'+circ,ranson=False,plot_indiv=True)
-analysis.shuffle_summary('OLS'+circ)
-#%%
-
-circ = 'night'
-print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
-analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ=circ)
-analysis.O_models(plot=True,models=['OLS'+circ])
-analysis.Clinical_Summary('OLS'+circ,ranson=False)
-analysis.shuffle_summary('OLS'+circ)
+regr_type = 'LASSO'
 
 
-#%%
-circ = 'day'
-print('DOING RANSAC ' + circ + ' REGRESSION NOW....................................................................')
-analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ=circ)
-analysis.O_models(plot=True,models=['RANSAC'])
-analysis.Clinical_Summary('RANSAC',ranson=False)
-analysis.shuffle_summary('RANSAC')
-#%%
-dorsac = True
-print('DOING RIDGE REGRESSION NOW....................................................................')
-#analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
-#analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',scale='DSC')
-analysis.O_models(plot=True,models=['RIDGE'])
-analysis.Clinical_Summary('RIDGE',plot_indiv=True,score_detrend=True,ranson=dorsac)
-analysis.shuffle_summary('RIDGE')
-#plt.figure();plt.hist(analysis.Model['RIDGE']['Performance']['DProd']['Distr'])
-#print(np.sum(analysis.Model['RIDGE']['Performance']['DProd']['Distr'] > analysis.Model['RIDGE']['Performance']['DProd']['Dot'])/len(analysis.Model['RIDGE']['Performance']['DProd']['Distr']))
 
-#%%
-print('DOING LASSO REGRESSION NOW....................................................................')
-analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',plot_indiv=False,scale='HDRS17')
-analysis.O_models(plot=True,models=['LASSO'])
-analysis.Clinical_Summary('LASSO',plot_indiv=True,score_detrend=True)
-analysis.shuffle_summary('LASSO')
+if regr_type == 'OLSnite':
+    circ = 'day'
+    print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
+    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ=circ,scale='mHDRS')
+    analysis.O_models(plot=True,models=['OLS'+circ])
+    analysis.Clinical_Summary('OLS'+circ,ranson=False,plot_indiv=True)
+    analysis.shuffle_summary('OLS'+circ)
+elif regr_type == 'OLSday':
+    circ = 'night'
+    print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
+    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ=circ)
+    analysis.O_models(plot=True,models=['OLS'+circ])
+    analysis.Clinical_Summary('OLS'+circ,ranson=False)
+    analysis.shuffle_summary('OLS'+circ)
+
+
+
+#NO MORE RANSAC ON THE BIOMETRIC MODEL, JUST ON THE PERFORMANCE
+#circ = 'day'
+#print('DOING RANSAC ' + circ + ' REGRESSION NOW....................................................................')
+#analysis.O_regress(method='RANSAC',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,plot_indiv=False,circ=circ)
+#analysis.O_models(plot=True,models=['RANSAC'])
+#analysis.Clinical_Summary('RANSAC',ranson=False)
+#analysis.shuffle_summary('RANSAC')
+
+
+
+
+elif regr_type == 'RIDGE':
+    dorsac = False
+    print('DOING RIDGE REGRESSION NOW....................................................................')
+    #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
+    #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
+    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='night',scale='mHDRS')
+    analysis.O_models(plot=True,models=['RIDGE'])
+    analysis.Clinical_Summary('RIDGE',plot_indiv=False,score_detrend=True,ranson=dorsac)
+    analysis.shuffle_summary('RIDGE',score_detrend=True)
+    #plt.figure();plt.hist(analysis.Model['RIDGE']['Performance']['DProd']['Distr'])
+    #print(np.sum(analysis.Model['RIDGE']['Performance']['DProd']['Distr'] > analysis.Model['RIDGE']['Performance']['DProd']['Dot'])/len(analysis.Model['RIDGE']['Performance']['DProd']['Distr']))
+
+
+elif regr_type == 'LASSO':
+    dorsac = False
+    print('DOING LASSO REGRESSION NOW....................................................................')
+    analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',plot_indiv=False,scale='HDRS17')
+    analysis.O_models(plot=True,models=['LASSO'])
+    analysis.Clinical_Summary('LASSO',plot_indiv=True,score_detrend=True,ranson=dorsac)
+    analysis.shuffle_summary('LASSO')
 #plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])
 #print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)

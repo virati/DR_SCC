@@ -13,6 +13,7 @@ from sklearn.utils import shuffle
 
 from collections import defaultdict
 import itertools as itt
+from itertools import compress
 
 import json
 
@@ -63,7 +64,8 @@ class PSD_EN:
             
             #play around here
             #THIS WORKS WELL#l_ratio = np.linspace(0.2,0.3,20)
-            l_ratio = np.linspace(0.3,0.5,30)
+            #l_ratio = np.linspace(0.3,0.5,30)
+            l_ratio = np.linspace(0.2,0.5,30)
             alpha_list = alphas
             
             
@@ -270,7 +272,7 @@ class DSV:
         plt.title('Right Channel')
         
     #primary 
-    def run_EN(self,alpha_list):
+    def run_EN(self,alpha_list,scale='HDRS17'):
         self.train_F,self.train_C = self.dsgn_F_C(self.train_pts,week_avg=True)
         
         #setup our Elastic net here
@@ -282,7 +284,7 @@ class DSV:
         
         #test phase
         
-        Ftest,Ctest = self.dsgn_F_C(self.test_pts,week_avg=True)
+        Ftest,Ctest = self.dsgn_F_C(self.test_pts,week_avg=True,scale=scale)
         print("Testing Elastic Net...")
         Ealg.Test(Ftest,Ctest)
         
@@ -520,10 +522,14 @@ class ORegress:
         if ignore_flags:
             pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False] for phase in dbo.all_phases} for pt in pts}
             pt_dict_gc = pt_dict_flags
+        else:
+            pt_dict_gc = pt_dict_flags
         
         if circ != '':
-            pt_dict_flags = {pt:{phase:[rec for rec in pt_dict_flags[pt][phase] if rec['Circadian'] == circ] for phase in dbo.all_phases} for pt in pts}
+            pt_dict_flags = {pt:{phase:[rec for rec in pt_dict_gc[pt][phase] if rec['Circadian'] == circ] for phase in dbo.all_phases} for pt in pts}
             pt_dict_circ = pt_dict_flags
+        else:
+            pt_dict_circ = pt_dict_gc
         
         ##
         #this should give us a good list of pt_dict recordings we care about for further processing
@@ -542,12 +548,9 @@ class ORegress:
         
         ##THIS IS NEW
         print('Generating Pre-filtered Recordings - GC ignore:' + str(ignore_flags) + ' circadian:' + circ)
-        try:
-            pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in pt_dict_flags[pt][phase]]) for phase in dbo.all_phases} for pt in pts}
-        except Exception as e:
-            print(e)
-            ipdb.set_trace()
-        ##
+
+        pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in pt_dict_circ[pt][phase]]) for phase in dbo.all_phases} for pt in pts}
+ 
         
         
         #first step, find feat vect for all
@@ -561,7 +564,7 @@ class ORegress:
         
         #This forms a big list where we make tuples with all our feature vectors for all pt x ph
         #rr goes through the number of observations in each week; which may be 1 if we are averaging
-        big_list = [[(rr,ptcdict['DBS'+pt][ph][scale],pt) for rr in pt_dict[pt][ph]] for pt,ph in itt.product(pts,ePhases)]
+        big_list = [[(rr,ptcdict['DBS'+pt][ph][scale],pt,ph) for rr in pt_dict[pt][ph]] for pt,ph in itt.product(pts,ePhases)]
         
         #Fully flatten now for all observations
         #this is a big list that works great!
@@ -572,6 +575,7 @@ class ORegress:
         O_dsgn_intermed= np.array([ff[0] for ff in obs_list])
         C_dsgn_intermed = np.array([ff[1] for ff in obs_list]) #to bring it into [0,1]
         label_dict['Patient'] = [ff[2] for ff in obs_list]
+        label_dict['Phase'] = [ff[3] for ff in obs_list]
         
         #ipdb.set_trace()
         if collapse_chann:
@@ -615,7 +619,7 @@ class ORegress:
         # except:
         #     pdb.set_trace()
 
-    def poly_subtr(self,inp_psd,polyord=5):
+    def poly_subtr(self,inp_psd,polyord=4):
         #log10 in_psd first
         log_psd = 10*np.log10(inp_psd)
         pfit = np.polyfit(self.YFrame.data_basis,log_psd,polyord)
@@ -716,6 +720,7 @@ class ORegress:
         return res_dot
 
     def shuffle_summary(self,method='RIDGE',score_detrend=True):
+        print('Shuffle Assessment')
         if score_detrend:
             print('Detrending Predictions and Test-HDRS17')
             Cpredictions = sig.detrend(self.Model[method]['Cpredictions'].reshape(-1,1),axis=0,type='linear')
@@ -752,8 +757,8 @@ class ORegress:
             regmodel = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=1.0,normalize=False,fit_intercept=True,copy_X=True),min_samples=inpercent,max_trials=1000)
             scatter_alpha = 0.1
         elif method == 'RIDGE':
-            regmodel = linear_model.Ridge(alpha=0.36,copy_X=True,fit_intercept=True,normalize=True)
-            #regmodel = linear_model.RidgeCV(alphas=np.linspace(0.3,1,50),fit_intercept=True,normalize=True,cv=10)
+            #regmodel = linear_model.Ridge(alpha=0.36,copy_X=True,fit_intercept=True,normalize=True)
+            regmodel = linear_model.RidgeCV(alphas=np.linspace(0.1,0.7,50),fit_intercept=True,normalize=True,cv=10)
             scatter_alpha = 0.9
         elif method == 'LASSO':
             regmodel = linear_model.Lasso(alpha=0.01, copy_X=True,fit_intercept=True,normalize=True)
@@ -805,6 +810,7 @@ class ORegress:
         #now we can do other stuff I suppose...
     
     def Clinical_Summary(self,method='RIDGE',plot_indiv=False,score_detrend=True,ranson=True):
+        print('Clinical Summary')
         if score_detrend:
             print('Detrending Predictions and Test-HDRS17')
             Cpredictions = sig.detrend(self.Model[method]['Cpredictions'].reshape(-1,1),axis=0,type='linear')
@@ -870,9 +876,10 @@ class ORegress:
             
             x,y = (1,1)
             if ranson:
-                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),min_samples=0.8)
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.Lasso(alpha=0.9,fit_intercept=True),residual_threshold=15)
             else:
-                assesslr = linear_model.LinearRegression(fit_intercept=True)
+                #assesslr = linear_model.LinearRegression(fit_intercept=True)
+                assesslr = linear_model.TheilSenRegressor()
                 
             
             #assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
@@ -887,7 +894,6 @@ class ORegress:
             if ranson:
                 inlier_mask = assesslr.inlier_mask_
                 corrcoef = assesslr.estimator_.coef_[0]
-                
             else:
                 inlier_mask = np.ones_like(Ctest).astype(bool)
                 corrcoef = assesslr.coef_[0]
@@ -904,19 +910,29 @@ class ORegress:
             # if ranson:
             #     print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
             # else:
-            print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+            print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
             #THESE TWO ARE THE SAME!!
             #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
             
-            
+            outlier_phases = list(compress(labels['Phase'],outlier_mask))
+            outlier_pt = list(compress(labels['Patient'],outlier_mask))
             #plotting work
             scatter_alpha = 0.5
             plt.figure()
             plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
+            for ii, txt in enumerate(outlier_phases):
+                plt.annotate(txt+'\n'+outlier_pt[ii],(Ctest[outlier_mask][ii],Cpredictions[outlier_mask][ii]),fontsize=8)
+                
             plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
             plt.plot(np.linspace(-x,x,2),np.linspace(-y,y,2),alpha=0.2,color='gray')
+            
+            #This is the regression line itself
             plt.plot(line_x,line_y,color='red')
             plt.axes().set_aspect('equal')
+            
+            #List all the phases for the OUTLIERS
+            
+            #print('Outlier phases are: ' + str(outlier_phases))
             
             plt.xlabel('HDRS17')
             plt.ylabel('Predicted')

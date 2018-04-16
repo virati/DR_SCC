@@ -360,6 +360,27 @@ class BR_Data_Tree():
         #%%
         #for rr in DataFrame.file_meta:
         #    plt.plot(rr['TD']['Left'])
+        
+        def compute_feat(self):
+            print('Extracting Oscillatory Features')
+            big_list = self.file_meta
+            for rr in big_list:
+                feat_dict = {key:[] for key in dbo.feat_dict.keys()}
+                for featname,dofunc in dbo.feat_dict.items():
+                    #Choose the zero index of the poly_subtr return because we are not messing with the polynomial vector itself
+                    #rr['data'] is NOT log10 transformed, so makes no sense to do the poly subtr
+                    datacontainer = {ch: self.poly_subtr(rr['Data'][ch])[0] for ch in rr['Data'].keys()} #THIS RETURNS a PSD, un-log transformed
+                    
+                    try:
+                        feat_dict[featname] = dofunc['fn'](datacontainer,self.data_basis,dofunc['param'])
+                    except:
+                        pdb.set_trace()
+                rr.update({'FeatVect':feat_dict})
+       
+        
+        def plot_feat(self,feat_name='Stim'):
+            #plot the feat of interest here!!!!
+            pass
             
 if __name__ == '__main__':
     #Unit Test
