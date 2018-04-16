@@ -517,39 +517,36 @@ class ORegress:
         
         ###THIS IS NEW
         #generate our stack of interest, with all the flags and all
-        pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase] for phase in dbo.all_phases} for pt in pts}
+        pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase] for phase in ePhases} for pt in pts}
+        
+        #How many recordings are going in for now?
+        
+        
         
         if ignore_flags:
-            pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False] for phase in dbo.all_phases} for pt in pts}
+            print('Ignoring GC Flags')
+            pt_dict_flags = {pt:{phase:[rec for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False] for phase in ePhases} for pt in pts}
             pt_dict_gc = pt_dict_flags
         else:
             pt_dict_gc = pt_dict_flags
         
         if circ != '':
-            pt_dict_flags = {pt:{phase:[rec for rec in pt_dict_gc[pt][phase] if rec['Circadian'] == circ] for phase in dbo.all_phases} for pt in pts}
+            print('Filtering circadian ' + circ)
+            pt_dict_flags = {pt:{phase:[rec for rec in pt_dict_gc[pt][phase] if rec['Circadian'] == circ] for phase in ePhases} for pt in pts}
             pt_dict_circ = pt_dict_flags
         else:
             pt_dict_circ = pt_dict_gc
         
-        ##
-        #this should give us a good list of pt_dict recordings we care about for further processing
         
-        #FURTHER SHAPING WILL HAPPEN HERE, for example Z-scoring within each patient, within each channel; averaging week, etc.
+        #tot_recs = ([[len(rec) for phz,rec in phase.items()] for pt,phase in pt_dict_flags.items()])
+        tot_recs = sum([len(pt_dict_circ[pt][ph]) for pt,ph in itt.product(pts,ePhases)])
+        print(str(tot_recs) + ' recordings!!!!!!!!!!!!!')
         
-        if ignore_flags:
-          
-            #WORKING VERSION
-            #pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase and rec['GC_Flag']['Flag'] == False]) for phase in dbo.all_phases} for pt in pts}
-              pass
-        else:
-            
-            #pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in fmeta if rec['Patient'] == pt and rec['Phase'] == phase]) for phase in dbo.all_phases} for pt in pts}
-            pass
         
-        ##THIS IS NEW
+        
+        ##THIS converts our recordings to a feature vector matrix that is the basis for the design matrix. Averaging happens immediately after as a result
         print('Generating Pre-filtered Recordings - GC ignore:' + str(ignore_flags) + ' circadian:' + circ)
-
-        pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in pt_dict_circ[pt][phase]]) for phase in dbo.all_phases} for pt in pts}
+        pt_dict = {pt:{phase:np.array([dbo.featDict_to_Matr(rec['FeatVect']) for rec in pt_dict_circ[pt][phase]]) for phase in ePhases} for pt in pts}
  
         
         
@@ -619,7 +616,7 @@ class ORegress:
         # except:
         #     pdb.set_trace()
 
-    def poly_subtr(self,inp_psd,polyord=4):
+    def poly_subtr(self,inp_psd,polyord=5):
         #log10 in_psd first
         log_psd = 10*np.log10(inp_psd)
         pfit = np.polyfit(self.YFrame.data_basis,log_psd,polyord)
@@ -709,43 +706,40 @@ class ORegress:
         for ss in range(numshuff):
             Oshuff,Cshuff = shuffle(Otest,Ctest,random_state=ss)
             #compare our Oshuff to Ctest
+            
             Cspred = regmodel.predict(Oshuff).reshape(-1,1)
             
             #DETREND HERE
-            Cspred = sig.detrend(Cspred,axis=0,type='linear')
-            Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0,type='linear')
+            #Cspred = sig.detrend(Cspred,axis=0,type='linear')
+            #Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0,type='linear')
             
             res_dot[ss] = np.dot(Cspred.T,Ctest)
                         
         return res_dot
 
-    def shuffle_summary(self,method='RIDGE',score_detrend=True):
+    def shuffle_summary(self,method='RIDGE'):
         print('Shuffle Assessment')
-        if score_detrend:
-            print('Detrending Predictions and Test-HDRS17')
-            Cpredictions = sig.detrend(self.Model[method]['Cpredictions'].reshape(-1,1),axis=0,type='linear')
-            Ctest = sig.detrend(self.Model[method]['Ctest'].reshape(-1,1),axis=0,type='linear')
-        else:
-            print('Reshaping only: Predictions and Test-HDRS17')
-            Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
-            Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
+        Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
+        Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
         #do some shuffling here and try to see how well the model does
         shuff_distr = self.shuffle_dprods(self.Model[method]['Model'],self.Model[method]['Otest'],self.Model[method]['Ctest'],numshuff=1000)
         self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(Cpredictions.T,Ctest),'Distr':shuff_distr,'Perfect':np.dot(Ctest.T,Ctest)}
 
         #First, let's do shuffled version of IPs
-        print('IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(self.Model[method]['Performance']['DProd']['Distr'] > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])))
+        print('IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(self.Model[method]['Performance']['DProd']['Distr'] > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])) + '|| Perfect: ' + str(self.Model[method]['Performance']['DProd']['Perfect']))
         plt.figure();plt.hist(self.Model[method]['Performance']['DProd']['Distr'])
         
 
 
 
     def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17'):
+        lindetrend = 'Block'
+        print('Doing DETREND: ' + lindetrend)
         train_pts = ['901','903']
         test_pts = ['905','908','907','906']
         #ALWAYS train on the HDRS17
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ,scale='HDRS17')
-       
+        
         #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
         
         
@@ -761,7 +755,8 @@ class ORegress:
             regmodel = linear_model.RidgeCV(alphas=np.linspace(0.1,0.7,50),fit_intercept=True,normalize=True,cv=10)
             scatter_alpha = 0.9
         elif method == 'LASSO':
-            regmodel = linear_model.Lasso(alpha=0.01, copy_X=True,fit_intercept=True,normalize=True)
+            #regmodel = linear_model.LassoCV(alphas=np.linspace(0.0005,0.0015,50), copy_X=True,fit_intercept=True,normalize=True)
+            regmodel = linear_model.Lasso(alpha=0.0095, copy_X=True,fit_intercept=True,normalize=True)
             scatter_alpha=0.9
             
         
@@ -780,7 +775,10 @@ class ORegress:
         #Generate the predicted clinical states
         Cpredictions = regmodel.predict(Otest)
         
-        #% PREDICTIONS DONE
+        #reshape to vector
+        Ctest = Ctest.reshape(-1,1)
+        Cpredictions = Cpredictions.reshape(-1,1)
+        
         
         
         #generate the statistical correlation of the prediction vs the empirical HDRS17 score
@@ -794,13 +792,34 @@ class ORegress:
         self.Model[method]['Model'] = regmodel
         self.Model[method]['OTrain'] = Otrain
         self.Model[method]['Ctrain'] = Ctrain
-        self.Model[method]['Cpredictions'] = Cpredictions
+        
         self.Model[method]['Otest'] = Otest
-        self.Model[method]['Ctest'] = Ctest
         self.Model[method]['TestPts'] = test_pts
         self.Model[method]['TrainPts'] = train_pts
         self.Model[method]['Circ'] = circ
         self.Model[method]['Labels'] = labels
+        
+        if lindetrend == 'None':
+            self.Model[method]['Ctest'] = Ctest
+            self.Model[method]['Cpredictions'] = Cpredictions
+        elif lindetrend == 'Block':
+            #go through each patient and detrend for each BLOCK
+            for pp,pt in enumerate(test_pts):
+                ctest_block = Ctest[28*pp:28*(pp+1)]
+                Ctest[28*pp:28*(pp+1)] = sig.detrend(ctest_block,axis=0,type='linear')
+                cpred_block = Cpredictions[28*pp:28*(pp+1)]
+                Cpredictions[28*pp:28*(pp+1)] = sig.detrend(cpred_block,axis=0,type='linear')
+
+            self.Model[method]['Ctest'] = Ctest
+            self.Model[method]['Cpredictions'] = Cpredictions
+        
+        elif lindetrend == 'All':
+            self.Model[method]['Ctest'] = sig.detrend(Ctest,axis=0,type='linear')
+            self.Model[method]['Cpredictions'] = sig.detrend(Cpredictions,axis=0,type='linear')
+        
+        
+        
+        self.Model[method]['NORMALIZED'] = lindetrend
         
         
         #post-process the test and predicted things
@@ -809,17 +828,11 @@ class ORegress:
         
         #now we can do other stuff I suppose...
     
-    def Clinical_Summary(self,method='RIDGE',plot_indiv=False,score_detrend=True,ranson=True):
+    def Clinical_Summary(self,method='RIDGE',plot_indiv=False,ranson=True):
         print('Clinical Summary')
-        if score_detrend:
-            print('Detrending Predictions and Test-HDRS17')
-            Cpredictions = sig.detrend(self.Model[method]['Cpredictions'].reshape(-1,1),axis=0,type='linear')
-            Ctest = sig.detrend(self.Model[method]['Ctest'].reshape(-1,1),axis=0,type='linear')
-        else:
-            print('Reshaping only: Predictions and Test-HDRS17')
-            Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
-            Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
-        
+        Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
+        Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
+    
         
         #Do the stats here
         self.Model[method]['Performance']['PearsCorr'] = stats.pearsonr(Cpredictions.reshape(-1,1),Ctest.astype(float).reshape(-1,1))
@@ -878,8 +891,8 @@ class ORegress:
             if ranson:
                 assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.Lasso(alpha=0.9,fit_intercept=True),residual_threshold=15)
             else:
-                #assesslr = linear_model.LinearRegression(fit_intercept=True)
-                assesslr = linear_model.TheilSenRegressor()
+                assesslr = linear_model.LinearRegression(fit_intercept=True)
+                #assesslr = linear_model.TheilSenRegressor()
                 
             
             #assesslr.fit(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
@@ -910,7 +923,7 @@ class ORegress:
             # if ranson:
             #     print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
             # else:
-            print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
+            print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
             #THESE TWO ARE THE SAME!!
             #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
             
