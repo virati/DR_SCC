@@ -889,7 +889,12 @@ class ORegress:
             
             x,y = (1,1)
             if ranson:
-                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.Lasso(alpha=0.9,fit_intercept=True),residual_threshold=15)
+                #THIS WORKS THE BEST!!
+                #assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=0.2,fit_intercept=False),residual_threshold=0.16)
+                #Find TOTAL MAD
+                #Then find threshold ~20% of that
+                
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=0.2,fit_intercept=False),residual_threshold=0.15)
             else:
                 assesslr = linear_model.LinearRegression(fit_intercept=True)
                 #assesslr = linear_model.TheilSenRegressor()
@@ -916,14 +921,16 @@ class ORegress:
             #FINALLY just do a stats package linear regression
             if ranson:
                 slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest[inlier_mask].reshape(-1,1),Cpredictions[inlier_mask].reshape(-1,1))
+                print(method + ' model has RANSAC ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+            
             else:
                 slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
+                 
+                print(method + ' model has OLS ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+                
             
             self.Model[method]['Performance']['Regression'] = assesslr
-            # if ranson:
-            #     print(method + ' model has ' + str(corrcoef) + ' correlation with real score')
-            # else:
-            print(method + ' model has ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+            
             #THESE TWO ARE THE SAME!!
             #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
             
