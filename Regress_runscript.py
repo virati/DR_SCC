@@ -35,7 +35,7 @@ analysis.O_feat_extract()
 
 #%%
 
-regr_type = 'LASSO'
+regr_type = 'RIDGE'
 
 
 
@@ -46,6 +46,7 @@ if regr_type == 'OLSnite':
     analysis.O_models(plot=True,models=['OLS'+circ])
     analysis.Clinical_Summary('OLS'+circ,ranson=False,plot_indiv=False)
     analysis.shuffle_summary('OLS'+circ)
+    
 elif regr_type == 'OLSday':
     circ = 'day'
     print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
@@ -68,11 +69,11 @@ elif regr_type == 'OLSday':
 
 
 elif regr_type == 'RIDGE':
-    dorsac = False
+    dorsac = True
     print('DOING RIDGE REGRESSION NOW....................................................................')
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='day',scale='mHDRS')
+    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='night',scale='HDRS17')
     analysis.O_models(plot=True,models=['RIDGE'])
     analysis.Clinical_Summary('RIDGE',plot_indiv=False,ranson=dorsac)
     analysis.shuffle_summary('RIDGE')
