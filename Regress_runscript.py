@@ -15,6 +15,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
+import seaborn as sns
+sns.set_context('paper')
 
 
 ClinFrame = CFrame(norm_scales=True)
@@ -35,27 +37,35 @@ analysis.O_feat_extract()
 
 #%%
 
-regr_type = 'RIDGE'
+regr_type = 'LASSO'
+test_scale = 'HDRS17'
+do_detrend='Block'
 
 
-
+ranson = True
 if regr_type == 'OLSnite':
     circ = 'night'
     print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
-    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,circ=circ,scale='HDRS17')
+    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,circ=circ,scale=test_scale,lindetrend=do_detrend)
     analysis.O_models(plot=True,models=['OLS'+circ])
-    analysis.Clinical_Summary('OLS'+circ,ranson=False,plot_indiv=False)
+    analysis.Clinical_Summary('OLS'+circ,ranson=ranson,plot_indiv=False)
     analysis.shuffle_summary('OLS'+circ)
     
 elif regr_type == 'OLSday':
     circ = 'day'
     print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
-    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,ranson=False,circ=circ)
+    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,circ=circ,lindetrend=do_detrend)
     analysis.O_models(plot=True,models=['OLS'+circ])
-    analysis.Clinical_Summary('OLS'+circ,ranson=False)
+    analysis.Clinical_Summary('OLS'+circ,ranson=ranson)
     analysis.shuffle_summary('OLS'+circ)
 
-
+elif regr_type == 'OLSall':
+    circ = ''
+    print('DOING OLS' + circ + ' REGRESSION NOW....................................................................')
+    analysis.O_regress(method='OLS',doplot=True,inpercent=0.7,avgweeks=False,circ=circ,lindetrend=do_detrend)
+    analysis.O_models(plot=True,models=['OLS'+circ])
+    analysis.Clinical_Summary('OLS'+circ,ranson=ranson)
+    analysis.shuffle_summary('OLS'+circ)
 
 #NO MORE RANSAC ON THE BIOMETRIC MODEL, JUST ON THE PERFORMANCE
 #circ = 'day'
@@ -73,9 +83,9 @@ elif regr_type == 'RIDGE':
     print('DOING RIDGE REGRESSION NOW....................................................................')
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='night',scale='HDRS17')
+    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend)
     analysis.O_models(plot=True,models=['RIDGE'])
-    analysis.Clinical_Summary('RIDGE',plot_indiv=False,ranson=dorsac)
+    analysis.Clinical_Summary('RIDGE',plot_indiv=True,ranson=dorsac)
     analysis.shuffle_summary('RIDGE')
     #plt.figure();plt.hist(analysis.Model['RIDGE']['Performance']['DProd']['Distr'])
     #print(np.sum(analysis.Model['RIDGE']['Performance']['DProd']['Distr'] > analysis.Model['RIDGE']['Performance']['DProd']['Dot'])/len(analysis.Model['RIDGE']['Performance']['DProd']['Distr']))
@@ -84,7 +94,7 @@ elif regr_type == 'RIDGE':
 elif regr_type == 'LASSO':
     dorsac = False
     print('DOING LASSO REGRESSION NOW....................................................................')
-    analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',scale='HDRS17')
+    analysis.O_regress(method='LASSO',doplot=True,avgweeks=True,ranson=dorsac,ignore_flags=False,circ='night',scale=test_scale,lindetrend=do_detrend)
     analysis.O_models(plot=True,models=['LASSO'])
     analysis.Clinical_Summary('LASSO',plot_indiv=False,ranson=dorsac)
     analysis.shuffle_summary('LASSO')
@@ -92,14 +102,6 @@ elif regr_type == 'LASSO':
 #print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
 
-
-#%%
-#Plot model coefficients
-
-
-#%%
-
-#O1,C1 = analysis.dsgn_O_C(['901','903'],week_avg=False)
 
 #%%
 

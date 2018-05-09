@@ -14,8 +14,8 @@ import sys
 import pdb
 
 import scipy.stats as stats
-
 import scipy.signal as sig
+import scipy.io as sio
 
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
 sys.path.append('/home/virati/Dropbox/projects/libs/robust-pca/')
@@ -149,9 +149,10 @@ class CFrame:
             Srcomp, Srevals, Srevecs = pca(S)
             Lrcomp, Lrevals, Lrevecs = pca(L)
             
-            DSC_scores= -stats.zscore(np.mean(Lrcomp[:,:],axis=1))
+            #DSC_scores= -stats.zscore(np.mean(Lrcomp[:,:],axis=1))
+            DSC_scores = np.mean(Lrcomp[:,:],axis=1)
             
-            self.DSS_dict[pat]['DSC'] = DSC_scores
+            self.DSS_dict['DBS'+pat]['DSC'] = DSC_scores
             for phph in range(DSC_scores.shape[0]):
                 #self.clin_dict[pt][ph_lut[phph]]['DSC']= new_scores[phph]
                 self.clin_dict['DBS'+pat][ph_lut[phph]]['DSC'] = DSC_scores[phph]/3
@@ -179,11 +180,6 @@ class CFrame:
         pt_tcourse = {rr:self.clin_dict['DBS'+pt][rr] for rr in self.clin_dict['DBS'+pt]}
         return pt_tcourse
     
-
-    def load_stim_changes(self):
-        pass
-
-    
     def c_dict(self):
         clindict = self.clin_dict
         #This will generate a dictionary with each key being a scale, but each value being a matrix for all patients and timepoints
@@ -203,7 +199,7 @@ class CFrame:
         plt.figure()
         
         for pat in self.do_pts:
-            plt.scatter(self.DSS_dict['DBS'+pat][c1][0:32],self.DSS_dict['DBS'+pat][c2][0:32])
+            plt.scatter((self.DSS_dict['DBS'+pat][c1][0:32]),(self.DSS_dict['DBS'+pat][c2][0:32]))
         plt.xlabel(c1)
         plt.ylabel(c2)
         
@@ -220,9 +216,29 @@ class CFrame:
         #plt.legend(self.do_pts)
 
 
+    def load_stim_changes(self):
+        #this is where we'll load in information of when stim changes were done so we can maybe LABEL them in figures
+        self.stim_change_mat = sio.loadmat('/home/virati/Dropbox/stim_changes.mat')['StimMatrix']
+        
+    
+    def Stim_Change_Table(self):
+        #return stim changes in a meaningful format
+        
+        diff_matrix = np.diff(self.stim_change_mat) > 0
+        #find the phase corresponding to the stim change
+        
+        bump_phases = np.array([np.array(dbo.all_phases)[1:][idxs] for idxs in diff_matrix])
+        
+        full_table = [[(self.do_pts[rr],ph) for ph in row] for rr,row in enumerate(bump_phases)]
+        
+        full_table = [item for sublist in full_table for item in sublist]
+        
+        return full_table
+    
+
 if __name__=='__main__':
     TestFrame = CFrame()
-    TestFrame.c_vs_c_plot(c1='MADRS',c2='BDI')
+    TestFrame.c_vs_c_plot(c1='DSC',c2='HDRS17')
     #TestFrame.plot_scale(scale='DSC')
     #TestFrame.plot_scale(scale='HDRS17')
     #TestFrame.c_dict()

@@ -160,7 +160,7 @@ class DSV:
                 pt_list = np.squeeze(np.array(pt_list))
                 
                 #THIS IS WHERE SHAPING WILL HAPPEN
-                pt_list,polyvect = self.shape_PSD_stack(pt_list,plot=False,polyord=4)
+                pt_list,polyvect = self.shape_PSD_stack(pt_list,plot=True,polyord=4)
                 
                 biglist.append(pt_list)
                 big_score.append(pt_score)
@@ -298,7 +298,7 @@ class DSV:
         plt.plot(self.trunc_fvect,self.ENet.ENet.coef_[coeff_len:],label='Right Feats')
         plt.legend()
         
-    def plot_tests(self):
+    def DEPRplot_tests(self):
         
         #Now plot them if we'd like
         num_pts = len(self.test_pts)
@@ -322,7 +322,7 @@ class DSV:
             
         self.Zscore_Results = pt_zscored
         
-    def plot_performance(self,plot_indiv=False,doplot = True,ranson=True):
+    def DEPRplot_performance(self,plot_indiv=False,doplot = True,ranson=True):
         Cpredictions = (self.ENet.Ys[0])
         Ctest = (self.ENet.Ys[1])
         
@@ -699,7 +699,7 @@ class ORegress:
         plt.legend()
         
     def shuffle_dprods(self,regmodel,Otest,Ctest,numshuff=100):
-        print('Starting Shuffle Test...')
+        #print('Starting Shuffle Test...')
         res_dot = np.zeros((numshuff,1))
         
         
@@ -718,7 +718,7 @@ class ORegress:
         return res_dot
 
     def shuffle_summary(self,method='RIDGE'):
-        print('Shuffle Assessment')
+        #print('Shuffle Assessment')
         Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
         Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
         #do some shuffling here and try to see how well the model does
@@ -726,17 +726,19 @@ class ORegress:
         self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(Cpredictions.T,Ctest),'Distr':shuff_distr,'Perfect':np.dot(Ctest.T,Ctest)}
 
         #First, let's do shuffled version of IPs
-        print('IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(self.Model[method]['Performance']['DProd']['Distr'] > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])) + '|| Perfect: ' + str(self.Model[method]['Performance']['DProd']['Perfect']))
+        print('Shuffle: IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(np.abs(self.Model[method]['Performance']['DProd']['Distr']) > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])) + '|| Perfect: ' + str(self.Model[method]['Performance']['DProd']['Perfect']))
         plt.figure();plt.hist(self.Model[method]['Performance']['DProd']['Distr'])
         
 
 
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17'):
-        lindetrend = 'Block'
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17',lindetrend = 'Block'):
+        
         print('Doing DETREND: ' + lindetrend)
+        
+        #Test/Train patient separation
         train_pts = ['901','903']
-        test_pts = ['905','908','907','906']
+        test_pts = ['905','906','907','908']
         #ALWAYS train on the HDRS17
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ,scale='HDRS17')
         
@@ -769,6 +771,7 @@ class ORegress:
         #Generate the testing set data
         self.Model = nestdict()
         
+        self.test_MEAS = scale
         Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks,circ=circ,ignore_flags=ignore_flags,scale=scale)
         #Shape the input oscillatory state vectors
         
@@ -874,7 +877,7 @@ class ORegress:
                 
                 
                 plt.plot(pt_preds,label='Predicted')
-                plt.plot(pt_actuals,label='HDRS17')
+                plt.plot(pt_actuals,label=self.test_MEAS)
                 plt.legend()
                 
                 plt.xlabel('Week')
@@ -894,7 +897,7 @@ class ORegress:
                 #Find TOTAL MAD
                 #Then find threshold ~20% of that
                 
-                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.Ridge(alpha=0.2,fit_intercept=False),residual_threshold=0.15)
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=False),residual_threshold=0.16) #0.15 residual threshold works great!
             else:
                 assesslr = linear_model.LinearRegression(fit_intercept=True)
                 #assesslr = linear_model.TheilSenRegressor()
@@ -909,6 +912,8 @@ class ORegress:
             line_x = np.linspace(-1,1,20).reshape(-1,1)
             line_y = assesslr.predict(line_x)
             
+            
+            #HANDLING OUTLIERS TO THE BIOMETRIC MODEL
             if ranson:
                 inlier_mask = assesslr.inlier_mask_
                 corrcoef = assesslr.estimator_.coef_[0]
@@ -921,40 +926,60 @@ class ORegress:
             #FINALLY just do a stats package linear regression
             if ranson:
                 slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest[inlier_mask].reshape(-1,1),Cpredictions[inlier_mask].reshape(-1,1))
-                print(method + ' model has RANSAC ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+                print('OUTLIER: ' + method + ' model has RANSAC ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
             
             else:
                 slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest.reshape(-1,1),Cpredictions.reshape(-1,1))
                  
                 print(method + ' model has OLS ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
-                
             
             self.Model[method]['Performance']['Regression'] = assesslr
             
             #THESE TWO ARE THE SAME!!
             #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
             
+            #PLOT the outlier points and their patient + phase
             outlier_phases = list(compress(labels['Phase'],outlier_mask))
             outlier_pt = list(compress(labels['Patient'],outlier_mask))
             #plotting work
-            scatter_alpha = 0.5
+            if method[0:3] != 'OLS':
+                scatter_alpha = 0.5
+            else:
+                scatter_alpha = 0.05
+                
             plt.figure()
             plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
             for ii, txt in enumerate(outlier_phases):
-                plt.annotate(txt+'\n'+outlier_pt[ii],(Ctest[outlier_mask][ii],Cpredictions[outlier_mask][ii]),fontsize=8)
+                plt.annotate(txt+'\n'+outlier_pt[ii],(Ctest[outlier_mask][ii],Cpredictions[outlier_mask][ii]),fontsize=8,color='gray')
                 
+            
+            #Plot all the inliers now
             plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
             plt.plot(np.linspace(-x,x,2),np.linspace(-y,y,2),alpha=0.2,color='gray')
             
             #This is the regression line itself
-            plt.plot(line_x,line_y,color='red')
+            plt.plot(line_x,line_y,color='green')
             plt.axes().set_aspect('equal')
             
-            #List all the phases for the OUTLIERS
             
-            #print('Outlier phases are: ' + str(outlier_phases))
             
-            plt.xlabel('HDRS17')
+            #Finally, let's label the clinician's changes
+            #find out the points that the stim was changed
+            stim_change_list = self.CFrame.Stim_Change_Table()
+            ostimchange = []
+            
+            for ii in range(Ctest.shape[0]):
+                if (labels['Patient'][ii],labels['Phase'][ii]) in stim_change_list:                
+                    ostimchange.append(ii)
+            
+            if method[0:3] != 'OLS':
+                
+                for ii in ostimchange:
+                    plt.annotate(labels['Patient'][ii] + ' ' + labels['Phase'][ii],(Ctest[ii],Cpredictions[ii]),fontsize=8,color='red')
+                
+            plt.scatter(Ctest[ostimchange],Cpredictions[ostimchange],alpha=scatter_alpha,color='red',marker='^',s=130)
+            
+            plt.xlabel(self.test_MEAS)
             plt.ylabel('Predicted')
             plt.xlim((-0.5,0.5))
             plt.ylim((-0.5,0.5))
@@ -964,3 +989,46 @@ class ORegress:
             sns.despine()
             print('There are ' + str(sum(outlier_mask)/len(outlier_mask)*100) + '% outliers')
             plt.suptitle(method)
+            
+            #let's do a quick SWEEP on both CLIN MEASURE and our putative biometric to see which one yields a more congruent response
+            
+            thresh = np.linspace(-0.4,0.4,100)
+            cs_above = np.zeros_like(thresh)
+            putbm_above = np.zeros_like(thresh)
+            both_above = np.zeros_like(thresh)
+            cons_above = np.zeros_like(thresh)
+            
+            nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
+            disagree = 0.02
+            for tt,thr in enumerate(thresh):
+                cs_above[tt] = np.sum(Ctest[ostimchange] > thr)
+                putbm_above[tt] = np.sum(Cpredictions[ostimchange] > thr)
+                both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] > thr,Ctest[ostimchange] > thr))
+                cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                
+            nccs_above = np.zeros_like(thresh)
+            ncputbm_above = np.zeros_like(thresh)
+            ncboth_above = np.zeros_like(thresh)
+            nccons_above = np.zeros_like(thresh)
+            
+            for tt,thr in enumerate(thresh):
+                nccs_above[tt] = np.sum(Ctest[nochange] > thr)
+                ncputbm_above[tt] = np.sum(Cpredictions[nochange] > thr)
+                ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] > thr,Ctest[nochange] > thr))
+                nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                
+            plt.figure()
+            plt.plot(thresh,cs_above,label='Standard')
+            plt.plot(thresh,putbm_above,label='Putative Alone')
+            plt.plot(thresh,both_above,label='Proposed')
+            #plt.plot(thresh,cons_above,label='ForFun')
+            plt.legend()
+            
+            plt.figure()
+            plt.plot(thresh,cs_above/(cs_above + nccs_above),label='Standard')
+            plt.plot(thresh,putbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
+            plt.plot(thresh,both_above/(both_above+ncboth_above),label='Proposed')
+            #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
+            plt.legend()
+            #print('Outlier phases are: ' + str(outlier_phases))
+            
