@@ -37,9 +37,9 @@ analysis.O_feat_extract()
 
 #%%
 
-regr_type = 'LASSO'
+regr_type = 'RIDGE'
 test_scale = 'HDRS17'
-do_detrend='Block'
+do_detrend='All'
 
 
 ranson = True

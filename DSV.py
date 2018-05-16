@@ -975,7 +975,7 @@ class ORegress:
             if method[0:3] != 'OLS':
                 
                 for ii in ostimchange:
-                    plt.annotate(labels['Patient'][ii] + ' ' + labels['Phase'][ii],(Ctest[ii],Cpredictions[ii]),fontsize=8,color='red')
+                    plt.annotate(labels['Patient'][ii] + ' ' + labels['Phase'][ii],(Ctest[ii],Cpredictions[ii]),fontsize=10,color='red')
                 
             plt.scatter(Ctest[ostimchange],Cpredictions[ostimchange],alpha=scatter_alpha,color='red',marker='^',s=130)
             
