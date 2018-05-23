@@ -25,6 +25,7 @@ ClinFrame = CFrame(norm_scales=True)
 
 BRFrame = BRDF.BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_April.npy')
+#BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
 BRFrame.check_empty_phases()
 
 
@@ -38,8 +39,8 @@ analysis.O_feat_extract()
 #%%
 
 regr_type = 'RIDGE'
-test_scale = 'HDRS17'
-do_detrend='All'
+test_scale = 'mHDRS'
+do_detrend='Block'
 
 
 ranson = True

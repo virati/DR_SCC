@@ -136,7 +136,7 @@ class OBands:
             day_matr = np.array(Circ['day'][pp]).reshape(-1,10,order='F')
             night_matr = np.array(Circ['night'][pp]).reshape(-1,10,order='F')
             for feat in range(10):
-                outstat = stats.mannwhitneyu(day_matr[:,feat],night_matr[:,feat])[1]
+                outstat = stats.ranksums(day_matr[:,feat],night_matr[:,feat])[1]
                 outvar = (np.var(day_matr[:,feat]),np.var(night_matr[:,feat]))
                 
                 pt_day_nite[pt][feat]['Pval'] = outstat
@@ -218,7 +218,7 @@ class OBands:
         #Get a days only list
         pt_two_states = defaultdict(dict)
         for pp,pt in enumerate(self.do_pts):
-            pt_two_states[pt] = stats.mannwhitneyu(np.array(pt_two_states[state[0]][pp]),np.array(pt_two_states[state[1]][pp]))
+            pt_two_states[pt] = stats.ranksums(np.array(pt_two_states[state[0]][pp]),np.array(pt_two_states[state[1]][pp]))
         
         
         print(pt_day_nite)
@@ -254,7 +254,7 @@ class OBands:
         
         for cc,ch in enumerate(['Left','Right']):
             weekdistr = {week:[a for (a,b) in feats[ch] if b == week] for week in weeks}
-            #outstats[ch] = stats.mannwhitneyu(weekdistr[weeks[0]],weekdistr[weeks[1]])
+            #outstats[ch] = stats.ranksums(weekdistr[weeks[0]],weekdistr[weeks[1]])
             outstats[ch] = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
         #plot the figure
         if plot:
