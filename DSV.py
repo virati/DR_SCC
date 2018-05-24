@@ -42,6 +42,7 @@ sns.set(font_scale=4)
 sns.set_style("white")
 
 import time
+import copy
 
 #%%
 #OLD ELASTIC NET METHODS HERE
@@ -635,7 +636,7 @@ class ORegress:
 
     def O_models(self,plot=True,models=['RANSAC','RIDGE']):
         sns.set_style("ticks")
-        plt.figure()
+        
         
         sides = ['Left','Right']
         sides_idxs = {'Left':np.arange(0,5),'Right':np.arange(5,10)}
@@ -649,6 +650,8 @@ class ORegress:
                 if mtype == 'RANSAC': 
                     Coefs[mtype][sid] = mod['Model'].estimator_.coef_[0][sides_idxs[sid]]
                 elif mtype == 'LASSO':
+                    Coefs[mtype][sid] = mod['Model'].coef_[sides_idxs[sid]]
+                elif mtype == 'ENR_Osc':
                     Coefs[mtype][sid] = mod['Model'].coef_[sides_idxs[sid]]
                 else: 
                     Coefs[mtype][sid] = mod['Model'].coef_[0][sides_idxs[sid]]
@@ -665,45 +668,28 @@ class ORegress:
 #        rans_cs['Right'] = mod['Model'].estimator_.coef_[0][5:]
 #        
         
-        
-        for ss,side in enumerate(sides):
-            plt.subplot(1,2,ss+1)
-            for mtype in models:
-                plt.plot(np.arange(5),Coefs[mtype][side],label=mtype)
+        if plot:
+            plt.figure()
+            for ss,side in enumerate(sides):
+                plt.subplot(1,2,ss+1)
+                for mtype in models:
+                    plt.plot(np.arange(5),Coefs[mtype][side],label=mtype)
+                    
+                #plt.plot(np.arange(5),ridge_cs[side],label='Ridge')
+                #plt.plot(np.arange(5),rans_cs[side],label='RANSAC')
                 
-            #plt.plot(np.arange(5),ridge_cs[side],label='Ridge')
-            #plt.plot(np.arange(5),rans_cs[side],label='RANSAC')
-            
-            plt.xticks(np.arange(5),['Delta','Theta','Alpha','Beta','Gamma*'],rotation=70)
-            plt.xlim((0,4))
-            
-            plt.xlabel('Feature')
-            plt.ylim((-0.03,0.03))
-            
-        plt.subplot(1,2,1)
-        plt.ylabel('Coefficient Value')
-            
-        # for meth,mod in self.Model.items():
-        #     if meth == 'RIDGE':
-        #         plt.subplot(2,2,1)
-        #         plt.plot(np.arange(5),mod['Model'].coef_[0][:5],label=meth)
-        #         plt.subplot(2,2,2)
-        #         plt.plot(np.arange(5),mod['Model'].coef_[0][5:],label=meth)
-        #     elif meth == 'RANSAC':
-        #         plt.subplot(2,2,3)
-        #         plt.plot(np.arange(5),mod['Model'].estimator_.coef_[0][:5],label=meth)
-        #         plt.subplot(2,2,4)
-        #         plt.plot(np.arange(5),mod['Model'].estimator_.coef_[0][5:],label=meth)
+                plt.xticks(np.arange(5),['Delta','Theta','Alpha','Beta','Gamma*'],rotation=70)
+                plt.xlim((0,4))
                 
-        # plt.subplot(2,2,1)
-        # #plt.plot(np.arange(-1,5),np.zeros((6,1)))
+                plt.xlabel('Feature')
+                plt.ylim((-0.03,0.03))
+                
+            plt.subplot(1,2,1)
+            plt.ylabel('Coefficient Value')
+                
+            plt.legend()
         
-        # plt.subplot(2,2,2)
-        # #plt.plot(np.arange(-1,5),np.zeros((6,1)))
-        
-        
-        
-        plt.legend()
+        return Coefs[mtype]
         
     def shuffle_dprods(self,regmodel,Otest,Ctest,numshuff=100):
         #print('Starting Shuffle Test...')
@@ -730,22 +716,24 @@ class ORegress:
         Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
         #do some shuffling here and try to see how well the model does
         shuff_distr = self.shuffle_dprods(self.Model[method]['Model'],self.Model[method]['Otest'],self.Model[method]['Ctest'],numshuff=1000)
-        self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(Cpredictions.T,Ctest),'Distr':shuff_distr,'Perfect':np.dot(Ctest.T,Ctest)}
+        self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(Cpredictions.T,Ctest),'Distr':shuff_distr,'Perfect':np.dot(Ctest.T,Ctest),'pval':0}
+        self.Model[method]['Performance']['DProd']['pval'] = np.sum(np.abs(self.Model[method]['Performance']['DProd']['Distr']) > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])
 
         #First, let's do shuffled version of IPs
-        print('Shuffle: IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(np.abs(self.Model[method]['Performance']['DProd']['Distr']) > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])) + '|| Perfect: ' + str(self.Model[method]['Performance']['DProd']['Perfect']))
-        plt.figure();plt.hist(self.Model[method]['Performance']['DProd']['Distr'])
+        #print('Shuffle: IP similarity is:' + str(self.Model[method]['Performance']['DProd']['Dot']) + ' | Percentage of surrogate IPs larger: ' + str(np.sum(np.abs(self.Model[method]['Performance']['DProd']['Distr']) > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])) + '|| Perfect: ' + str(self.Model[method]['Performance']['DProd']['Perfect']))
+        #plt.figure();plt.hist(self.Model[method]['Performance']['DProd']['Distr'])
+        return copy.deepcopy(self.Model[method]['Performance']['DProd'])
         
 
 
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17',lindetrend = 'Block',train_pts = ['901','903']):
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17',lindetrend = 'Block'):
-        
         print('Doing DETREND: ' + lindetrend)
         
         #Test/Train patient separation
-        train_pts = ['901','903']
-        test_pts = ['905','906','907','908']
+        test_pts = [pt for pt in dbo.all_pts if pt not in train_pts]
+        
+        #test_pts = ['905','906','907','908']
         #ALWAYS train on the HDRS17
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ,scale='HDRS17')
         
@@ -766,6 +754,9 @@ class ORegress:
         elif method == 'LASSO':
             #regmodel = linear_model.LassoCV(alphas=np.linspace(0.0005,0.0015,50), copy_X=True,fit_intercept=True,normalize=True)
             regmodel = linear_model.Lasso(alpha=0.0095, copy_X=True,fit_intercept=True,normalize=True)
+            scatter_alpha=0.9
+        elif method == 'ENR_Osc':
+            regmodel = linear_model.ElasticNetCV(alphas=np.linspace(0.1,0.7,50), copy_X=True,fit_intercept=True,normalize=True,cv=10)
             scatter_alpha=0.9
             
         
@@ -838,16 +829,17 @@ class ORegress:
         
         #now we can do other stuff I suppose...
     
-    def Clinical_Summary(self,method='RIDGE',plot_indiv=False,ranson=True):
+    def Clinical_Summary(self,method='RIDGE',plot_indiv=False,ranson=True,doplot=True):
         print('Clinical Summary')
         Cpredictions = (self.Model[method]['Cpredictions'].reshape(-1,1))
         Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
-    
+
         
         #Do the stats here
         self.Model[method]['Performance']['PearsCorr'] = stats.pearsonr(Cpredictions.reshape(-1,1),Ctest.astype(float).reshape(-1,1))
         self.Model[method]['Performance']['SpearCorr'] = stats.spearmanr(Cpredictions.reshape(-1,1),Ctest.astype(float))
-
+        self.Model[method]['Performance']['Permutation'] = self.shuffle_summary(method)
+        
         #Then we do Spearman's R
         print('Spearmans R: ' + str(self.Model[method]['Performance']['SpearCorr']))
         print('Pearsons R: ' + str(self.Model[method]['Performance']['PearsCorr']))
@@ -894,7 +886,7 @@ class ORegress:
                 
                 
         #Do summary plots
-        doplot = True
+        
         if doplot:
             
             x,y = (1,1)
@@ -941,6 +933,9 @@ class ORegress:
                 print(method + ' model has OLS ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
             
             self.Model[method]['Performance']['Regression'] = assesslr
+            
+            #do the permutation test
+            
             
             #THESE TWO ARE THE SAME!!
             #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
@@ -1166,5 +1161,6 @@ class ORegress:
                 plt.legend()
                 plt.suptitle('')
                 #print('Outlier phases are: ' + str(outlier_phases))
-                
+        return copy.deepcopy(self.Model[method]['Performance'])
+        
                 

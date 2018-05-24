@@ -15,6 +15,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
+import itertools
+
+
 import seaborn as sns
 sns.set_context('paper')
 
@@ -35,10 +38,11 @@ from DSV import DSV, ORegress
 analysis = ORegress(BRFrame,ClinFrame)
 analysis.O_feat_extract()
 
+all_pts = ['901','903','905','906','907','908']
 
 #%%
 
-regr_type = 'RIDGE'
+regr_type = 'CV_RIDGE'
 test_scale = 'mHDRS'
 do_detrend='Block'
 
@@ -99,6 +103,66 @@ elif regr_type == 'LASSO':
     analysis.O_models(plot=True,models=['LASSO'])
     analysis.Clinical_Summary('LASSO',plot_indiv=False,ranson=dorsac)
     analysis.shuffle_summary('LASSO')
+    
+    
+elif regr_type == 'CV_RIDGE':
+    dorsac = True
+    print('DOING CV RIDGE REGRESSION NOW....................................................................')
+    all_pairs = list(itertools.product(all_pts,all_pts))
+    all_pairs = [cc for cc in all_pairs if cc[0] != cc[1]]
+    #all_pairs = [('901','903')]
+    num_pairs = len(list(all_pairs))
+    coeff_runs = [0] * num_pairs
+    summ_stats_runs  = [0] * num_pairs
+    
+    for run,pt_pair in enumerate(list(all_pairs)):
+        print(pt_pair)
+        analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
+        coeff_runs[run] = analysis.O_models(plot=False,models=['RIDGE'])
+        summ_stats_runs[run] = analysis.Clinical_Summary('RIDGE',plot_indiv=False,ranson=dorsac,doplot=False)
+        #analysis.shuffle_summary('RIDGE')
+    
+#%%
+    #summary stats
+plt.figure()
+plt.suptitle('Permutation')
+plt.subplot(2,1,1)
+plt.hist(np.array([cc['DProd']['Dot'][0][0]/cc['DProd']['Perfect'][0][0] for cc in summ_stats_runs]))
+plt.title('Correlations distribution')
+
+plt.subplot(2,1,2)
+plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
+plt.title('p-values distribution')
+
+plt.figure()
+plt.suptitle('Spearman')
+plt.subplot(2,1,1)
+plt.hist(np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
+plt.title('Correlations distribution')
+
+plt.subplot(2,1,2)
+plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
+plt.title('p-values distribution')
+
+
+left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
+right_coeffs = np.array([cc['Right'] for cc in coeff_runs])
+plt.figure()
+plt.subplot(1,2,1)
+plt.plot(np.median(left_coeffs,axis=0))
+for bb in range(5):
+    plt.scatter(bb*np.ones((30)),left_coeffs[:,bb])
+plt.ylim((-0.1,0.1))
+plt.hlines(0,0,5)
+
+plt.subplot(1,2,2)
+plt.plot(np.median(right_coeffs,axis=0))
+for bb in range(5):
+    plt.scatter(bb*np.ones((30)),right_coeffs[:,bb])
+
+plt.ylim((-0.1,0.1))
+plt.hlines(0,0,5)
+#plt.bar([0,1,2,3,4],left_coeffs)
 #plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])
 #print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
