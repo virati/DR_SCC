@@ -21,7 +21,6 @@ import DBS_Osc as dbo
 from DBS_Osc import nestdict
 
 import seaborn as sns
-import seaborn as sns
 #sns.set_context("paper")
 
 sns.set(font_scale=4)
@@ -55,7 +54,7 @@ _ = analysis.mean_psds(weeks=["C01","C24"],patients='all')
 #analysis.scatter_state(week='all',pt=['908'],feat='Stim')
 ks_stats = nestdict()
 pts = ['901','903','905','906','907','908']
-bands = ['Delta','Theta','Alpha','Beta','Gamma1']
+bands = ['Delta','Theta','Alpha','Beta*','Gamma1']
 
 circ = 'day'
 for pt in pts:

@@ -27,13 +27,13 @@ ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_April.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_June.npy')
 #BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
 BRFrame.check_empty_phases()
 
 
 
-from DSV import DSV, ORegress
+from DSV import ORegress
 
 analysis = ORegress(BRFrame,ClinFrame)
 analysis.O_feat_extract()
@@ -43,7 +43,7 @@ all_pts = ['901','903','905','906','907','908']
 #%%
 
 regr_type = 'CV_RIDGE'
-test_scale = 'mHDRS'
+test_scale = 'HDRS17'
 do_detrend='Block'
 
 
@@ -88,7 +88,7 @@ elif regr_type == 'RIDGE':
     print('DOING RIDGE REGRESSION NOW....................................................................')
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend)
+    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='',scale=test_scale,lindetrend=do_detrend,final=False)
     analysis.O_models(plot=True,models=['RIDGE'])
     analysis.Clinical_Summary('RIDGE',plot_indiv=True,ranson=dorsac)
     analysis.shuffle_summary('RIDGE')
@@ -108,9 +108,11 @@ elif regr_type == 'LASSO':
 elif regr_type == 'CV_RIDGE':
     dorsac = True
     print('DOING CV RIDGE REGRESSION NOW....................................................................')
-    all_pairs = list(itertools.product(all_pts,all_pts))
-    all_pairs = [cc for cc in all_pairs if cc[0] != cc[1]]
-    #all_pairs = [('901','903')]
+    #all_pairs = list(itertools.product(all_pts,all_pts))
+    #all_pairs = [cc for cc in all_pairs if cc[0] != cc[1]]
+    
+    all_pairs = list(itertools.combinations(all_pts,3))
+    
     num_pairs = len(list(all_pairs))
     coeff_runs = [0] * num_pairs
     summ_stats_runs  = [0] * num_pairs
@@ -121,7 +123,7 @@ elif regr_type == 'CV_RIDGE':
         coeff_runs[run] = analysis.O_models(plot=False,models=['RIDGE'])
         summ_stats_runs[run] = analysis.Clinical_Summary('RIDGE',plot_indiv=False,ranson=dorsac,doplot=False)
         #analysis.shuffle_summary('RIDGE')
-    
+
 #%%
     #summary stats
 plt.figure()
@@ -151,14 +153,14 @@ plt.figure()
 plt.subplot(1,2,1)
 plt.plot(np.median(left_coeffs,axis=0))
 for bb in range(5):
-    plt.scatter(bb*np.ones((30)),left_coeffs[:,bb])
+    plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5)
 plt.ylim((-0.1,0.1))
 plt.hlines(0,0,5)
 
 plt.subplot(1,2,2)
 plt.plot(np.median(right_coeffs,axis=0))
 for bb in range(5):
-    plt.scatter(bb*np.ones((30)),right_coeffs[:,bb])
+    plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5)
 
 plt.ylim((-0.1,0.1))
 plt.hlines(0,0,5)

@@ -474,6 +474,7 @@ class ORegress:
     #This function will generate the full OSCILLATORY STATE for all desired observations/weeks
     def O_feat_extract(self):
         print('Extracting Oscillatory Features')
+        print(dbo.feat_dict)
         big_list = self.YFrame.file_meta
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
@@ -726,12 +727,16 @@ class ORegress:
         
 
 
-    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17',lindetrend = 'Block',train_pts = ['901','903']):
+    def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17',lindetrend = 'Block',train_pts = ['901','903'],final=False):
 
         print('Doing DETREND: ' + lindetrend)
         
         #Test/Train patient separation
-        test_pts = [pt for pt in dbo.all_pts if pt not in train_pts]
+        if not final:
+            test_pts = [pt for pt in dbo.all_pts if pt not in train_pts]
+        else:
+            train_pts = dbo.all_pts
+            test_pts = dbo.all_pts
         
         #test_pts = ['905','906','907','908']
         #ALWAYS train on the HDRS17
