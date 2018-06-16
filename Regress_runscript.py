@@ -27,7 +27,7 @@ ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_June.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_March.npy')
 #BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
 BRFrame.check_empty_phases()
 
@@ -42,9 +42,9 @@ all_pts = ['901','903','905','906','907','908']
 
 #%%
 
-regr_type = 'CV_RIDGE'
+regr_type = 'RIDGE'
 test_scale = 'HDRS17'
-do_detrend='Block'
+do_detrend='None'
 
 
 ranson = True
@@ -129,7 +129,7 @@ elif regr_type == 'CV_RIDGE':
 plt.figure()
 plt.suptitle('Permutation')
 plt.subplot(2,1,1)
-plt.hist(np.array([cc['DProd']['Dot'][0][0]/cc['DProd']['Perfect'][0][0] for cc in summ_stats_runs]))
+plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
 plt.title('Correlations distribution')
 
 plt.subplot(2,1,2)
@@ -153,16 +153,18 @@ plt.figure()
 plt.subplot(1,2,1)
 plt.plot(np.median(left_coeffs,axis=0))
 for bb in range(5):
-    plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5)
-plt.ylim((-0.1,0.1))
+    plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
+plt.ylim((-0.05,0.05))
+plt.xlim((-0.1,4.1))
 plt.hlines(0,0,5)
 
 plt.subplot(1,2,2)
 plt.plot(np.median(right_coeffs,axis=0))
 for bb in range(5):
-    plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5)
+    plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
 
-plt.ylim((-0.1,0.1))
+plt.ylim((-0.05,0.05))
+plt.xlim((-0.1,4.1))
 plt.hlines(0,0,5)
 #plt.bar([0,1,2,3,4],left_coeffs)
 #plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])

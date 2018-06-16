@@ -48,6 +48,11 @@ import copy
 #OLD ELASTIC NET METHODS HERE
 
 
+#%%
+#general methods here
+
+def L1_dist(x,y):
+    return np.sum(np.abs(a-b) for a,b in zip(x,y))
 
 
 
@@ -707,7 +712,9 @@ class ORegress:
             #Cspred = sig.detrend(Cspred,axis=0,type='linear')
             #Ctest = sig.detrend(Ctest.reshape(-1,1),axis=0,type='linear')
             
-            res_dot[ss] = np.dot(Cspred.T,Ctest)
+            #res_dot[ss] = np.dot(Cspred.T,Ctest)
+            res_dot[ss] = L1_dist(Cspred,Ctest)
+            
                         
         return res_dot
 
@@ -717,7 +724,9 @@ class ORegress:
         Ctest = (self.Model[method]['Ctest'].reshape(-1,1))
         #do some shuffling here and try to see how well the model does
         shuff_distr = self.shuffle_dprods(self.Model[method]['Model'],self.Model[method]['Otest'],self.Model[method]['Ctest'],numshuff=1000)
-        self.Model[method]['Performance']['DProd'] = {'Dot':np.dot(Cpredictions.T,Ctest),'Distr':shuff_distr,'Perfect':np.dot(Ctest.T,Ctest),'pval':0}
+        #What's the similarity of the model output, or "actual_similarity"
+        act_sim = L1_dist(Cpredictions,Ctest)
+        self.Model[method]['Performance']['DProd'] = {'Dot':act_sim,'Distr':shuff_distr,'Perfect':L1_dist(Ctest,np.zeros_like(Ctest)),'pval':0}
         self.Model[method]['Performance']['DProd']['pval'] = np.sum(np.abs(self.Model[method]['Performance']['DProd']['Distr']) > self.Model[method]['Performance']['DProd']['Dot'])/len(self.Model[method]['Performance']['DProd']['Distr'])
 
         #First, let's do shuffled version of IPs
@@ -999,173 +1008,174 @@ class ORegress:
             
             #let's do a quick SWEEP on both CLIN MEASURE and our putative biometric to see which one yields a more congruent response
             
-            doppv = 'PPV'
+            #doppv = 'PPV'
+            for doppv in ['PPV','NPV']:
             #ALL THIS DOES PPV
-            if doppv == 'PPV':
-                thresh = np.linspace(-0.4,0.4,100)
-                cs_above = np.zeros_like(thresh)
-                putbm_above = np.zeros_like(thresh)
-                both_above = np.zeros_like(thresh)
-                cons_above = np.zeros_like(thresh)
-                
-                nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
-                disagree = 0.02
-                for tt,thr in enumerate(thresh):
-                    cs_above[tt] = np.sum(Ctest[ostimchange] > thr) #TRUE POSITIVES
-                    putbm_above[tt] = np.sum(Cpredictions[ostimchange] > thr)
-                    both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] > thr,Ctest[ostimchange] > thr))
-                    cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                if doppv == 'PPV':
+                    thresh = np.linspace(-0.4,0.4,100)
+                    cs_above = np.zeros_like(thresh)
+                    putbm_above = np.zeros_like(thresh)
+                    both_above = np.zeros_like(thresh)
+                    cons_above = np.zeros_like(thresh)
                     
-                nccs_above = np.zeros_like(thresh)
-                ncputbm_above = np.zeros_like(thresh)
-                ncboth_above = np.zeros_like(thresh)
-                nccons_above = np.zeros_like(thresh)
-                
-                for tt,thr in enumerate(thresh):
-                    nccs_above[tt] = np.sum(Ctest[nochange] > thr) #FALSE POSITIVES
-                    ncputbm_above[tt] = np.sum(Cpredictions[nochange] > thr)
-                    ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] > thr,Ctest[nochange] > thr))
-                    nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                    nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
+                    disagree = 0.02
+                    for tt,thr in enumerate(thresh):
+                        cs_above[tt] = np.sum(Ctest[ostimchange] > thr) #TRUE POSITIVES
+                        putbm_above[tt] = np.sum(Cpredictions[ostimchange] > thr)
+                        both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] > thr,Ctest[ostimchange] > thr))
+                        cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                        
+                    nccs_above = np.zeros_like(thresh)
+                    ncputbm_above = np.zeros_like(thresh)
+                    ncboth_above = np.zeros_like(thresh)
+                    nccons_above = np.zeros_like(thresh)
                     
-                plt.figure()
-                plt.plot(thresh,cs_above,label='Standard')
-                plt.plot(thresh,putbm_above,label='Putative Alone')
-                plt.plot(thresh,both_above,label='Proposed')
-                #plt.plot(thresh,cons_above,label='ForFun')
-                plt.legend()
-                
-                plt.figure()
-                #TRUE POSITIVE / (ALL POSITIVES)
-                plt.plot(thresh,cs_above/(cs_above + nccs_above),label='Standard')
-                plt.plot(thresh,putbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
-                plt.plot(thresh,both_above/(both_above+ncboth_above),label='Proposed')
-                #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
-                plt.legend()
-                plt.suptitle('PPV')
-                #print('Outlier phases are: ' + str(outlier_phases))
-            elif doppv == 'NPV':
-                thresh = np.linspace(-0.4,0.4,100)
-                cs_above = np.zeros_like(thresh)
-                putbm_above = np.zeros_like(thresh)
-                both_above = np.zeros_like(thresh)
-                cons_above = np.zeros_like(thresh)
-                
-                nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
-                disagree = 0.02
-                for tt,thr in enumerate(thresh):
-                    cs_above[tt] = np.sum(Ctest[ostimchange] < thr) #THESE ARE FALSE NEGATIVES
-                    putbm_above[tt] = np.sum(Cpredictions[ostimchange] < thr)
-                    both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] < thr,Ctest[ostimchange] < thr))
-                    #cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                    for tt,thr in enumerate(thresh):
+                        nccs_above[tt] = np.sum(Ctest[nochange] > thr) #FALSE POSITIVES
+                        ncputbm_above[tt] = np.sum(Cpredictions[nochange] > thr)
+                        ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] > thr,Ctest[nochange] > thr))
+                        nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                        
+                    plt.figure()
+                    plt.plot(thresh,cs_above,label='Standard')
+                    plt.plot(thresh,putbm_above,label='Putative Alone')
+                    plt.plot(thresh,both_above,label='Proposed')
+                    #plt.plot(thresh,cons_above,label='ForFun')
+                    plt.legend()
                     
-                nccs_above = np.zeros_like(thresh)
-                ncputbm_above = np.zeros_like(thresh)
-                ncboth_above = np.zeros_like(thresh)
-                nccons_above = np.zeros_like(thresh)
-                
-                for tt,thr in enumerate(thresh):
-                    nccs_above[tt] = np.sum(Ctest[nochange] < thr) #TRUE NEGATIVES
-                    ncputbm_above[tt] = np.sum(Cpredictions[nochange] < thr)
-                    ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] < thr,Ctest[nochange] < thr))
-                    nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                    plt.figure()
+                    #TRUE POSITIVE / (ALL POSITIVES)
+                    plt.plot(thresh,cs_above/(cs_above + nccs_above),label='Standard')
+                    plt.plot(thresh,putbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
+                    plt.plot(thresh,both_above/(both_above+ncboth_above),label='Proposed')
+                    #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
+                    plt.legend()
+                    plt.suptitle('PPV')
+                    #print('Outlier phases are: ' + str(outlier_phases))
+                elif doppv == 'NPV':
+                    thresh = np.linspace(-0.4,0.4,100)
+                    cs_above = np.zeros_like(thresh)
+                    putbm_above = np.zeros_like(thresh)
+                    both_above = np.zeros_like(thresh)
+                    cons_above = np.zeros_like(thresh)
                     
-                plt.figure()
-                plt.plot(thresh,cs_above,label='Standard')
-                plt.plot(thresh,putbm_above,label='Putative Alone')
-                plt.plot(thresh,both_above,label='Proposed')
-                #plt.plot(thresh,cons_above,label='ForFun')
-                plt.legend()
-                
-                plt.figure()
-                plt.plot(thresh,nccs_above/(cs_above + nccs_above),label='Standard')
-                plt.plot(thresh,ncputbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
-                plt.plot(thresh,ncboth_above/(both_above+ncboth_above),label='Proposed')
-                #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
-                plt.legend()
-                plt.suptitle('NPV')
-                #print('Outlier phases are: ' + str(outlier_phases))
-            elif doppv == 'Sens':
-                thresh = np.linspace(-0.4,0.4,100)
-                cs_above = np.zeros_like(thresh)
-                putbm_above = np.zeros_like(thresh)
-                both_above = np.zeros_like(thresh)
-                cons_above = np.zeros_like(thresh)
-                
-                nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
-                disagree = 0.02
-                for tt,thr in enumerate(thresh):
-                    cs_above[tt] = np.sum(Ctest[ostimchange] > thr) #TRUE POSITIVES
-                    putbm_above[tt] = np.sum(Cpredictions[ostimchange] > thr)
-                    both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] > thr,Ctest[ostimchange] > thr))
-                    #cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                    nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
+                    disagree = 0.02
+                    for tt,thr in enumerate(thresh):
+                        cs_above[tt] = np.sum(Ctest[ostimchange] < thr) #THESE ARE FALSE NEGATIVES
+                        putbm_above[tt] = np.sum(Cpredictions[ostimchange] < thr)
+                        both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] < thr,Ctest[ostimchange] < thr))
+                        #cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                        
+                    nccs_above = np.zeros_like(thresh)
+                    ncputbm_above = np.zeros_like(thresh)
+                    ncboth_above = np.zeros_like(thresh)
+                    nccons_above = np.zeros_like(thresh)
                     
-                nccs_above = np.zeros_like(thresh)
-                ncputbm_above = np.zeros_like(thresh)
-                ncboth_above = np.zeros_like(thresh)
-                nccons_above = np.zeros_like(thresh)
-                
-                for tt,thr in enumerate(thresh):
-                    nccs_above[tt] = np.sum(Ctest[ostimchange] < thr) #FALSE NEGATIVES
-                    ncputbm_above[tt] = np.sum(Cpredictions[ostimchange] < thr)
-                    ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] < thr,Ctest[ostimchange] < thr))
-                    #nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                    for tt,thr in enumerate(thresh):
+                        nccs_above[tt] = np.sum(Ctest[nochange] < thr) #TRUE NEGATIVES
+                        ncputbm_above[tt] = np.sum(Cpredictions[nochange] < thr)
+                        ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] < thr,Ctest[nochange] < thr))
+                        nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                        
+                    plt.figure()
+                    plt.plot(thresh,cs_above,label='Standard')
+                    plt.plot(thresh,putbm_above,label='Putative Alone')
+                    plt.plot(thresh,both_above,label='Proposed')
+                    #plt.plot(thresh,cons_above,label='ForFun')
+                    plt.legend()
                     
-                plt.figure()
-                plt.plot(thresh,cs_above,label='Standard')
-                plt.plot(thresh,putbm_above,label='Putative Alone')
-                plt.plot(thresh,both_above,label='Proposed')
-                #plt.plot(thresh,cons_above,label='ForFun')
-                plt.legend()
-                
-                plt.figure()
-                plt.plot(thresh,cs_above/(cs_above + nccs_above),label='Standard')
-                plt.plot(thresh,putbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
-                plt.plot(thresh,both_above/(both_above+ncboth_above),label='Proposed')
-                #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
-                plt.legend()
-                plt.suptitle('')
-                #print('Outlier phases are: ' + str(outlier_phases))
-            elif doppv == 'Spec':
-                thresh = np.linspace(-0.4,0.4,100)
-                cs_above = np.zeros_like(thresh)
-                putbm_above = np.zeros_like(thresh)
-                both_above = np.zeros_like(thresh)
-                cons_above = np.zeros_like(thresh)
-                
-                nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
-                disagree = 0.02
-                for tt,thr in enumerate(thresh):
-                    cs_above[tt] = np.sum(Ctest[nochange] > thr) #FALSE POSITIVES
-                    putbm_above[tt] = np.sum(Cpredictions[nochange] > thr)
-                    both_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] > thr,Ctest[nochange] > thr))
-                    #cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                    plt.figure()
+                    plt.plot(thresh,nccs_above/(cs_above + nccs_above),label='Standard')
+                    plt.plot(thresh,ncputbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
+                    plt.plot(thresh,ncboth_above/(both_above+ncboth_above),label='Proposed')
+                    #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
+                    plt.legend()
+                    plt.suptitle('NPV')
+                    #print('Outlier phases are: ' + str(outlier_phases))
+                elif doppv == 'Sens':
+                    thresh = np.linspace(-0.4,0.4,100)
+                    cs_above = np.zeros_like(thresh)
+                    putbm_above = np.zeros_like(thresh)
+                    both_above = np.zeros_like(thresh)
+                    cons_above = np.zeros_like(thresh)
                     
-                nccs_above = np.zeros_like(thresh)
-                ncputbm_above = np.zeros_like(thresh)
-                ncboth_above = np.zeros_like(thresh)
-                nccons_above = np.zeros_like(thresh)
-                
-                for tt,thr in enumerate(thresh):
-                    nccs_above[tt] = np.sum(Ctest[nochange] < thr) #True NEGATIVES
-                    ncputbm_above[tt] = np.sum(Cpredictions[nochange] < thr)
-                    ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] < thr,Ctest[nochange] < thr))
-                    #nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                    nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
+                    disagree = 0.02
+                    for tt,thr in enumerate(thresh):
+                        cs_above[tt] = np.sum(Ctest[ostimchange] > thr) #TRUE POSITIVES
+                        putbm_above[tt] = np.sum(Cpredictions[ostimchange] > thr)
+                        both_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] > thr,Ctest[ostimchange] > thr))
+                        #cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                        
+                    nccs_above = np.zeros_like(thresh)
+                    ncputbm_above = np.zeros_like(thresh)
+                    ncboth_above = np.zeros_like(thresh)
+                    nccons_above = np.zeros_like(thresh)
                     
-                plt.figure()
-                plt.plot(thresh,cs_above,label='Sta-ndard')
-                plt.plot(thresh,putbm_above,label='Putative Alone')
-                plt.plot(thresh,both_above,label='Proposed')
-                #plt.plot(thresh,cons_above,label='ForFun')
-                plt.legend()
-                
-                plt.figure()
-                plt.plot(thresh,nccs_above/(cs_above + nccs_above),label='Standard')
-                plt.plot(thresh,ncputbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
-                plt.plot(thresh,ncboth_above/(both_above+ncboth_above),label='Proposed')
-                #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
-                plt.legend()
-                plt.suptitle('')
-                #print('Outlier phases are: ' + str(outlier_phases))
+                    for tt,thr in enumerate(thresh):
+                        nccs_above[tt] = np.sum(Ctest[ostimchange] < thr) #FALSE NEGATIVES
+                        ncputbm_above[tt] = np.sum(Cpredictions[ostimchange] < thr)
+                        ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[ostimchange] < thr,Ctest[ostimchange] < thr))
+                        #nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                        
+                    plt.figure()
+                    plt.plot(thresh,cs_above,label='Standard')
+                    plt.plot(thresh,putbm_above,label='Putative Alone')
+                    plt.plot(thresh,both_above,label='Proposed')
+                    #plt.plot(thresh,cons_above,label='ForFun')
+                    plt.legend()
+                    
+                    plt.figure()
+                    plt.plot(thresh,cs_above/(cs_above + nccs_above),label='Standard')
+                    plt.plot(thresh,putbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
+                    plt.plot(thresh,both_above/(both_above+ncboth_above),label='Proposed')
+                    #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
+                    plt.legend()
+                    plt.suptitle('')
+                    #print('Outlier phases are: ' + str(outlier_phases))
+                elif doppv == 'Spec':
+                    thresh = np.linspace(-0.4,0.4,100)
+                    cs_above = np.zeros_like(thresh)
+                    putbm_above = np.zeros_like(thresh)
+                    both_above = np.zeros_like(thresh)
+                    cons_above = np.zeros_like(thresh)
+                    
+                    nochange = [x for x in range(Ctest.shape[0]) if x not in ostimchange]
+                    disagree = 0.02
+                    for tt,thr in enumerate(thresh):
+                        cs_above[tt] = np.sum(Ctest[nochange] > thr) #FALSE POSITIVES
+                        putbm_above[tt] = np.sum(Cpredictions[nochange] > thr)
+                        both_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] > thr,Ctest[nochange] > thr))
+                        #cons_above[tt] = np.sum(np.logical_and((Cpredictions[ostimchange] - Ctest[ostimchange])**2 < disagree,Ctest[ostimchange] > thr))
+                        
+                    nccs_above = np.zeros_like(thresh)
+                    ncputbm_above = np.zeros_like(thresh)
+                    ncboth_above = np.zeros_like(thresh)
+                    nccons_above = np.zeros_like(thresh)
+                    
+                    for tt,thr in enumerate(thresh):
+                        nccs_above[tt] = np.sum(Ctest[nochange] < thr) #True NEGATIVES
+                        ncputbm_above[tt] = np.sum(Cpredictions[nochange] < thr)
+                        ncboth_above[tt] = np.sum(np.logical_and(Cpredictions[nochange] < thr,Ctest[nochange] < thr))
+                        #nccons_above[tt] = np.sum(np.logical_and((Cpredictions[nochange] - Ctest[nochange])**2 < disagree,Ctest[nochange] > thr))
+                        
+                    plt.figure()
+                    plt.plot(thresh,cs_above,label='Standard')
+                    plt.plot(thresh,putbm_above,label='Putative Alone')
+                    plt.plot(thresh,both_above,label='Proposed')
+                    #plt.plot(thresh,cons_above,label='ForFun')
+                    plt.legend()
+                    
+                    plt.figure()
+                    plt.plot(thresh,nccs_above/(cs_above + nccs_above),label='Standard')
+                    plt.plot(thresh,ncputbm_above/(putbm_above+ncputbm_above),label='Putative Alone')
+                    plt.plot(thresh,ncboth_above/(both_above+ncboth_above),label='Proposed')
+                    #plt.plot(thresh,cons_above/(cons_above+nccons_above),label='ForFun')
+                    plt.legend()
+                    plt.suptitle('')
+                    #print('Outlier phases are: ' + str(outlier_phases))
         return copy.deepcopy(self.Model[method]['Performance'])
         
                 
