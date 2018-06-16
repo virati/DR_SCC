@@ -36,6 +36,7 @@ BRFrame.check_empty_phases()
 from DSV import ORegress
 
 analysis = ORegress(BRFrame,ClinFrame)
+analysis.split_validation_set(do_split = True)
 analysis.O_feat_extract()
 
 all_pts = ['901','903','905','906','907','908']
@@ -123,54 +124,59 @@ elif regr_type == 'CV_RIDGE':
         coeff_runs[run] = analysis.O_models(plot=False,models=['RIDGE'])
         summ_stats_runs[run] = analysis.Clinical_Summary('RIDGE',plot_indiv=False,ranson=dorsac,doplot=False)
         #analysis.shuffle_summary('RIDGE')
+        #%%
+    #summary stats
+    plt.figure()
+    plt.suptitle('Permutation')
+    plt.subplot(2,1,1)
+    plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
+    plt.title('Correlations distribution')
+    
+    plt.subplot(2,1,2)
+    plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
+    plt.title('p-values distribution')
+    
+    plt.figure()
+    plt.suptitle('Spearman')
+    plt.subplot(2,1,1)
+    plt.hist(np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
+    plt.title('Correlations distribution')
+    
+    plt.subplot(2,1,2)
+    plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
+    plt.title('p-values distribution')
+    
+    
+    left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
+    right_coeffs = np.array([cc['Right'] for cc in coeff_runs])
+    plt.figure()
+    plt.subplot(1,2,1)
+    plt.plot(np.median(left_coeffs,axis=0))
+    for bb in range(5):
+        plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
+    plt.ylim((-0.05,0.05))
+    plt.xlim((-0.1,4.1))
+    plt.hlines(0,0,5)
+    
+    plt.subplot(1,2,2)
+    plt.plot(np.median(right_coeffs,axis=0))
+    for bb in range(5):
+        plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
+    
+    plt.ylim((-0.05,0.05))
+    plt.xlim((-0.1,4.1))
+    plt.hlines(0,0,5)
+
 
 #%%
-    #summary stats
-plt.figure()
-plt.suptitle('Permutation')
-plt.subplot(2,1,1)
-plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
-plt.title('Correlations distribution')
-
-plt.subplot(2,1,2)
-plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
-plt.title('p-values distribution')
-
-plt.figure()
-plt.suptitle('Spearman')
-plt.subplot(2,1,1)
-plt.hist(np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
-plt.title('Correlations distribution')
-
-plt.subplot(2,1,2)
-plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
-plt.title('p-values distribution')
+#We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
+analysis.Model_Validation(method=regr_type)
 
 
-left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
-right_coeffs = np.array([cc['Right'] for cc in coeff_runs])
-plt.figure()
-plt.subplot(1,2,1)
-plt.plot(np.median(left_coeffs,axis=0))
-for bb in range(5):
-    plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
-plt.ylim((-0.05,0.05))
-plt.xlim((-0.1,4.1))
-plt.hlines(0,0,5)
-
-plt.subplot(1,2,2)
-plt.plot(np.median(right_coeffs,axis=0))
-for bb in range(5):
-    plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
-
-plt.ylim((-0.05,0.05))
-plt.xlim((-0.1,4.1))
-plt.hlines(0,0,5)
 #plt.bar([0,1,2,3,4],left_coeffs)
 #plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])
 #print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
-
 
 #%%
 

@@ -10,6 +10,7 @@ MAIN Library for the DSV methodology
 import sklearn
 from sklearn.linear_model import ElasticNet, ElasticNetCV
 from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
 
 from collections import defaultdict
 import itertools as itt
@@ -515,13 +516,30 @@ class ORegress:
             plt.scatter(Ctest,dispfunc(Otest[:,ff,1]),alpha=plotalpha)
             plt.suptitle(feat)
     
-    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False,circ=''):
+    def split_validation_set(self,do_split = True):
+        if do_split:
+            print('Splitting out validation set')
+            print('Pre splot YFrame ' + str(len(self.YFrame.file_meta)))
+            self.train_set, self.valid_set = train_test_split(self.YFrame.file_meta,train_size=0.6)
+            
+            print('Train set' + str(len(self.train_set)))
+            print('Validation set ' + str(len(self.valid_set)))
+        else:
+            self.train_set = self.YFrame.file_meta
+    
+    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False,circ='',from_set='TRAIN'):
         #hardcoded for now, remove later
         nchann = 2
         nfeats = len(dbo.feat_order)
         label_dict={'Patient':[]}
         
-        fmeta = self.YFrame.file_meta
+        #fmeta = self.YFrame.file_meta
+        if from_set == 'TRAIN':
+            fmeta = self.train_set
+        else:
+            print('DIPPING INTO VALIDATION SET')
+            fmeta = self.valid_set
+            
         ptcdict = self.CFrame.clin_dict
         
         ePhases = dbo.Phase_List(exprs='ephys')
@@ -579,7 +597,7 @@ class ORegress:
         
         #Fully flatten now for all observations
         #this is a big list that works great!
-        obs_list = [item for sublist in big_list for item in sublist]
+        obs_list = [item for sublist in big_list for item in sublist if not np.isnan(np.array(item[0])).any()]
         
         
         #Piece out the obs_list
@@ -749,6 +767,7 @@ class ORegress:
         
         #test_pts = ['905','906','907','908']
         #ALWAYS train on the HDRS17
+        print('Making Training Set Data ' + str(train_pts))
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ,scale='HDRS17')
         
         #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
@@ -784,6 +803,7 @@ class ORegress:
         self.Model = nestdict()
         
         self.test_MEAS = scale
+        print('Making Testomg Set Data: ' + str(test_pts))
         Otest,Ctest,labels = self.dsgn_O_C(test_pts,week_avg=avgweeks,circ=circ,ignore_flags=ignore_flags,scale=scale)
         #Shape the input oscillatory state vectors
         
@@ -1178,4 +1198,12 @@ class ORegress:
                     #print('Outlier phases are: ' + str(outlier_phases))
         return copy.deepcopy(self.Model[method]['Performance'])
         
-                
+    def Model_Validation(self,method,scale='HDRS17'):
+        #This function does the final model validation on the held out validation set
+        Oval,Cval,labels_val = self.dsgn_O_C(dbo.all_pts,week_avg=True,circ='',ignore_flags=True,scale=scale)
+        print(Oval.shape)
+        Cpred = self.Model[method]['Model'].predict(Oval)
+        
+        plt.figure()
+        plt.scatter(Cval,Cpred)
+        plt.plot(np.linspace(0,1),np.linspace(0,1))
