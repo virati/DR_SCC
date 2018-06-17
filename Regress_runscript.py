@@ -45,7 +45,7 @@ all_pts = ['901','903','905','906','907','908']
 
 regr_type = 'RIDGE'
 test_scale = 'HDRS17'
-do_detrend='None'
+do_detrend='Block'
 
 
 ranson = True
@@ -170,7 +170,7 @@ elif regr_type == 'CV_RIDGE':
 
 #%%
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
-analysis.Model_Validation(method=regr_type)
+analysis.Model_Validation(method=regr_type,do_detrend=do_detrend)
 
 
 #plt.bar([0,1,2,3,4],left_coeffs)

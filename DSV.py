@@ -1198,12 +1198,78 @@ class ORegress:
                     #print('Outlier phases are: ' + str(outlier_phases))
         return copy.deepcopy(self.Model[method]['Performance'])
         
-    def Model_Validation(self,method,scale='HDRS17'):
+    def Model_Validation(self,method,scale='HDRS17',do_detrend='None'):
         #This function does the final model validation on the held out validation set
         Oval,Cval,labels_val = self.dsgn_O_C(dbo.all_pts,week_avg=True,circ='',ignore_flags=True,scale=scale)
         print(Oval.shape)
         Cpred = self.Model[method]['Model'].predict(Oval)
         
-        plt.figure()
-        plt.scatter(Cval,Cpred)
-        plt.plot(np.linspace(0,1),np.linspace(0,1))
+        if do_detrend == 'Block':
+            pass
+        elif do_detrend == 'All':
+            pass
+        elif do_detrend == 'None':
+            pass
+        
+        self.plot_Pred_vs_Meas(Cpred,Cval,labels_val)
+        
+    def rans_assess_PvM(self,Cpred,Cmeas,labels,usefig=plt.figure()):
+        assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),residual_threshold=0.2,min_samples=0.8) #0.15 residual threshold works great!
+        assesslr.fit(Cmeas.reshape(-1,1),Cpred.reshape(-1,1))
+        
+        #Plot the correlation line
+        line_x = np.linspace(-1,1,20).reshape(-1,1)
+        line_y = assesslr.predict(line_x)
+        
+        plt.figure(usefig.number)
+        plt.plot(line_x,line_y)
+        
+        #Find inliers and outliers
+        inlier_mask = assesslr.inlier_mask_
+        outlier_mask = np.logical_not(inlier_mask)
+        
+        slsl,inin,rval,pval,stderr = stats.mstats.linregress(Cmeas[inlier_mask].reshape(-1,1),Cpred[inlier_mask].reshape(-1,1),)
+        
+        rsac_stats = {'Slope':slsl,'Intercept':inin,'Rval':rval,'Pval':pval,'SE':stderr}
+        
+        return outlier_mask, inlier_mask, rsac_stats
+        
+    def clin_changes(self,Cpred,Cmeas,labels,usefig=plt.figure(),method='RIDGE',measure='HDRS17'):
+        stim_change_list = self.CFrame.Stim_Change_Table()
+        ostimchange = []
+        
+        for ii in range(Cmeas.shape[0]):
+            if (labels['Patient'][ii],labels['Phase'][ii]) in stim_change_list:
+                ostimchange.append(ii)
+        
+        plt.figure(usefig.number)
+        for ii in ostimchange:
+            plt.annotate(labels['Patient'][ii] + ' ' + labels['Phase'][ii],(Cmeas[ii],Cpred[ii]),fontsize=10,color='red')
+        
+        plt.scatter(Cmeas[ostimchange],Cpred[ostimchange],alpha=0.3,color='red',marker='^',s=130)
+        plt.xlabel(measure)
+        plt.ylabel('Predicted')
+        
+        
+    def plot_Pred_vs_Meas(self,Cpred,Cmeas,labels):
+        main_clin_fig = plt.figure()
+        
+        outlier_mask, inlier_mask, rsac_stats = self.rans_assess_PvM(Cpred,Cmeas,labels,usefig=main_clin_fig)
+        outlier_phases = list(compress(labels['Phase'],outlier_mask))
+        outlier_pt = list(compress(labels['Patient'],outlier_mask))
+        
+        print(rsac_stats)
+        
+        
+        plt.scatter(Cmeas[outlier_mask],Cpred[outlier_mask],alpha=0.3,color='gray')
+        for ii, txt in enumerate(outlier_phases):
+            plt.annotate(txt+'\n'+outlier_pt[ii],(Cmeas[outlier_mask][ii],Cpred[outlier_mask][ii]),fontsize=8,color='gray')
+        plt.scatter(Cmeas[inlier_mask],Cpred[inlier_mask],alpha=0.3)
+        
+        plt.plot(np.linspace(-1,1,20),np.linspace(-1,1,20),alpha=0.2,color='gray')
+        
+        self.clin_changes(Cpred,Cmeas,labels,usefig=main_clin_fig)
+        
+        plt.axes().set_aspect('equal')
+        print(stats.spearmanr(Cmeas,Cpred))
+        
