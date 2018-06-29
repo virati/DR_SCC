@@ -115,7 +115,7 @@ elif regr_type == 'CV_RIDGE':
     #all_pairs = list(itertools.product(all_pts,all_pts))
     #all_pairs = [cc for cc in all_pairs if cc[0] != cc[1]]
     
-    all_pairs = list(itertools.combinations(all_pts,3))
+    all_pairs = list(itertools.combinations(['901','903','906','907','908'],3))
     
     num_pairs = len(list(all_pairs))
     coeff_runs = [0] * num_pairs
@@ -179,14 +179,15 @@ elif regr_type == 'CV_RIDGE':
     
     #Select the final model
     plt.figure()
-    plt.plot(np.arange(20),np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
-    plt.xticks(np.arange(20),all_model_pairs,rotation=90)
+    plt.plot(np.arange(len(all_model_pairs)),np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
+    plt.xticks(np.arange(len(all_model_pairs)),all_model_pairs,rotation=90)
     
     analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
     
     analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model['RIDGE']['Model'])
     analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['RIDGE']['Model'])
     
+    analysis.Model['FINAL']['Model'].coef_ = np.hstack((np.median(left_coeffs,axis=0),np.median(right_coeffs,axis=0)))
 #Choose the coefficients we want
     #Median here
     #final_l_coefs = 
@@ -197,7 +198,7 @@ elif regr_type == 'CV_RIDGE':
 #%%
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
 aucs = []
-for ii in range(10):
+for ii in range(100):
     analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10))
     aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False))
     
@@ -208,7 +209,11 @@ plt.figure()
 #plt.hist(aucs[:,0],label='HDRS')
 #plt.hist(aucs[:,1],label='Candidate')
 #plt.hist(aucs[:,3],label='RandMod')
-plt.hist(aucs,stacked=True,color=['red','blue','green','violet'])
+plt.hist(aucs[:,2:4],stacked=False,color=['green','violet'],label=['Null','RandM'])
+plt.vlines(aucs[0,0],0,10,color='red',label='HDRS')
+plt.vlines(aucs[0,1],0,10,color='blue',label='Candidate')
+
+#plt.legend(['HDRS','Cand','Null','RandMod'])
 #plt.legend(['HDRS','Candidate','Nulls','RandMod'])
 
 plt.legend()
