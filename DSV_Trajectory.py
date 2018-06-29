@@ -85,7 +85,7 @@ rridge = [-1.06586005e-02,  2.42700023e-05,  7.31445236e-03,  2.68723035e-03,-3.
 #lridge = [0,0,0,0,1]
 #rridge = [0,0,0,0,1]
 
-
+traj_plot = plt.figure()
 for pt in all_pts:
     #get all feat vects and associated time
     all_obs = [(cc['FeatVect'],cc['Date'],cc['Phase'],ClinFrame.clin_dict['DBS'+pt][cc['Phase']]['HDRS17']) for cc in analysis.YFrame.file_meta if cc['Patient'] == pt and cc['Circadian'] == 'night']
@@ -115,24 +115,34 @@ for pt in all_pts:
         orig_len = len(vec[:,0])
         ti = np.linspace(2,orig_len+1, 10 * orig_len)
         
-        x = np.concatenate((vec[-3:-1,0],vec[:,0],vec[1:3,0]))
-        y = np.concatenate((vec[-3:-1,1],vec[:,1],vec[1:3,1]))
+        x_orig = sig.detrend(vec[:,0],type='linear')
+        y_orig = sig.detrend(vec[:,1],type='linear')
+        
+        x = np.concatenate((x_orig[-3:-1],x_orig,x_orig[1:3]))
+        y = np.concatenate((y_orig[-3:-1],y_orig,y_orig[1:3]))
         t = np.arange(len(x))
         xi = interp1d(t,x,kind='cubic')(ti)
         yi = interp1d(t,y,kind='cubic')(ti)
     
         tstart = 5
-        tend = -3
+        tend = -4
     else:
         tstart = 3 
         tend = -1
         #Now let's plot the trajectories
     
-    
+    plt.figure(traj_plot.number)
     plt.scatter(x,y,alpha=0.4,cmap='jet')
-    plt.scatter(x[tstart],y[tstart],marker='o',s=400,color='green')
+    plt.scatter(x[tstart],y[tstart],marker='o',s=400,color='blue')
     plt.scatter(x[tend],y[tend],marker='X',s=400,color='red')
     plt.plot(xi,yi,alpha=0.3)
+    
+    
+    plt.figure()
+    plt.plot((x_orig+y_orig))
+    plt.title(pt)
+    
+
     #plt.hlines(0,-0.3,0.3)
     #plt.vlines(0,-0.3,0.3)
         

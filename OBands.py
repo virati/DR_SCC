@@ -37,21 +37,30 @@ class OBands:
         self.do_pts = dbo.all_pts
         
     def poly_subtr(self,inp_psd,polyord=6):
+        raise ValueError
+        
         pchann = np.poly1d(np.polyfit(self.BRFrame.data_basis,inp_psd,polyord))
         
         return inp_psd - pchann
         
-    def feat_extract(self):
+    def feat_extract(self,do_corrections=False):
         big_list = self.BRFrame.file_meta
         #go through ALL files and do the feature extraction
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
             for featname,dofunc in dbo.feat_dict.items():
-                datacontainer = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
-                #Do we want to do any preprocessing for the PSDs before we send it to the next round?
-                #Maybe a poly-fit subtraction?
+                if do_corrections == False:
+                    datacontainer = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
+                    #Do we want to do any preprocessing for the PSDs before we send it to the next round?
+                    #Maybe a poly-fit subtraction?
+                    
                 
-                feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
+                    feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
+                else:
+                    pre_correction = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
+                    datacontainer = dbo.poly_subtr(pre_correction,self.BRFrame.data_basis)
+                    feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
+                    
             rr.update({'FeatVect':feat_dict})
          
 
@@ -158,14 +167,15 @@ class OBands:
         #plt.pcolormesh(main_stats);plt.colorbar()
         #plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
         #plt.yticks(np.arange(6)+0.5,pts)
-        
         #plt.subplot(2,1,2)
         #plt.pcolormesh((P_val < (0.05)).astype(np.int));plt.colorbar()
         #P_val[P_val > (0.05/10)] = 1
+        
         plt.figure()
         plt.pcolormesh((P_val < (0.05/10)).astype(np.float32),cmap=plt.get_cmap('Set1_r'));plt.colorbar();
         plt.yticks(np.arange(6)+0.5,self.do_pts)
         plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
+        plt.title('P-value of Day-Nite Difference')
 
         plt.figure()
         plt.subplot(211)

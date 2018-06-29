@@ -28,7 +28,7 @@ sns.set_style("white")
 #Bring in our data first
 
 BRFrame = BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_March.npy')
+BRFrame.full_sequence(data_path='/home/virati/Dropbox/Chronic_Frame_June.npy')
 
 #do a check to see if any PSDs are entirely zero; bad sign
 BRFrame.check_meta()
@@ -38,18 +38,19 @@ BRFrame.check_meta()
 #Move forward with traditional oscillatory band analysis
 from OBands import *
 analysis = OBands(BRFrame)
-analysis.feat_extract()
+analysis.feat_extract(do_corrections=False)
 
 ##PLOTS
 
-focus_feats =['Delta','Theta','Alpha','Beta']
+#focus_feats =['Delta','Theta','Alpha','Beta']
 #Now we're ready for the plots
 #%%
 #First thing is the per-patient weekly averages plotted for left and right
-_ = analysis.mean_psds(weeks=["C01","C24"],patients='all')
+#_ = analysis.mean_psds(weeks=["C01","C24"],patients='all')
 
 
 #%%
+# Do comparison of two timepoints here
 #analysis.scatter_state(week='all',pt=['908'],feat='SHarm')
 #analysis.scatter_state(week='all',pt=['908'],feat='Stim')
 ks_stats = nestdict()
@@ -73,6 +74,8 @@ plt.figure()
 plt.pcolormesh(K_stats);plt.colorbar()
 plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
 plt.yticks(np.arange(6)+0.5,pts)
+plt.title('Using K Stat variable')
+
 plt.figure()
 #plt.subplot(2,1,2)
 #plt.pcolormesh((P_val < (0.05)).astype(np.int));plt.colorbar()
@@ -80,6 +83,7 @@ plt.figure()
 plt.pcolormesh((P_val < (0.05/10)).astype(np.float32),cmap=plt.get_cmap('Set1_r'));plt.colorbar();
 plt.yticks(np.arange(6)+0.5,pts)
 plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
+plt.title('Using P value variable')
 
     
 for ii in plt.get_fignums():
@@ -88,4 +92,4 @@ for ii in plt.get_fignums():
     plt.savefig('/tmp/' + str(ii) + circ + '.svg')
 #%%
 #Do day-night comparisons across all bands
-analysis.day_vs_nite()
+#analysis.day_vs_nite()

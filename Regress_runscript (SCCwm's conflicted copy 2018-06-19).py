@@ -14,7 +14,6 @@ import scipy.signal as sig
 import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
-import copy
 
 import itertools
 
@@ -37,9 +36,6 @@ BRFrame.check_empty_phases()
 from DSV import ORegress
 
 analysis = ORegress(BRFrame,ClinFrame)
-
-#%%
-analysis.split_validation_set(do_split = True)
 analysis.O_feat_extract()
 
 all_pts = ['901','903','905','906','907','908']
@@ -92,7 +88,7 @@ elif regr_type == 'RIDGE':
     print('DOING RIDGE REGRESSION NOW....................................................................')
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='',scale=test_scale,lindetrend=do_detrend,finalWrite=True,train_pts=['903','906','907'])
+    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='',scale=test_scale,lindetrend=do_detrend,final=False)
     analysis.O_models(plot=True,models=['RIDGE'])
     analysis.Clinical_Summary('RIDGE',plot_indiv=True,ranson=dorsac)
     analysis.shuffle_summary('RIDGE')
@@ -121,102 +117,60 @@ elif regr_type == 'CV_RIDGE':
     coeff_runs = [0] * num_pairs
     summ_stats_runs  = [0] * num_pairs
     
-    all_model_pairs = list(all_pairs)
-    
-    for run,pt_pair in enumerate(all_model_pairs):
+    for run,pt_pair in enumerate(list(all_pairs)):
         print(pt_pair)
         analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
         coeff_runs[run] = analysis.O_models(plot=False,models=['RIDGE'])
         summ_stats_runs[run] = analysis.Clinical_Summary('RIDGE',plot_indiv=False,ranson=dorsac,doplot=False)
         #analysis.shuffle_summary('RIDGE')
-        
+
+#%%
     #summary stats
-    plt.figure()
-    plt.suptitle('Permutation')
-    plt.subplot(2,1,1)
-    plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
-    plt.title('Correlations distribution')
-    
-    plt.subplot(2,1,2)
-    plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
-    plt.title('p-values distribution')
-    
-    plt.figure()
-    plt.suptitle('Spearman')
-    plt.subplot(2,1,1)
-    plt.hist(np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
-    #plt.annotate(xy=([summ_stats_runs[mod]['SpearCorr'] for mod in range(20)],[1 for mod in range(20)]),text='test')
-    plt.title('Correlations distribution')
-    
-    plt.subplot(2,1,2)
-    plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
-    plt.title('p-values distribution')
-    
-    
-    #left_coeffs = np.median(np.array([cc['Left'] for cc in coeff_runs]),axis=0)
-    #right_coeffs = np.median(np.array([cc['Right'] for cc in coeff_runs]),axis=0)
-    left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
-    right_coeffs = np.array([cc['Right'] for cc in coeff_runs])
-    
-    plt.figure()
-    plt.subplot(1,2,1)
-    plt.plot(np.median(left_coeffs,axis=0))
-    for bb in range(5):
-        plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
-
-    plt.ylim((-0.05,0.05))
-    plt.xlim((-0.1,4.1))
-    plt.hlines(0,0,5)
-    
-    plt.subplot(1,2,2)
-    plt.plot(np.median(right_coeffs,axis=0))
-    for bb in range(5):
-        plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
-    
-    plt.ylim((-0.05,0.05))
-    plt.xlim((-0.1,4.1))
-    plt.hlines(0,0,5)
-    
-    #Select the final model
-    plt.figure()
-    plt.plot(np.arange(20),np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
-    plt.xticks(np.arange(20),all_model_pairs,rotation=90)
-    
-    analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
-    
-    analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model['RIDGE']['Model'])
-    analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['RIDGE']['Model'])
-    
-#Choose the coefficients we want
-    #Median here
-    #final_l_coefs = 
-    
-    #analysis.Model['FINAL']['Model'].coef_ = np.vstack((final_l_coefs,final_r_coefs))
-
-
-#%%
-#We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
-aucs = []
-for ii in range(10):
-    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10))
-    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False))
-    
-aucs = np.array(aucs)
-#%%
 plt.figure()
-#plt.hist(aucs[:,2],label='Nulls')
-#plt.hist(aucs[:,0],label='HDRS')
-#plt.hist(aucs[:,1],label='Candidate')
-#plt.hist(aucs[:,3],label='RandMod')
-plt.hist(aucs,stacked=True,color=['red','blue','green','violet'])
-#plt.legend(['HDRS','Candidate','Nulls','RandMod'])
+plt.suptitle('Permutation')
+plt.subplot(2,1,1)
+plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
+plt.title('Correlations distribution')
 
-plt.legend()
+plt.subplot(2,1,2)
+plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
+plt.title('p-values distribution')
 
+plt.figure()
+plt.suptitle('Spearman')
+plt.subplot(2,1,1)
+plt.hist(np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
+plt.title('Correlations distribution')
+
+plt.subplot(2,1,2)
+plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
+plt.title('p-values distribution')
+
+
+left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
+right_coeffs = np.array([cc['Right'] for cc in coeff_runs])
+plt.figure()
+plt.subplot(1,2,1)
+plt.plot(np.median(left_coeffs,axis=0))
+for bb in range(5):
+    plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
+plt.ylim((-0.05,0.05))
+plt.xlim((-0.1,4.1))
+plt.hlines(0,0,5)
+
+plt.subplot(1,2,2)
+plt.plot(np.median(right_coeffs,axis=0))
+for bb in range(5):
+    plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
+
+plt.ylim((-0.05,0.05))
+plt.xlim((-0.1,4.1))
+plt.hlines(0,0,5)
 #plt.bar([0,1,2,3,4],left_coeffs)
 #plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])
 #print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
 #analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
+
 
 #%%
 
