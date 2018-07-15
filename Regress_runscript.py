@@ -28,7 +28,7 @@ ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_March.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
 #BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
 BRFrame.check_empty_phases()
 
@@ -39,7 +39,7 @@ from DSV import ORegress
 analysis = ORegress(BRFrame,ClinFrame)
 
 #%%
-analysis.split_validation_set(do_split = True)
+analysis.split_validation_set(do_split = False)
 analysis.O_feat_extract()
 
 all_pts = ['901','903','905','906','907','908']
@@ -92,13 +92,16 @@ elif regr_type == 'RIDGE':
     print('DOING RIDGE REGRESSION NOW....................................................................')
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True)
     #analysis.O_regress(method='OLS',doplot=True,inpercent=0.6,avgweeks=True,ignore_flags=True)
-    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='',scale=test_scale,lindetrend=do_detrend,finalWrite=True,train_pts=['903','906','907'])
+    analysis.O_regress(method='RIDGE',doplot=True,avgweeks=True,ignore_flags=False,circ='',scale=test_scale,lindetrend=do_detrend,finalWrite=True,train_pts=['901','903'])
     analysis.O_models(plot=True,models=['RIDGE'])
     analysis.Clinical_Summary('RIDGE',plot_indiv=True,ranson=dorsac)
     analysis.shuffle_summary('RIDGE')
     #plt.figure();plt.hist(analysis.Model['RIDGE']['Performance']['DProd']['Distr'])
     #print(np.sum(analysis.Model['RIDGE']['Performance']['DProd']['Distr'] > analysis.Model['RIDGE']['Performance']['DProd']['Dot'])/len(analysis.Model['RIDGE']['Performance']['DProd']['Distr']))
 
+    
+    analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model['RIDGE']['Model'])
+    analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['RIDGE']['Model'])
 
 elif regr_type == 'LASSO':
     dorsac = False
@@ -115,7 +118,7 @@ elif regr_type == 'CV_RIDGE':
     #all_pairs = list(itertools.product(all_pts,all_pts))
     #all_pairs = [cc for cc in all_pairs if cc[0] != cc[1]]
     
-    all_pairs = list(itertools.combinations(['901','903','906','907','908'],3))
+    all_pairs = list(itertools.combinations(['901','903','905','906','907','908'],3))
     
     num_pairs = len(list(all_pairs))
     coeff_runs = [0] * num_pairs
@@ -182,26 +185,28 @@ elif regr_type == 'CV_RIDGE':
     plt.plot(np.arange(len(all_model_pairs)),np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
     plt.xticks(np.arange(len(all_model_pairs)),all_model_pairs,rotation=90)
     
-    analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
+    #analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
     
     analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model['RIDGE']['Model'])
     analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['RIDGE']['Model'])
     
-    analysis.Model['FINAL']['Model'].coef_ = np.hstack((np.median(left_coeffs,axis=0),np.median(right_coeffs,axis=0)))
-#Choose the coefficients we want
+    
+    #Choose the coefficients we want
     #Median here
     #final_l_coefs = 
     
+    analysis.Model['FINAL']['Model'].coef_ = np.hstack((np.median(left_coeffs,axis=0),np.median(right_coeffs,axis=0)))
+
     #analysis.Model['FINAL']['Model'].coef_ = np.vstack((final_l_coefs,final_r_coefs))
 
 
 #%%
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
 aucs = []
-for ii in range(100):
-    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10))
-    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False))
-    
+n_iterations = 100
+for ii in range(n_iterations):
+    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.1,0.1,size=(1,10))
+    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False,randomize=0.3))
 aucs = np.array(aucs)
 #%%
 plt.figure()
@@ -209,9 +214,40 @@ plt.figure()
 #plt.hist(aucs[:,0],label='HDRS')
 #plt.hist(aucs[:,1],label='Candidate')
 #plt.hist(aucs[:,3],label='RandMod')
-plt.hist(aucs[:,2:4],stacked=False,color=['green','violet'],label=['Null','RandM'])
-plt.vlines(aucs[0,0],0,10,color='red',label='HDRS')
-plt.vlines(aucs[0,1],0,10,color='blue',label='Candidate')
+#plt.subplot(2,1,1)
+plt.hist(aucs[:,2:4],stacked=False,color=['green','purple'],label=['Null','RandM'],bins=20)
+
+plt.vlines(np.median(aucs[:,0]),0,210,color='red',label='HDRS',linewidth=5)
+hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
+plt.hlines(210,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
+
+plt.vlines(np.median(aucs[:,1]),0,200,color='blue',label='Candidate')
+cb_sem = np.sqrt(np.var(aucs[:,1])) / np.sqrt(n_iterations)
+plt.hlines(200,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
+
+
+plt.vlines(np.median(aucs[:,4]),0,200,color='yellow',label='Proposed')
+pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
+plt.hlines(200,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
+
+# plt.vlines(np.median(aucs[:,5]),0,200,color='cyan',label='CenterOff')
+# co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
+# plt.hlines(200,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
+
+
+#How many above?
+phdrs = np.sum(aucs[:,2] > np.median(aucs[:,0])) / n_iterations
+pcb= np.sum(aucs[:,2] > np.median(aucs[:,1])) / n_iterations
+pmin = np.sum(aucs[:,2] > np.median(aucs[:,4])) / n_iterations
+#print(phdrs)
+#print(pcb)
+#Model Comparison
+print('Likelihood ratio of two clinical algos: ' + str(phdrs/pcb))
+print('Likelihood ratio for Proposed algo: ' + str(phdrs/pmin))
+
+#plt.subplot(2,1,2)
+#plt.hist(aucs[:,0],stacked=False,alpha=0.9)
+#plt.hist(aucs[:,1],stacked=False,alpha=0.9)
 
 #plt.legend(['HDRS','Cand','Null','RandMod'])
 #plt.legend(['HDRS','Candidate','Nulls','RandMod'])

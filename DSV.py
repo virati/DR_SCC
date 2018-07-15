@@ -58,9 +58,6 @@ import copy
 def L1_dist(x,y):
     return np.sum(np.abs(a-b) for a,b in zip(x,y))
 
-
-
-
 #%%            
         
 class PSD_EN:
@@ -483,7 +480,7 @@ class ORegress:
     #This function will generate the full OSCILLATORY STATE for all desired observations/weeks
     def O_feat_extract(self):
         print('Extracting Oscillatory Features')
-        print(dbo.feat_dict)
+        #print(dbo.feat_dict)
         big_list = self.YFrame.file_meta
         for rr in big_list:
             feat_dict = {key:[] for key in dbo.feat_dict.keys()}
@@ -523,14 +520,16 @@ class ORegress:
         if do_split:
             print('Splitting out validation set')
             print('Pre splot YFrame ' + str(len(self.YFrame.file_meta)))
-            self.train_set, self.valid_set = train_test_split(self.YFrame.file_meta,train_size=0.6)
+            self.train_set, self.valid_set = train_test_split(self.YFrame.file_meta,train_size=0.7,shuffle=True)
             
             print('Train set' + str(len(self.train_set)))
             print('Validation set ' + str(len(self.valid_set)))
         else:
+            print('NOT Splitting out a validation set')
             self.train_set = self.YFrame.file_meta
+            self.valid_set = self.YFrame.file_meta
     
-    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False,circ='',from_set='TRAIN'):
+    def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False,circ='',from_set='TRAIN',randomize=0.0):
         #hardcoded for now, remove later
         nchann = 2
         nfeats = len(dbo.feat_order)
@@ -538,9 +537,10 @@ class ORegress:
         
         #fmeta = self.YFrame.file_meta
         if from_set == 'TRAIN':
+            print('Using Train Set ' + str(len(self.train_set)))
             fmeta = self.train_set
         elif from_set == 'VALIDATION':
-            print('DIPPING INTO VALIDATION SET')
+            print('DIPPING INTO VALIDATION SET '  + str(len(self.valid_set)))
             fmeta = self.valid_set
         else:
             raise ValueError
@@ -551,6 +551,10 @@ class ORegress:
         
         #This one gives the FULL STACK
         #fullfilt_data = np.array([(dbo.featDict_to_Matr(rr['FeatVect']),ptcdict['DBS'+rr['Patient']][rr['Phase']][scale]) for rr in fmeta if rr['Patient'] in pts])
+        
+        #RANDOMIZE??
+        if randomize != 0.0:
+            fmeta = np.random.choice(fmeta,int(np.floor(randomize * len(fmeta))),replace=False)
         
         ###THIS IS NEW
         #generate our stack of interest, with all the flags and all
@@ -1206,9 +1210,9 @@ class ORegress:
                     
         return copy.deepcopy(self.Model[method]['Performance'])
         
-    def Model_Validation(self,method,scale='HDRS17',do_detrend='None',do_plots=False):
+    def Model_Validation(self,method,scale='HDRS17',do_detrend='None',do_plots=False,randomize=0.0):
         #This function does the final model validation on the held out validation set
-        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','906','907','908'],week_avg=True,circ='',ignore_flags=True,scale=scale,from_set='VALIDATION')
+        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
         
         #HARD CHANGE MODEL COEFFICIENTS
         #self.Model[method]['Model'].coef_ = np.array([[-0.00583578, -0.00279751,  0.00131825,  0.01770169,  0.01166687],[-1.06586005e-02,  2.42700023e-05,  7.31445236e-03,  2.68723035e-03,-3.90440108e-06]]).reshape(-1)
@@ -1219,6 +1223,10 @@ class ORegress:
         
         Cval = copy.deepcopy(Cval_base)
         Cpred = copy.deepcopy(Cpred_base)
+        
+        ## Normalize here
+        Cval = stats.zscore(Cval)
+        Cpred = stats.zscore(Cpred)
         
         ### DETREND CODE HERE
         
@@ -1236,8 +1244,11 @@ class ORegress:
             Cval = sig.detrend(Cval,axis=0,type='constant')
             Cpred = sig.detrend(Cpred,axis=0,type='constant')
         
+        
+        
         ### Plotting and actual summary results
-        #self.plot_Pred_vs_Meas(Cpred,Cval,labels_val)
+        if do_plots:
+            self.plot_Pred_vs_Meas(Cpred,Cval,labels_val,plot_type='scatter')
         
         pr_aucs = self.algo_perfs(Cpred,Cval,labels_val,do_plots,Crand=True)
         plt.suptitle('Actual Model')
@@ -1246,7 +1257,7 @@ class ORegress:
         #plt.suptitle('Random Model')
         
     def rans_assess_PvM(self,Cpred,Cmeas,labels,usefig):
-        assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),residual_threshold=0.10,min_samples=0.8,loss='absolute_loss') #0.15 residual threshold works great!
+        assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=True),residual_threshold=1.5,min_samples=0.8,loss='absolute_loss') #0.15 residual threshold works great!
         
         assesslr.fit(Cmeas.reshape(-1,1),Cpred.reshape(-1,1))
         
@@ -1287,31 +1298,37 @@ class ORegress:
         return ostimchange
         
         
-    def plot_Pred_vs_Meas(self,Cpred,Cmeas,labels):
+    def plot_Pred_vs_Meas(self,Cpred,Cmeas,labels,plot_type='scatter'):
         main_clin_fig = plt.figure()
         
-        outlier_mask, inlier_mask, rsac_stats = self.rans_assess_PvM(Cpred,Cmeas,labels,usefig=main_clin_fig)
-        outlier_phases = list(compress(labels['Phase'],outlier_mask))
-        outlier_pt = list(compress(labels['Patient'],outlier_mask))
         
-        #print(rsac_stats)
+        if plot_type == 'scatter':
+            outlier_mask, inlier_mask, rsac_stats = self.rans_assess_PvM(Cpred,Cmeas,labels,usefig=main_clin_fig)
+            outlier_phases = list(compress(labels['Phase'],outlier_mask))
+            outlier_pt = list(compress(labels['Patient'],outlier_mask))
+            
+            #print(rsac_stats)
+            
+            plt.annotate(s=str(100*np.sum(outlier_mask)/len(outlier_mask)) + '% outliers',xy=(0,0.5),fontsize=8)
+            
+            plt.scatter(Cmeas[outlier_mask],Cpred[outlier_mask],alpha=0.3,color='gray')
+            for ii, txt in enumerate(outlier_phases):
+                plt.annotate(txt+'\n'+outlier_pt[ii],(Cmeas[outlier_mask][ii],Cpred[outlier_mask][ii]),fontsize=8,color='gray')
+            plt.scatter(Cmeas[inlier_mask],Cpred[inlier_mask],alpha=0.3)
+            #plt.ylim((0,0.5))
+            #plt.xlim((0,0.5))
+            plt.plot(np.linspace(-1,1,20),np.linspace(-1,1,20),alpha=0.2,color='gray')
+            
+            _ = self.clin_changes(Cpred,Cmeas,labels,usefig=main_clin_fig)
+            
+            #plt.axes().set_aspect('equal')
+            print(stats.spearmanr(Cmeas,Cpred))
+            print(rsac_stats['Slope'])
+        else:
+            plt.plot(Cmeas)
+            plt.plot(Cpred)
+            
         
-        plt.annotate(s=str(100*np.sum(outlier_mask)/len(outlier_mask)) + '% outliers',xy=(0,0.5),fontsize=8)
-        
-        plt.scatter(Cmeas[outlier_mask],Cpred[outlier_mask],alpha=0.3,color='gray')
-        for ii, txt in enumerate(outlier_phases):
-            plt.annotate(txt+'\n'+outlier_pt[ii],(Cmeas[outlier_mask][ii],Cpred[outlier_mask][ii]),fontsize=8,color='gray')
-        plt.scatter(Cmeas[inlier_mask],Cpred[inlier_mask],alpha=0.3)
-        #plt.ylim((0,0.5))
-        #plt.xlim((0,0.5))
-        plt.plot(np.linspace(-1,1,20),np.linspace(-1,1,20),alpha=0.2,color='gray')
-        
-        _ = self.clin_changes(Cpred,Cmeas,labels,usefig=main_clin_fig)
-        
-        #plt.axes().set_aspect('equal')
-        
-        print(stats.spearmanr(Cmeas,Cpred))
-        print(rsac_stats['Slope'])
         
     def algo_perfs(self,Cpred,Cmeas,labels,do_plot=True,Crand = False):
         ostimchange = self.clin_changes(Cpred,Cmeas,labels,doplot=False)
@@ -1325,15 +1342,20 @@ class ORegress:
         
         Cmeas = Cmeas.reshape(-1,1)
         Cpred = Cpred.reshape(-1,1)
+        #now make one that has, per observation, the MINIMUM
+        Cmin = np.min(np.hstack((Cmeas,Cpred)),axis=1).reshape(-1,1)
+        Coff = np.abs(Cpred - Cmeas) * np.sin(np.pi/4)
         tpfn_plot = False
+        
         
         if do_plot:
             if tpfn_plot: summary = plt.figure()
             roc_plots = plt.figure()
         unif = np.random.uniform(0.0,1.0,size=Cmeas.size)
         
+        
         if Crand:
-            do_algos = [Cmeas,Cpred,unif,self.Model['RANDOM']['Cpred']]
+            do_algos = [Cmeas,Cpred,unif,self.Model['RANDOM']['Cpred'],Cmin,Coff]
         else:
             do_algos = [Cmeas,Cpred,unif]
         
@@ -1364,7 +1386,6 @@ class ORegress:
             precision,recall,_=precision_recall_curve(true_change,trutru)
             avg_precision = average_precision_score(true_change,trutru)
             if do_plot:
-                
                 
                 plt.figure(roc_plots.number)            
                 plt.step(recall,precision,alpha=1,where='post',label=algon)

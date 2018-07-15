@@ -26,6 +26,8 @@ import DBS_Osc as dbo
 
 import matplotlib.pyplot as plt
 
+from sklearn.metrics import precision_recall_curve, average_precision_score
+
 def pca(data,numComps=None):
     m,n = data.shape
     data -= data.mean(axis=0)
@@ -112,7 +114,6 @@ class CFrame:
             
             sX = np.vstack((ptmhd,ptmd,ptbdi,ptgaf)).T
     
-    
             #lump it into a big observation vector AS WELL and do the rPCA on the large one later
             allptX.append(sX)
             
@@ -149,14 +150,18 @@ class CFrame:
             Srcomp, Srevals, Srevecs = pca(S)
             Lrcomp, Lrevals, Lrevecs = pca(L)
             
-            #DSC_scores= -stats.zscore(np.mean(Lrcomp[:,:],axis=1))
-            DSC_scores = np.mean(Lrcomp[:,:],axis=1)
+            #This generates our DSC scores which are just the negative of the mean of the low rank component
+            DSC_scores = -np.mean(Lrcomp[:,:],axis=1)
             
-            self.DSS_dict['DBS'+pat]['DSC'] = DSC_scores
+            #This is what gets called in c_2_c
+            self.DSS_dict['DBS'+pat]['DSC'] = DSC_scores / DSC_scores.max(axis=0) * 15 + 15
+            
+            #WTF does the below do...?
+            '''
             for phph in range(DSC_scores.shape[0]):
                 #self.clin_dict[pt][ph_lut[phph]]['DSC']= new_scores[phph]
                 self.clin_dict['DBS'+pat][ph_lut[phph]]['DSC'] = DSC_scores[phph]/3
-        
+            '''
     
     def plot_scale(self,scale='HDRS17',pts='all'):
         if pts == 'all':
@@ -195,26 +200,64 @@ class CFrame:
             #return will be phase x clinscores
             c_vect[pt] = 0
             
-    def c_vs_c_plot(self,c1='HDRS17',c2='HDRS17'):
+    def pr_curve(self,c1,c2):
+        pass
+    
+    def c_vs_c_plot(self,c1='HDRS17',c2='HDRS17',plot_v_change=True):
         plt.figure()
         
+        #do we want to plot the points when the stim was changed?
+        phase_list = dbo.Phase_List('all')
+        if plot_v_change:
+            stim_change_list = self.Stim_Change_Table()
+        
+        big_vchange_list = []
+        
         for pat in self.do_pts:
-            plt.scatter((self.DSS_dict['DBS'+pat][c1][0:32]),(self.DSS_dict['DBS'+pat][c2][0:32]))
+            scale1 = np.array(self.DSS_dict['DBS'+pat][c1][0:32])
+            scale2 = np.array(self.DSS_dict['DBS'+pat][c2][0:32])
+        
+            plt.scatter(scale1,scale2,alpha=0.2,color='blue')
+            #plot the changes for the patient
+            phases_v_changed = [b for a,b in stim_change_list if a == pat]
+            phase_idx_v_changed = [phase_list.index(b) for b in phases_v_changed]
+            plt.scatter(scale1[phase_idx_v_changed],scale2[phase_idx_v_changed],marker='^',s=130,alpha=0.3,color='black')
+            
+            change_vec = np.zeros_like(scale1)
+            change_vec[phase_idx_v_changed] = 1
+            
+            big_vchange_list.append((scale1,scale2,change_vec))
+            
         plt.xlabel(c1)
         plt.ylabel(c2)
         
+        
+        # Correlation measures
         corr_matr = np.array([(self.DSS_dict['DBS'+pat][c1][0:32],self.DSS_dict['DBS'+pat][c2][0:32]) for pat in self.do_pts])
         corr_matr = np.swapaxes(corr_matr,0,1)
         corr_matr = corr_matr.reshape(2,-1,order='C')
         
         spearm = stats.spearmanr(corr_matr[0,:],corr_matr[1,:])
-        print('Corr between ' + c1 + ' and ' + c2 + ' is: ' + str(spearm))
+        pears = stats.pearsonr(corr_matr[0,:],corr_matr[1,:])
         
-        plt.plot([-1,60],[-1,60])
+        print('SpearCorr between ' + c1 + ' and ' + c2 + ' is: ' + str(spearm))
+        print('PearsCorr between ' + c1 + ' and ' + c2 + ' is: ' + str(pears))
+        
+        #plt.plot([-1,60],[-1,60])
         plt.axes().set_aspect('equal')
-        
         #plt.legend(self.do_pts)
-
+        
+        #should be 6x3x32
+        self.big_v_change_list = np.array(big_vchange_list).swapaxes(0,1).reshape(3,-1,order='C')
+        
+        scales = (c1,c2)
+        
+        for ii in range(2):
+            #now do the AUC curves and P-R curves
+            precision,recall,_ = precision_recall_curve(self.big_v_change_list[2],self.big_v_change_list[ii])
+            avg_precision = average_precision_score(self.big_v_change_list[2],self.big_v_change_list[ii])
+            print('Average precision for ' + str(scales[ii]) + ': ' + str(avg_precision))
+        
 
     def load_stim_changes(self):
         #this is where we'll load in information of when stim changes were done so we can maybe LABEL them in figures
@@ -238,7 +281,7 @@ class CFrame:
 
 if __name__=='__main__':
     TestFrame = CFrame()
-    TestFrame.c_vs_c_plot(c1='DSC',c2='HDRS17')
+    TestFrame.c_vs_c_plot(c1='HDRS17',c2='DSC')
     #TestFrame.plot_scale(scale='DSC')
     #TestFrame.plot_scale(scale='HDRS17')
     #TestFrame.c_dict()
