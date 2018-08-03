@@ -13,7 +13,7 @@ from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 from sklearn.metrics import roc_curve
-from sklearn.metrics import precision_recall_curve, average_precision_score
+from sklearn.metrics import precision_recall_curve, average_precision_score, auc
 
 from collections import defaultdict
 import itertools as itt
@@ -29,6 +29,8 @@ import scipy.signal as sig
 
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+
+import random
 
 import sys
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
@@ -95,8 +97,6 @@ class PSD_EN:
             ipdb.set_trace()
         
         self.n_obs = Y.shape[0]
-        
-        
         
         self.ENet.fit(X,Y.reshape(-1))
         
@@ -528,6 +528,8 @@ class ORegress:
             print('NOT Splitting out a validation set')
             self.train_set = self.YFrame.file_meta
             self.valid_set = self.YFrame.file_meta
+    
+    
     
     def dsgn_O_C(self,pts,scale='HDRS17',week_avg=True,collapse_chann=True,ignore_flags=False,circ='',from_set='TRAIN',randomize=0.0):
         #hardcoded for now, remove later
@@ -1212,7 +1214,7 @@ class ORegress:
         
     def Model_Validation(self,method,scale='HDRS17',do_detrend='None',do_plots=False,randomize=0.0):
         #This function does the final model validation on the held out validation set
-        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
+        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','905','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
         
         #HARD CHANGE MODEL COEFFICIENTS
         #self.Model[method]['Model'].coef_ = np.array([[-0.00583578, -0.00279751,  0.00131825,  0.01770169,  0.01166687],[-1.06586005e-02,  2.42700023e-05,  7.31445236e-03,  2.68723035e-03,-3.90440108e-06]]).reshape(-1)
@@ -1279,6 +1281,7 @@ class ORegress:
         return outlier_mask, inlier_mask, rsac_stats
         
     def clin_changes(self,Cpred,Cmeas,labels,usefig=[],method='RIDGE',measure='HDRS17',doplot=True):
+        #THIS NEEDS TO BE SHIFTED TO THE CVECT HANDLING FUNCTIONS FOR STIM CHANGES THAT CORRECT FOR SHIFTS
         stim_change_list = self.CFrame.Stim_Change_Table()
         ostimchange = []
         
@@ -1351,13 +1354,15 @@ class ORegress:
         if do_plot:
             if tpfn_plot: summary = plt.figure()
             roc_plots = plt.figure()
-        unif = np.random.uniform(0.0,1.0,size=Cmeas.size)
+        unif = np.random.uniform(-2.0,2.0,size=Cmeas.size)
         
         
         if Crand:
             do_algos = [Cmeas,Cpred,unif,self.Model['RANDOM']['Cpred'],Cmin,Coff]
+            algo_list = ['HDRS','CB','Random','RandomLin','Minimum','OffDiag']
         else:
             do_algos = [Cmeas,Cpred,unif]
+            algo_list = ['HDRS','CB','Random']
         
         #trutru = Cmeas
         algo_avg_prec = []
@@ -1383,16 +1388,30 @@ class ORegress:
             #print(metrics.auc(fpr,tpr))
             #plt.figure(roc_plots.number)
             #plt.plot(fpr,tpr)
+            
+            #WHAT IF WE SHUFFLE THE TRUE CHANGE
+            rand_change = np.zeros_like(Cmeas)
+            
+            #rand_idxs = np.random.randint(0,Cmeas.size,size=(8,1))
+            
+            rand_idxs = random.sample(range(Cmeas.shape[0]),8)
+            rand_change[rand_idxs] = 1
+            
+            
             precision,recall,_=precision_recall_curve(true_change,trutru)
+            prauc = auc(precision,recall,reorder=True)
             avg_precision = average_precision_score(true_change,trutru)
+            
             if do_plot:
                 
                 plt.figure(roc_plots.number)            
                 plt.step(recall,precision,alpha=1,where='post',label=algon)
                 plt.legend()
                 plt.title('Precision Recall Plots')
-            print('Precision-Recall Average: ' + str(avg_precision))
-            algo_avg_prec.append(avg_precision)
+            print('Algo: ' + algo_list[algon] + ' Precision-Recall Average: ' + str(avg_precision) + ' AUC: ' + str(prauc))
+            
+            #HERE is where you decide to do either avg_precision or prauc
+            algo_avg_prec.append(prauc)
             
             change_above = np.array(change_above)
             norm_above = np.array(norm_above)

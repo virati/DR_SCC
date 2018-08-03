@@ -46,9 +46,11 @@ all_pts = ['901','903','905','906','907','908']
 
 #%%
 
-regr_type = 'CV_RIDGE'
+regr_type = 'RIDGE'
 test_scale = 'HDRS17'
-do_detrend='Block'
+do_detrend='None'
+
+
 
 
 ranson = True
@@ -203,10 +205,10 @@ elif regr_type == 'CV_RIDGE':
 #%%
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
 aucs = []
-n_iterations = 100
+n_iterations = 1
 for ii in range(n_iterations):
-    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.1,0.1,size=(1,10))
-    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False,randomize=0.3))
+    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.2,0.2,size=(1,10))
+    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=True,randomize=0.7))
 aucs = np.array(aucs)
 #%%
 plt.figure()
@@ -230,9 +232,9 @@ plt.vlines(np.median(aucs[:,4]),0,200,color='yellow',label='Proposed')
 pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
 plt.hlines(200,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
 
-# plt.vlines(np.median(aucs[:,5]),0,200,color='cyan',label='CenterOff')
-# co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
-# plt.hlines(200,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
+plt.vlines(np.median(aucs[:,5]),0,200,color='cyan',label='CenterOff')
+co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
+plt.hlines(200,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
 
 
 #How many above?

@@ -23,7 +23,7 @@ ClinFrame = CFrame(norm_scales=True)
 
 #%%
 BRFrame = BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_April.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
 BRFrame.check_empty_phases()
 #%%
 from DSV import *
