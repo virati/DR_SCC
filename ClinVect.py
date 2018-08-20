@@ -74,6 +74,7 @@ class CFrame:
         self.do_scales = incl_scales
         self.clin_dict = clin_dict
         
+        clin_dict = []
         
         #Setup derived measures
         #THIS IS JUST A COPY PASTE FROM SCALE DYNAMICS, need to merge this in with above so it's all done properly
@@ -82,7 +83,10 @@ class CFrame:
         for ss,scale in enumerate(incl_scales):
             for pp in range(len(ClinVect['HAMDs'])):
                 ab = ClinVect['HAMDs'][pp]
-                DSS_dict[ab['pt']][scale] = np.array(ab[scale]) / self.scale_max[scale]
+                if norm_scales:
+                     DSS_dict[ab['pt']][scale] = np.array(ab[scale]) / self.scale_max[scale]
+                else:
+                     DSS_dict[ab['pt']][scale] = np.array(ab[scale])
                 
         self.DSS_dict = DSS_dict
         
@@ -255,7 +259,7 @@ class CFrame:
             scale1 = (np.array(self.DSS_dict['DBS'+pat][c1][start_delay:32]))
             scale2 = (np.array(self.DSS_dict['DBS'+pat][c2][start_delay:32]))
         
-            ax = plt.subplot(1,1,1)
+            ax = plt.subplot(1,2,1)
             #plot the A& B periods
             if include_bs:
                 plt.scatter(scale1[0:8],scale2[0:8],alpha=0.2,color='black',marker='s')
@@ -303,37 +307,41 @@ class CFrame:
         print('PearsCorr between ' + c1 + ' and ' + c2 + ' is: ' + str(pears))
         
         #plt.plot([-1,60],[-1,60])
-        plt.axes().set_aspect('equal')
+        #plt.axes().set_aspect('equal')
         #plt.legend(self.do_pts)
         
         #should be 6x3x32
         self.big_v_change_list = np.array(big_vchange_list).swapaxes(0,1).reshape(3,-1,order='C')
         
         scale_labels = (c1,c2,'Min')
-        
+        ax2 = plt.subplot(1,2,2)
         for ii in range(2):
             #now do the AUC curves and P-R curves
             precision,recall,_ = precision_recall_curve(self.big_v_change_list[2,:],self.big_v_change_list[ii,:])
             #Compute AUC directly from pr
             prauc = auc(precision,recall,reorder=True)
+            prauc = np.sum(precision) / recall.shape[0]
             #Compute average precision
             avg_precision = average_precision_score(self.big_v_change_list[2,:],self.big_v_change_list[ii,:],average="micro")
-            
+            plt.plot(recall,precision)
             #plt.subplot(2,1,2)
             #plt.plot(recall,precision)
             #plt.annotate('Average precision for ' + str(scales[ii]) + ': ' + str(avg_precision)  + ' AUC: ' + str(prauc),(-2,2-(ii/4)),fontsize=8)
-            ax.text(1.0, 0.95 - ii/4, 'AvgPrec ' + str(scale_labels[ii]) + ': ' + str(avg_precision)  + ' \nAUC: ' + str(prauc), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
+            ax.text(0.1, 0.95 - ii/4, 'AvgPrec ' + str(scale_labels[ii]) + ': ' + str(avg_precision)  + ' \nAUC: ' + str(prauc), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
         
         
         
         ## do the derived algorithms now
         ii=2
-        min_algo = np.min(np.vstack((self.big_v_change_list[0,:],self.big_v_change_list[1,:])),axis=0)
+        min_algo = np.max(np.vstack((self.big_v_change_list[0,:],self.big_v_change_list[1,:])),axis=0)
         precision,recall,_ = precision_recall_curve(self.big_v_change_list[2],min_algo)
+        plt.plot(recall,precision)
+
         prauc = auc(precision,recall,reorder=True)
+        prauc = np.sum(precision) / recall.shape[0]
         avg_precision = average_precision_score(self.big_v_change_list[2],min_algo,average="micro")
         #plt.annotate('Average precision for ' + str(scales[ii]) + ': ' + str(avg_precision) + ' AUC: ' + str(prauc),(-2,1),fontsize=8)
-        ax.text(1.0, 0.95 - 3/4, 'AvgPrec ' + str(scale_labels[ii]) + ': ' + str(avg_precision)  + ' \nAUC: ' + str(prauc), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
+        ax.text(0.1, 0.95 - 3/4, 'AvgPrec ' + str(scale_labels[ii]) + ': ' + str(avg_precision)  + ' \nAUC: ' + str(prauc), transform=ax.transAxes, fontsize=14,verticalalignment='top', bbox=props)
         
 
     def load_stim_changes(self):
@@ -361,9 +369,10 @@ class CFrame:
 
 ''' Unit Test for CFrame '''
 if __name__=='__main__':
-    TestFrame = CFrame(norm_scales=True)
+    TestFrame = CFrame(norm_scales=False)
     for c2 in ['mHDRS','GAF','BDI','MADRS','DSC']:
         TestFrame.c_vs_c_plot(c1='HDRS17',c2=c2)
     #TestFrame.plot_scale(scale='DSC')
     #TestFrame.plot_scale(scale='HDRS17')
     #TestFrame.c_dict()
+    plt.show()
