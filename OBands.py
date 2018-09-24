@@ -53,12 +53,10 @@ class OBands:
                     datacontainer = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
                     #Do we want to do any preprocessing for the PSDs before we send it to the next round?
                     #Maybe a poly-fit subtraction?
-                    
-                
                     feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
                 else:
                     pre_correction = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
-                    datacontainer = dbo.poly_subtr(pre_correction,self.BRFrame.data_basis)
+                    datacontainer,_ = dbo.poly_subtr(pre_correction,self.BRFrame.data_basis)
                     feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
                     
             rr.update({'FeatVect':feat_dict})

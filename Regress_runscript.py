@@ -18,7 +18,6 @@ import copy
 
 import itertools
 
-
 import seaborn as sns
 sns.set_context('paper')
 
@@ -39,16 +38,16 @@ from DSV import ORegress
 analysis = ORegress(BRFrame,ClinFrame)
 
 #%%
-analysis.split_validation_set(do_split = False)
+analysis.split_validation_set(do_split = True)
 analysis.O_feat_extract()
 
 all_pts = ['901','903','905','906','907','908']
 
 #%%
 
-regr_type = 'RIDGE'
+regr_type = 'CV_RIDGE'
 test_scale = 'HDRS17'
-do_detrend='None'
+do_detrend='Block'
 
 
 
@@ -205,10 +204,11 @@ elif regr_type == 'CV_RIDGE':
 #%%
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
 aucs = []
-n_iterations = 1
+#Here we're going to do iterations of randomness
+n_iterations = 100
 for ii in range(n_iterations):
-    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.2,0.2,size=(1,10))
-    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=True,randomize=0.7))
+    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-2,2,size=(1,10))
+    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False,randomize=0.7))
 aucs = np.array(aucs)
 #%%
 plt.figure()
@@ -219,22 +219,22 @@ plt.figure()
 #plt.subplot(2,1,1)
 plt.hist(aucs[:,2:4],stacked=False,color=['green','purple'],label=['Null','RandM'],bins=20)
 
-plt.vlines(np.median(aucs[:,0]),0,210,color='red',label='HDRS',linewidth=5)
+plt.vlines(np.median(aucs[:,0]),0,21,color='red',label='HDRS',linewidth=5)
 hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
-plt.hlines(210,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
+plt.hlines(21,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
 
-plt.vlines(np.median(aucs[:,1]),0,200,color='blue',label='Candidate')
+plt.vlines(np.median(aucs[:,1]),0,20,color='blue',label='Candidate')
 cb_sem = np.sqrt(np.var(aucs[:,1])) / np.sqrt(n_iterations)
-plt.hlines(200,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
+plt.hlines(20,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
 
 
-plt.vlines(np.median(aucs[:,4]),0,200,color='yellow',label='Proposed')
+plt.vlines(np.median(aucs[:,4]),0,20,color='yellow',label='Proposed')
 pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
-plt.hlines(200,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
+plt.hlines(20,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
 
-plt.vlines(np.median(aucs[:,5]),0,200,color='cyan',label='CenterOff')
+plt.vlines(np.median(aucs[:,5]),0,20,color='cyan',label='CenterOff')
 co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
-plt.hlines(200,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
+plt.hlines(20,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
 
 
 #How many above?
@@ -243,6 +243,7 @@ pcb= np.sum(aucs[:,2] > np.median(aucs[:,1])) / n_iterations
 pmin = np.sum(aucs[:,2] > np.median(aucs[:,4])) / n_iterations
 #print(phdrs)
 #print(pcb)
+
 #Model Comparison
 print('Likelihood ratio of two clinical algos: ' + str(phdrs/pcb))
 print('Likelihood ratio for Proposed algo: ' + str(phdrs/pmin))

@@ -27,6 +27,11 @@ sns.set(font_scale=4)
 sns.set_style("white")
 #Bring in our data first
 
+import numpy as np
+
+
+
+#%%
 BRFrame = BR_Data_Tree()
 BRFrame.full_sequence(data_path='/home/virati/Dropbox/Chronic_Frame_June.npy')
 
@@ -38,7 +43,7 @@ BRFrame.check_meta()
 #Move forward with traditional oscillatory band analysis
 from OBands import *
 analysis = OBands(BRFrame)
-analysis.feat_extract(do_corrections=False)
+analysis.feat_extract(do_corrections=True)
 
 ##PLOTS
 

@@ -119,6 +119,25 @@ class PSD_EN:
         self.performance['PearsonR'] = stats.pearsonr(stats.zscore(Y_Pred),stats.zscore(Y_true))
         self.performance['SpearmanR'] = stats.spearmanr(stats.zscore(Y_Pred),stats.zscore(Y_true))
 
+
+#Class for the 'Linear Frequency Model'
+# This model is PATIENT SPECIFIC and is not meant to be a generalized model, rather a METHODOLOGY
+class LFM:
+    def __init__(self,BRFrame,ClinFrame,patient='901',lim_freq=50):
+        print('Returning Recording List for ' + patient)
+        self.YFrame = BRFrame
+        self.CFrame = ClinFrame
+        self.patient = patient
+        
+        #general parameters here
+        
+        
+        # Split out the dataset to train and validate
+        self.Patient_Data = BRFrame.grab_recs(reqs={'Patient':['901']})
+
+    def F_C_Matrix(self):
+        pass
+
 class DSV:
     def __init__(self, BRFrame,ClinFrame,lim_freq=50):
         #load in the BrainRadio DataFrame we want to work with
@@ -334,16 +353,34 @@ class DSV:
             print(pt + ' Spearman:')
             print(spearm)
             
+            #output the PER PATIENT results plotted here
+            
+            
         self.Zscore_Results = pt_zscored
         
+    #def plot_performance(self):
+        
     def plot_performance(self,plot_indiv=False,doplot = True,ranson=True):
-        Cpredictions = (self.ENet.Ys[0])
-        Ctest = (self.ENet.Ys[1])
+        ###############
+        #Old way
+        #Cpredictions = (self.ENet.Ys[0])
+        #Ctest = (self.ENet.Ys[1])
         
-        Cpredictions = stats.zscore((Cpredictions.reshape(-1,1)))
-        Ctest = stats.zscore((Ctest.reshape(-1,1)))
+        #Cpredictions = stats.zscore((Cpredictions.reshape(-1,1)))
+        #Ctest = stats.zscore((Ctest.reshape(-1,1)))
+        ###############
         
-        scatter_alpha = 0.8
+        # NEW WAY
+        #preCpredictions = self.Zscore_Results['Predicted']
+        #preCtest = self.Zscore_Results['HDRS17']
+        #These need to be numpied
+        pt_list = ['905','906','907','908']
+        Cpredictions = np.array([self.Zscore_Results[pt]['Predicted'] for pt in pt_list]).reshape((-1,1))
+        Ctest = np.array([self.Zscore_Results[pt]['HDRS17'] for pt in pt_list]).squeeze().reshape((-1,1))
+        
+        
+        
+        scatter_alpha = 0.3
         
         #cpred_msub = sig.detrend(Cpredictions,type='linear')
         #ctest_msub = sig.detrend(Ctest,type='linear')
@@ -689,7 +726,8 @@ class ORegress:
                 elif mtype == 'ENR_Osc':
                     Coefs[mtype][sid] = mod['Model'].coef_[sides_idxs[sid]]
                 else: 
-                    Coefs[mtype][sid] = mod['Model'].coef_[0][sides_idxs[sid]]
+                    try: Coefs[mtype][sid] = mod['Model'].estimator.coef_[0][sides_idxs[sid]]
+                    except: ipdb.set_trace()
             
 #            
 #        mod = self.Model['RIDGE']
@@ -800,7 +838,8 @@ class ORegress:
             regmodel = linear_model.Lasso(alpha=0.0095, copy_X=True,fit_intercept=True,normalize=True)
             scatter_alpha=0.9
         elif method == 'ENR_Osc':
-            regmodel = linear_model.ElasticNetCV(alphas=np.linspace(0.1,0.7,50), copy_X=True,fit_intercept=True,normalize=True,cv=10)
+            #alphas=np.linspace(0.1,0.7,50),
+            regmodel = linear_model.ElasticNetCV(l1_ratio=np.linspace(0.1,0.5,50), copy_X=True,fit_intercept=True,normalize=True,cv=10)
             scatter_alpha=0.9
             
         
@@ -1211,10 +1250,10 @@ class ORegress:
                     #print('Outlier phases are: ' + str(outlier_phases))
                     
         return copy.deepcopy(self.Model[method]['Performance'])
-        
+
     def Model_Validation(self,method,scale='HDRS17',do_detrend='None',do_plots=False,randomize=0.0):
         #This function does the final model validation on the held out validation set
-        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','905','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
+        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
         
         #HARD CHANGE MODEL COEFFICIENTS
         #self.Model[method]['Model'].coef_ = np.array([[-0.00583578, -0.00279751,  0.00131825,  0.01770169,  0.01166687],[-1.06586005e-02,  2.42700023e-05,  7.31445236e-03,  2.68723035e-03,-3.90440108e-06]]).reshape(-1)
@@ -1236,11 +1275,14 @@ class ORegress:
             pass
         elif do_detrend == 'Block':
             #go through each patient and detrend for each BLOCK
-            for pp,pt in enumerate(dbo.all_pts):
-                cval_block = Cval[28*pp:28*(pp+1)]
-                Cval[28*pp:28*(pp+1)] = sig.detrend(cval_block,axis=0,type='linear')
-                cpred_block = Cpred[28*pp:28*(pp+1)]
-                Cpred[28*pp:28*(pp+1)] = sig.detrend(cpred_block,axis=0,type='linear')
+            try:
+                for pp,pt in enumerate(dbo.all_pts):
+                    cval_block = Cval[28*pp:28*(pp+1)]
+                    Cval[28*pp:28*(pp+1)] = sig.detrend(cval_block,axis=0,type='linear')
+                    cpred_block = Cpred[28*pp:28*(pp+1)]
+                    Cpred[28*pp:28*(pp+1)] = sig.detrend(cpred_block,axis=0,type='linear')
+            except:
+                ipdb.set_trace()
         
         elif do_detrend == 'All':
             Cval = sig.detrend(Cval,axis=0,type='constant')
@@ -1331,6 +1373,17 @@ class ORegress:
             plt.plot(Cmeas)
             plt.plot(Cpred)
             
+    
+    def algo_pers_shuffle_change(self,Cpred,Cmeas,labels):
+        ostimchange = self.clin_changes(Cpred,Cmeas,labels,doplot=False)
+        stimstay = [x for x in range(Cmeas.shape[0]) if x not in ostimchange]
+        stimchange = [x for x in range(Cmeas.shape[0]) if x in ostimchange]
+        
+        #Now, generate some Random stay and change vectors, with the same sparsity
+        randstim_change = random.shuffle(ostimchange)
+        rand_stimstay = [x for x in range(Cmeas.shape[0]) if x not in randstim_change]
+        rand_stimchange = [x for x in range(Cmeas.shape[0]) if x in randstim_change]
+        
         
         
     def algo_perfs(self,Cpred,Cmeas,labels,do_plot=True,Crand = False):

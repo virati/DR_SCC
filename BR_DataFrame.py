@@ -98,6 +98,10 @@ class BR_Data_Tree():
             
         plt.figure()
         plt.plot(gc_plot)
+    
+    def grab_recs(self,reqs):
+        fullfilt_data = [(rr['Data']['Left'],rr['Data']['Right'],rr['Phase'],rr['Patient']) for rr in self.file_meta if rr['Patient'] in reqs['Patient']]
+        return fullfilt_data
         
     def Remove_BadFlags(self):
         try:

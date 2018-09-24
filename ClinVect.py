@@ -64,7 +64,6 @@ class CFrame:
                 for ss,scale in enumerate(incl_scales):
                     if norm_scales and scale != 'dates':
                         clin_dict[ab['pt']][phase][scale] = ab[scale][phph] / self.scale_max[scale]
-                        print('tet')
                     elif scale != 'dates':
                         clin_dict[ab['pt']][phase][scale] = ab[scale][phph]
                     else:
