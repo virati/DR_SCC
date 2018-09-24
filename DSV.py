@@ -726,7 +726,7 @@ class ORegress:
                 elif mtype == 'ENR_Osc':
                     Coefs[mtype][sid] = mod['Model'].coef_[sides_idxs[sid]]
                 else: 
-                    try: Coefs[mtype][sid] = mod['Model'].estimator.coef_[0][sides_idxs[sid]]
+                    try: Coefs[mtype][sid] = mod['Model'].coef_[0][sides_idxs[sid]]
                     except: ipdb.set_trace()
             
 #            
@@ -802,6 +802,8 @@ class ORegress:
         return copy.deepcopy(self.Model[method]['Performance']['DProd'])
         
 
+    def new_regress(self,method):
+        pass
 
     def O_regress(self,method='OLS',inpercent=1,doplot=False,avgweeks=False,ignore_flags=False,ranson=True,circ='',plot_indiv=False,scale='HDRS17',lindetrend = 'Block',train_pts = ['903','906','907'],train_all=False,finalWrite=False):
 
@@ -820,8 +822,7 @@ class ORegress:
         Otrain,Ctrain,_ = self.dsgn_O_C(train_pts,week_avg=avgweeks,ignore_flags=ignore_flags,circ=circ,scale='HDRS17')
         
         #Ctrain = sig.detrend(Ctrain) #this is ok to zscore here given that it's only across phases
-        
-        
+                
         if method[0:3] == 'OLS':
             regmodel = linear_model.LinearRegression(normalize=True,copy_X=True,fit_intercept=True)
             scatter_alpha = 0.9
@@ -1031,7 +1032,7 @@ class ORegress:
             outlier_pt = list(compress(labels['Patient'],outlier_mask))
             #plotting work
             if method[0:3] != 'OLS':
-                scatter_alpha = 0.5
+                scatter_alpha = 0.8
             else:
                 scatter_alpha = 0.05
                 
@@ -1251,9 +1252,9 @@ class ORegress:
                     
         return copy.deepcopy(self.Model[method]['Performance'])
 
-    def Model_Validation(self,method,scale='HDRS17',do_detrend='None',do_plots=False,randomize=0.0):
+    def Model_Validation(self,method,scale='HDRS17',do_detrend='None',do_plots=False,randomize=0.0,showclin=True):
         #This function does the final model validation on the held out validation set
-        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
+        Oval,Cval_base,labels_val = self.dsgn_O_C(['901','903','905','906','907','908'],week_avg=True,circ='day',ignore_flags=True,scale=scale,from_set='VALIDATION',randomize=randomize)
         
         #HARD CHANGE MODEL COEFFICIENTS
         #self.Model[method]['Model'].coef_ = np.array([[-0.00583578, -0.00279751,  0.00131825,  0.01770169,  0.01166687],[-1.06586005e-02,  2.42700023e-05,  7.31445236e-03,  2.68723035e-03,-3.90440108e-06]]).reshape(-1)
@@ -1269,12 +1270,15 @@ class ORegress:
         Cval = stats.zscore(Cval)
         Cpred = stats.zscore(Cpred)
         
-        ### DETREND CODE HERE
         
+        ### Do we want to plot the scatter here?
+        
+        ### DETREND CODE HERE
         if do_detrend == 'None':
             pass
         elif do_detrend == 'Block':
             #go through each patient and detrend for each BLOCK
+            raise ValueError
             try:
                 for pp,pt in enumerate(dbo.all_pts):
                     cval_block = Cval[28*pp:28*(pp+1)]
@@ -1292,11 +1296,12 @@ class ORegress:
         
         ### Plotting and actual summary results
         if do_plots:
-            self.plot_Pred_vs_Meas(Cpred,Cval,labels_val,plot_type='scatter')
+            self.Pred_vs_Meas_NEW(Cpred,Cval,labels_val,show_clin=show_clin)
         
         pr_aucs = self.algo_perfs(Cpred,Cval,labels_val,do_plots,Crand=True)
+        pr_null = self.null_algo(Cpred,Cval,labels_val)
         plt.suptitle('Actual Model')
-        return pr_aucs
+        return pr_aucs, pr_null
         #self.algo_perfs(Cpred_random,Cval,labels_val)
         #plt.suptitle('Random Model')
         
@@ -1342,6 +1347,150 @@ class ORegress:
         
         return ostimchange
         
+    
+    def Pred_vs_Meas_NEW(self,Cpred,Cmeas,labels,show_clin=True):
+        Cpredictions = Cpred.reshape(-1,1)
+        Ctest = Cmeas.reshape(-1,1)
+
+        #self.Model.update({method:{'Performance':{'SpearCorr':spearcorr,'PearsCorr':pecorr,'Internal':0,'DProd':0}}})
+        #self.Model['Performance'] = {'SpearCorr':spearcorr,'PearsCorr':pecorr,'Internal':0,'DProd':0}
+        
+        #just do straight up inner prod on detrended data
+        
+        
+        #let's do internal scoring for a secon
+        #self.Model[method]['Performance']['DProd'] = np.dot(cpred_msub.T,ctest_msub)
+        
+        # Get the Test Patients used
+        test_pts = dbo.all_pts
+        #Get the labels        
+        labels = labels
+        
+        
+        #Plot individually
+        for pt in test_pts:
+            plt.figure()
+            #check if the sizes are right
+            try:
+                assert len(Cpredictions) == len(labels['Patient'])
+            except:
+                ipdb.set_trace()
+            
+            pt_preds = [cpred for cpred,pat in zip(Cpredictions,labels['Patient']) if pat == pt]
+            pt_actuals = [ctest for ctest,pat in zip(Ctest,labels['Patient']) if pat == pt]
+            
+            
+            plt.plot(pt_preds,label='Predicted')
+            plt.plot(pt_actuals,label=self.test_MEAS)
+            plt.legend()
+            
+            plt.xlabel('Week')
+            plt.ylabel('Normalized Disease Severity')
+            plt.suptitle(pt)
+            sns.despine()
+                
+   
+        x,y = (1,1)
+        
+        if 0:
+            ###
+            #sweep threshold
+            outlier_percent = []
+            sweep_thresh = np.linspace(0.1,5,100)
+            corr_level = []
+            
+            for rthresh in sweep_thresh:
+                assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=False),residual_threshold=rthresh) #0.15 residual threshold works great!
+                assesslr.fit(Ctest,Cpredictions)
+                inlier_mask = assesslr.inlier_mask_      
+                
+                slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest[inlier_mask].reshape(-1,1),Cpredictions[inlier_mask].reshape(-1,1))
+                
+                outlier_mask = np.logical_not(inlier_mask)
+                outlier_percent.append(100*np.sum(outlier_mask)/len(outlier_mask))
+                corr_level.append(slsl)
+            ###
+            plt.figure()
+            fig, ax1=plt.subplots()
+            
+            ax1.plot(sweep_thresh,outlier_percent,color='blue',label='Outlier %')
+            ax2 = ax1.twinx()
+            ax2.plot(sweep_thresh,corr_level,color='green',label='Correlation')
+            
+        assesslr = linear_model.RANSACRegressor(base_estimator=linear_model.LinearRegression(fit_intercept=False),residual_threshold=6) #0.15 residual threshold works great!
+        #Maybe flip this? Due to paper: https://www.researchgate.net/publication/230692926_How_to_Evaluate_Models_Observed_vs_Predicted_or_Predicted_vs_Observed
+        assesslr.fit(Ctest,Cpredictions)
+        
+        
+        line_x = np.linspace(-1,1,20).reshape(-1,1)
+        line_y = assesslr.predict(line_x)
+        
+        
+        #HANDLING OUTLIERS TO THE BIOMETRIC MODEL
+        inlier_mask = assesslr.inlier_mask_
+        corrcoef = assesslr.estimator_.coef_[0]
+      
+            
+        outlier_mask = np.logical_not(inlier_mask)
+        
+        slsl,inin,rval,pval,stderr = stats.mstats.linregress(Ctest[inlier_mask].reshape(-1,1),Cpredictions[inlier_mask].reshape(-1,1))
+        print('OUTLIER: ' + ' model has RANSAC ' + str(slsl) + ' correlation with real score (p < ' + str(pval) + ')')
+        
+        #self.Model[method]['Performance']['Regression'] = assesslr
+        
+        #do the permutation test
+        
+        
+        #THESE TWO ARE THE SAME!!
+        #print(method + ' model has ' + str(corrcoef) + ' correlation with real score (p < ' + str(pval) + ')')
+        
+        #PLOT the outlier points and their patient + phase
+        outlier_phases = list(compress(labels['Phase'],outlier_mask))
+        outlier_pt = list(compress(labels['Patient'],outlier_mask))
+        #plotting work
+
+        scatter_alpha = 0.5
+
+            
+        plt.figure()
+        plt.scatter(Ctest[outlier_mask],Cpredictions[outlier_mask],alpha=scatter_alpha,color='gray')
+        for ii, txt in enumerate(outlier_phases):
+            plt.annotate(txt+'\n'+outlier_pt[ii],(Ctest[outlier_mask][ii],Cpredictions[outlier_mask][ii]),fontsize=8,color='gray')
+            
+        
+        #Plot all the inliers now
+        plt.scatter(Ctest[inlier_mask],Cpredictions[inlier_mask],alpha=scatter_alpha)
+        plt.plot(np.linspace(-x,x,2),np.linspace(-y,y,2),alpha=0.2,color='gray')
+        
+        #This is the regression line itself
+        plt.plot(line_x,line_y,color='green')
+        plt.axes().set_aspect('equal')
+        plt.annotate(s=str(100*np.sum(outlier_mask)/len(outlier_mask)) + '% outliers',xy=(-3,0),fontsize=8)
+        
+        
+        #Finally, let's label the clinician's changes
+        #find out the points that the stim was changed
+        if show_clin:
+            stim_change_list = self.CFrame.Stim_Change_Table()
+            ostimchange = []
+            
+            for ii in range(Ctest.shape[0]):
+                if (labels['Patient'][ii],labels['Phase'][ii]) in stim_change_list:                
+                    ostimchange.append(ii)
+            
+            for ii in ostimchange:
+                plt.annotate(labels['Patient'][ii] + ' ' + labels['Phase'][ii],(Ctest[ii],Cpredictions[ii]),fontsize=10,color='red')
+                
+            plt.scatter(Ctest[ostimchange],Cpredictions[ostimchange],alpha=scatter_alpha,color='red',marker='^',s=130)
+        
+        plt.xlabel(self.test_MEAS)
+        plt.ylabel('Predicted')
+        plt.xlim((-4,4))
+        plt.ylim((-4,4))
+        #plt.title('All Observations')
+        sns.despine()
+        print('There are ' + str(sum(outlier_mask)/len(outlier_mask)*100) + '% outliers')
+            
         
     def plot_Pred_vs_Meas(self,Cpred,Cmeas,labels,plot_type='scatter'):
         main_clin_fig = plt.figure()
@@ -1366,7 +1515,7 @@ class ORegress:
             
             _ = self.clin_changes(Cpred,Cmeas,labels,usefig=main_clin_fig)
             
-            #plt.axes().set_aspect('equal')
+            plt.axes().set_aspect('equal')
             print(stats.spearmanr(Cmeas,Cpred))
             print(rsac_stats['Slope'])
         else:
@@ -1384,7 +1533,26 @@ class ORegress:
         rand_stimstay = [x for x in range(Cmeas.shape[0]) if x not in randstim_change]
         rand_stimchange = [x for x in range(Cmeas.shape[0]) if x in randstim_change]
         
+    def null_algo(self,Cpred,Cmeas,labels):
+        #how many changes are there?
+        # Choose a set of ~9
         
+        ostimchange = self.clin_changes(Cpred,Cmeas,labels,doplot=False)
+        stimstay = [x for x in range(Cmeas.shape[0]) if x not in ostimchange]
+        stimchange = [x for x in range(Cmeas.shape[0]) if x in ostimchange]
+        
+        true_change = np.zeros(Cmeas.shape)
+        true_change[stimchange] = 1
+        
+        fake_change = np.zeros(Cmeas.shape)
+        fake_change_idxs = np.random.randint(Cmeas.shape[0],size=(len(stimchange)))
+        fake_change[fake_change_idxs] = 1
+        
+        precision,recall,_=precision_recall_curve(true_change,fake_change)
+        prauc = auc(precision,recall,reorder=True)
+        avg_precision = average_precision_score(true_change,fake_change)
+        
+        return avg_precision
         
     def algo_perfs(self,Cpred,Cmeas,labels,do_plot=True,Crand = False):
         ostimchange = self.clin_changes(Cpred,Cmeas,labels,doplot=False)
@@ -1403,16 +1571,16 @@ class ORegress:
         Coff = np.abs(Cpred - Cmeas) * np.sin(np.pi/4)
         tpfn_plot = False
         
-        
         if do_plot:
             if tpfn_plot: summary = plt.figure()
             roc_plots = plt.figure()
         unif = np.random.uniform(-2.0,2.0,size=Cmeas.size)
         
-        
         if Crand:
             do_algos = [Cmeas,Cpred,unif,self.Model['RANDOM']['Cpred'],Cmin,Coff]
             algo_list = ['HDRS','CB','Random','RandomLin','Minimum','OffDiag']
+            #Fixed rand is the one where we go in and randomly select an N number of indices to say stim was changed on, and then choose N based off of how many actual changes there were
+            
         else:
             do_algos = [Cmeas,Cpred,unif]
             algo_list = ['HDRS','CB','Random']
@@ -1461,7 +1629,7 @@ class ORegress:
                 plt.step(recall,precision,alpha=1,where='post',label=algon)
                 plt.legend()
                 plt.title('Precision Recall Plots')
-            print('Algo: ' + algo_list[algon] + ' Precision-Recall Average: ' + str(avg_precision) + ' AUC: ' + str(prauc))
+            #print('Algo: ' + algo_list[algon] + ' Precision-Recall Average: ' + str(avg_precision) + ' AUC: ' + str(prauc))
             
             #HERE is where you decide to do either avg_precision or prauc
             algo_avg_prec.append(prauc)

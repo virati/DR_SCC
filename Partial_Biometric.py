@@ -55,6 +55,8 @@ print('DOING CV RIDGE REGRESSION NOW............................................
 #all_pairs = [cc for cc in all_pairs if cc[0] != cc[1]]
 
 all_pairs = list(itertools.combinations(['901','903','905','906','907','908'],3))
+#if you want to remove DBS905:
+#all_pairs = list(itertools.combinations(['901','903','906','907','908'],3))
 
 num_pairs = len(list(all_pairs))
 coeff_runs = [0] * num_pairs
@@ -85,22 +87,12 @@ for run,pt_pair in enumerate(all_model_pairs):
 #plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
 #plt.title('p-values distribution')
 
-plt.figure()
-plt.suptitle('Spearman')
-plt.subplot(2,1,1)
-plt.hist(np.array([cc['SpearCorr'][0] for cc in summ_stats_runs]))
-#plt.annotate(xy=([summ_stats_runs[mod]['SpearCorr'] for mod in range(20)],[1 for mod in range(20)]),text='test')
-plt.title('Correlations distribution')
-
-plt.subplot(2,1,2)
-plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
-plt.title('p-values distribution')
-
-
+#%%
 #left_coeffs = np.median(np.array([cc['Left'] for cc in coeff_runs]),axis=0)
 #right_coeffs = np.median(np.array([cc['Right'] for cc in coeff_runs]),axis=0)
 left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
 right_coeffs = np.array([cc['Right'] for cc in coeff_runs])
+
 
 #Plot our coefficients
 plt.figure()
@@ -121,14 +113,30 @@ for bb in range(5):
 plt.ylim((-0.05,0.05))
 plt.xlim((-0.1,4.1))
 plt.hlines(0,0,5)
+plt.suptitle('Mean Coefficients')
+
+#%%
+plt.figure()
+
+plt.subplot(2,1,1)
+corr_measure = 'PearsCorr'
+plt.hist(np.array([cc[corr_measure][0] for cc in summ_stats_runs]))
+#plt.annotate(xy=([summ_stats_runs[mod]['SpearCorr'] for mod in range(20)],[1 for mod in range(20)]),text='test')
+plt.title('Correlations distribution')
+
+plt.subplot(2,1,2)
+plt.hist(np.array([cc[corr_measure][1] for cc in summ_stats_runs]))
+plt.title('p-values distribution')
+plt.suptitle(corr_measure)
 
 #Select the final model
-#%%
 ## THIS ONE PLOTS OUR SPEARMAN CORR
 plt.figure()
-models_perf = np.array([cc['SpearCorr'][0] for cc in summ_stats_runs])
+models_perf = np.array([cc[corr_measure][0] for cc in summ_stats_runs])
 plt.plot(np.arange(len(all_model_pairs)),models_perf)
 plt.xticks(np.arange(len(all_model_pairs)),all_model_pairs,rotation=90)
+plt.suptitle(corr_measure)
+#%%
 #which one has max performance?
 idx_max = np.argmax(models_perf)
 max_perf = models_perf[idx_max]
@@ -175,16 +183,23 @@ plt.xlim((-0.1,4.1))
 plt.hlines(0,0,5)
 
 #%%
+# What do our prediction curves look like with the final model?
+_ = analysis.Model_Validation(method='FINAL',do_detrend='None',randomize=0.7,do_plots=True,show_clin=False)
+
+#%%
 
 # Now we apply this model to the validation set to see what's what
-
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
 aucs = []
+null_distr = []
 #Here we're going to do iterations of randomness
-n_iterations = 100
+n_iterations = 1000
 for ii in range(n_iterations):
-    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-2,2,size=(1,10))
-    aucs.append(analysis.Model_Validation(method='FINAL',do_detrend=do_detrend,do_plots=False,randomize=0.7))
+    analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
+    algo_list,null_algo = analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False,randomize=0.7);
+    aucs.append(algo_list)
+    null_distr.append(null_algo)
+    
 aucs = np.array(aucs)
 
 #%%
@@ -195,47 +210,49 @@ plt.figure()
 #plt.hist(aucs[:,1],label='Candidate')
 #plt.hist(aucs[:,3],label='RandMod')
 #plt.subplot(2,1,1)
-plt.hist(aucs[:,2:4],stacked=False,color=['green','purple'],label=['Null','RandM'],bins=20)
 
-plt.vlines(np.median(aucs[:,0]),0,21,color='red',label='HDRS',linewidth=5)
+#plt.hist(aucs[:,2:4],stacked=False,color=['green','purple'],label=['Null','RandM'],bins=bins)
+bins = np.linspace(0,0.5,20)
+plt.hist(aucs[:,2],stacked=False,color=['purple'],label=['CoinFlip Null'],bins=bins)
+plt.hist(null_distr,stacked=False,color=['green'],label=['Sparse Null'],bins=bins)
+plt.xlim((0,1))
+
+line_height = 600
+
+plt.vlines(np.median(aucs[:,0]),0,line_height,color='red',label='HDRS',linewidth=5)
 hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
-plt.hlines(21,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
+plt.hlines(line_height,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
 
-plt.vlines(np.median(aucs[:,1]),0,20,color='blue',label='Candidate')
+plt.vlines(np.median(aucs[:,1]),0,line_height,color='blue',label='Candidate')
 cb_sem = np.sqrt(np.var(aucs[:,1])) / np.sqrt(n_iterations)
-plt.hlines(20,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
+plt.hlines(line_height,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
 
 
-plt.vlines(np.median(aucs[:,4]),0,20,color='yellow',label='Proposed')
-pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
-plt.hlines(20,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
 
-plt.vlines(np.median(aucs[:,5]),0,20,color='cyan',label='CenterOff')
-co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
-plt.hlines(20,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
+#plt.vlines(np.median(aucs[:,4]),0,line_height,color='yellow',label='Proposed')
+#pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
+#plt.hlines(20,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
+#
+#plt.vlines(np.median(aucs[:,5]),0,line_height,color='cyan',label='CenterOff')
+#co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
+#plt.hlines(20,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
 
 
 #How many above?
-phdrs = np.sum(aucs[:,2] > np.median(aucs[:,0])) / n_iterations
-pcb= np.sum(aucs[:,2] > np.median(aucs[:,1])) / n_iterations
-pmin = np.sum(aucs[:,2] > np.median(aucs[:,4])) / n_iterations
+phdrs = np.sum(aucs[:,2] > np.median(aucs[:,0])) / n_iterations # Our HDRS
+pcb= np.sum(aucs[:,2] > np.median(aucs[:,1])) / n_iterations # our Candidate
+#pmin = np.sum(aucs[:,2] > np.median(aucs[:,4])) / n_iterations
+print('HDRS over coin flip' + str(phdrs))
+print('Candidate over coin flip' + str(pcb))
+
+psparsehdrs = np.sum(null_distr > np.median(aucs[:,0])) / n_iterations
+psparsecb = np.sum(null_distr> np.median(aucs[:,1])) / n_iterations 
 #print(phdrs)
 #print(pcb)
 
-#Model Comparison
-print('Likelihood ratio of two clinical algos: ' + str(phdrs/pcb))
-print('Likelihood ratio for Proposed algo: ' + str(phdrs/pmin))
+print('HDRS over sparse' + str(psparsehdrs))
+print('Candidate over sparse' + str(psparsecb))
 
-#plt.subplot(2,1,2)
-#plt.hist(aucs[:,0],stacked=False,alpha=0.9)
-#plt.hist(aucs[:,1],stacked=False,alpha=0.9)
 
-#plt.legend(['HDRS','Cand','Null','RandMod'])
-#plt.legend(['HDRS','Candidate','Nulls','RandMod'])
 
 plt.legend()
-
-#plt.bar([0,1,2,3,4],left_coeffs)
-#plt.figure();plt.hist(analysis.Model['LASSO']['Performance']['DProd']['Distr'])
-#print(np.sum(analysis.Model['LASSO']['Performance']['DProd']['Distr'] > analysis.Model['LASSO']['Performance']['DProd']['Dot'])/len(analysis.Model['LASSO']['Performance']['DProd']['Distr']))
-#analysis.O_regress(method='RIDG_Zmis',doplot=True,inpercent=0.6)
