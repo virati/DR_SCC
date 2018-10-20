@@ -34,7 +34,7 @@ ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_April.npy')
+BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
 #BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
 BRFrame.check_empty_phases()
 
@@ -78,8 +78,8 @@ def add_arrow(line, position=None, direction='right', size=15, color=None):
 #%%
 
 #if we use the ridge regression
-lridge = [-0.00583578, -0.00279751,  0.00131825,  0.01770169,  0.01166687]
-rridge = [-1.06586005e-02,  2.42700023e-05,  7.31445236e-03,  2.68723035e-03,-3.90440108e-06]
+lridge = [ 0.00213977, -0.00344579,  0.00451551,  0.01977083,  0.00433902]
+rridge = [-0.01324946, -0.01107167,  0.00518643, -0.01441286,  0.00091638]
 
 #if we want to just plot one of the bands
 #lridge = [0,0,0,0,1]

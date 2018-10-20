@@ -7,20 +7,29 @@ Created on Sun Feb 11 15:39:35 2018
 This file does all the regressions on the oscillatory states over chronic timepoints
 """
 
+#DBSpace libraries and sublibraries here
 import BR_DataFrame as BRDF
-#from BR_DataFrame import *
 from ClinVect import CFrame
+
+
+# General python libraries
 import scipy.signal as sig
 import numpy as np
+
+#Plotting libraries
 import matplotlib.pyplot as plt
 plt.close('all')
-import copy
-
-import itertools
-
 import seaborn as sns
 sns.set_context('paper')
 
+
+# Misc tools
+import copy
+import itertools
+
+
+#%%
+#This sets up our clinical frame for the regression
 
 ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
