@@ -12,9 +12,8 @@ This is the *GO TO* for the partial oscillatory biometric reported in Paper 2 - 
 import sys
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys')
 import DBSpace as dbo
-from DBSpace.biometric import BR_DataFrame as BRDF
-from DBSpace.biometric import ClinVect
-from ClinVect import CFrame
+from DBSpace.readout import BR_DataFrame as BRDF
+from DBSpace.readout import ClinVect
 
 #import BR_DataFrame as BRDF # Library for taking in BR data from the folder structure and populating phases
 #from ClinVect import CFrame # Cliical frame data
@@ -54,7 +53,7 @@ do_detrend = 'Block'
 
 #%%
 # Now we set up our DBSpace environment
-ClinFrame = CFrame(norm_scales=True)
+ClinFrame = ClinVect.CFrame(norm_scales=True)
 BRFrame = BRDF.BR_Data_Tree()
 
 # Run our main sequence for populating the BRFrame
