@@ -9,16 +9,8 @@ This is the *GO TO* for the partial oscillatory biometric reported in Paper 2 - 
 """
 
 #DBSpace libraries and sublibraries here
-import sys
-sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys')
-import DBSpace as dbo
 from DBSpace.readout import BR_DataFrame as BRDF
-from DBSpace.readout import ClinVect
-
-#import BR_DataFrame as BRDF # Library for taking in BR data from the folder structure and populating phases
-#from ClinVect import CFrame # Cliical frame data
-#from DSV import ORegress # Biometric regression library
-
+from DBSpace.readout import ClinVect, DSV
 
 # General python libraries
 import scipy.signal as sig
@@ -37,10 +29,10 @@ import itertools
 
 
 #%%
+## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','906','907','908'] # Which patients do we want to include in this entire analysis?
-#do_pts=['901']
-
 test_scale = 'HDRS17' # Which scale are we using as the measurement of the depression state?
+
 ''' DETRENDING
 Which detrending scheme are we doing
 This is important. Block goes into each patient and does zero-mean and linear detrend across time
@@ -63,7 +55,7 @@ BRFrame.check_empty_phases() # Check to see if there are any empty phases. This 
 
 #%%
 # This sets up the regression
-analysis = ORegress(BRFrame,ClinFrame)
+analysis = DSV.ORegress(BRFrame,ClinFrame)
 analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
 analysis.O_feat_extract() #Do a feature extraction of our entire datset
 
