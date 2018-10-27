@@ -22,6 +22,8 @@ import seaborn as sns
 #Do some cleanup of the plotting space
 plt.close('all')
 sns.set_context('paper')
+sns.set_style('white')
+sns.set(font_size=10)
 
 # Misc libraries
 import copy
@@ -249,7 +251,7 @@ for run in range(10):
     auc_curves = []
     for ii in range(n_iterations):
         analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
-        algo_list,null_algo = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.7);
+        algo_list,null_algo = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6);
         aucs.append(algo_list[0])
         auc_curves.append(algo_list[1])
         null_distr.append(null_algo)
@@ -259,7 +261,7 @@ for run in range(10):
     
     #%%
     # Display the surrogate results
-    if 0:
+    if 1:
         plt.figure()
         #plt.hist(aucs[:,2],label='Nulls')
         #plt.hist(aucs[:,0],label='HDRS')
@@ -316,7 +318,7 @@ for run in range(10):
 #%%
 import pickle
 with open('/tmp/AUCs.pickle','wb') as handle:
-    pickle.dump({'Algos':auc_curves_from_run,'Nulls':null_distr_from_run},handle,protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump({'Algos':auc_curves_from_run,'Nulls':null_distr_from_run,'AUCval':aucs_from_run},handle,protocol=pickle.HIGHEST_PROTOCOL)
 #%%
 with open('/tmp/AUCs.pickle','rb') as handle:
     get_aucs = pickle.load(handle)
@@ -332,21 +334,56 @@ rand_aucs = np.array([[(r['Random'][0],r['Random'][1]) for r in run] for run in 
 from scipy.interpolate import interp1d
 mean_blah = np.linspace(0,1,100)
 
+color_code = {'HDRS':'red','CB':'blue','Random':'green'}
 hdrs_list = []
+curve_lib = {key:[] for key in color_code.keys()}
+algo_list = ['HDRS','CB','Random']
+
 plt.figure()
 for rr in range(8):
     for itr in range(5):
-        hdrs_func = interp1d(auc_curves_from_run[rr][itr]['HDRS'][1],auc_curves_from_run[rr][itr]['HDRS'][0],kind='zero')
-        hdrs_do = hdrs_func(mean_blah)
-        hdrs_list.append(hdrs_do)
+        for algo in algo_list:
+            hdrs_func = interp1d(auc_curves_from_run[rr][itr][algo][1],auc_curves_from_run[rr][itr][algo][0],kind='zero')
+            hdrs_do = hdrs_func(mean_blah)
+            curve_lib[algo].append(hdrs_do)
+            
+            #pdb.set_trace()
+            hdrs_rec = auc_curves_from_run[rr][itr][algo][0]
+            plt.plot(mean_blah,hdrs_do,color=color_code[algo],alpha=0.1)
         
-        #pdb.set_trace()
-        #hdrs_rec = auc_curves_from_run[rr][itr]['HDRS'][0]
-        #plt.plot(mean_blah,hdrs_do,color='red',alpha=0.1)
         #plt.plot(auc_curves_from_run[rr][itr]['HDRS'][1],auc_curves_from_run[rr][itr]['HDRS'][0],color='red',alpha=0.1)
-        
         #plt.plot(auc_curves_from_run[rr][itr]['CB'][1],auc_curves_from_run[rr][itr]['CB'][0],color='blue',alpha=0.1)
         #plt.plot(auc_curves_from_run[rr][itr]['Random'][1],auc_curves_from_run[rr][itr]['Random'][0],color='green',alpha=0.1)
+#%%
+sns.set(font_scale=5)
+sns.set_style('white')
+plt.figure()
+for algo in algo_list:
+    algo_res = np.array(curve_lib[algo])
+    mean_auc = np.mean(algo_res,axis=0)
+    std_auc = np.std(algo_res,axis=0)
+    
+    auc_lower = np.minimum(mean_auc + std_auc,1)
+    auc_upper = np.maximum(mean_auc - std_auc,0)
+    
+    plt.plot(mean_blah,np.mean(algo_res,axis=0),color=color_code[algo],linewidth=2)
+    plt.fill_between(mean_blah,auc_lower,auc_upper,color=color_code[algo],alpha=0.05)
+plt.legend(algo_list)
+        
+#%%
+#plot the null distribution and AUC
+#stack nulls
+all_nulls = np.array(null_curves_from_run).reshape(-1,)
+hdrs_aucs = np.array()
+bins = np.linspace(0,0.5,25)
+#plt.hist(aucs[:,2],stacked=False,color=['purple'],label=['CoinFlip Null'],bins=bins)
+plt.hist(all_nulls,stacked=False,color=['green'],label=['Sparse Null'],bins=bins)
+plt.xlim((0,0.5))
+
+plt.vlines(np.median(aucs[:,0]),0,line_height,color='red',label='HDRS',linewidth=5)
+hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
+plt.hlines(line_height,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
+
 #%%
 hdrs_list = np.array(hdrs_list)
 hdrs_mean = np.mean(hdrs_list,axis=0)
