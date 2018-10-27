@@ -15,9 +15,13 @@ import seaborn as sns
 sns.set(font_scale=5)
 sns.set_style('white')
 
+from DBSpace import nestdict
+import scipy.stats as stats
+
+
 
 #%%
-with open('/tmp/AUCs.pickle','rb') as handle:
+with open('/home/virati/AUCs.pickle','rb') as handle:
     get_aucs = pickle.load(handle)
 auc_curves_from_run = get_aucs['Algos']
 null_curves_from_run = get_aucs['Nulls']
@@ -53,7 +57,7 @@ for rr in range(8):
         #plt.plot(auc_curves_from_run[rr][itr]['CB'][1],auc_curves_from_run[rr][itr]['CB'][0],color='blue',alpha=0.1)
         #plt.plot(auc_curves_from_run[rr][itr]['Random'][1],auc_curves_from_run[rr][itr]['Random'][0],color='green',alpha=0.1)
 #%%
-
+# Plot of AUCs with shaded errors
 plt.figure()
 for algo in algo_list:
     algo_res = np.array(curve_lib[algo])
@@ -82,11 +86,13 @@ bins = np.linspace(0,0.5,25)
 plt.xlim((0,0.5))
 line_height=50
 
-use_normal_null = False
+use_normal_null = True
 if use_normal_null:
     end_algo = 3
 else:
     end_algo = 2
+    
+    
 for aa, algo in enumerate(algo_list[0:end_algo]):
     plt.hist(algo_aucs[:,aa],stacked=False,color=color_code[algo],bins=bins,label=algo,alpha=0.5)
     plt.vlines(np.median(algo_aucs[:,aa]),0,line_height+10*aa,color=color_code[algo],label=algo,linewidth=5)
@@ -98,6 +104,18 @@ plt.vlines(np.median(all_nulls),0,line_height+20,color='green',label='Null',line
 algo_std = hdrs_sem = np.sqrt(np.var(all_nulls))
 plt.hlines(line_height + 20,np.median(all_nulls) - algo_std,np.median(all_nulls) + algo_std,color='green',linewidth=5)
 
+#%%
+#pairwise hypothe testing
+ks_results = nestdict()
+for aa, algo in enumerate(algo_list[0:end_algo]):
+    for bb, algo2 in enumerate(algo_list[0:end_algo]):
+        ks_results[algo][algo2] = stats.ks_2samp(algo_aucs[:,aa],algo_aucs[:,bb])
+
+
+
+
+
+#%%
 #plt.hist(algo_aucs[:,0],stacked=False,color='red',bins=bins,label='HDRS')
 #plt.hist(algo_aucs[:,1],stacked=False,color='blue',bins=bins,label='CB')
 #plt.hist(algo_aucs[:,2],stacked=False,color='green',bins=bins,label='Uniform')
@@ -109,13 +127,3 @@ plt.hlines(line_height + 20,np.median(all_nulls) - algo_std,np.median(all_nulls)
 #
 #hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
 #plt.hlines(line_height,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
-
-#%%
-hdrs_list = np.array(hdrs_list)
-hdrs_mean = np.mean(hdrs_list,axis=0)
-hdrs_std = np.std(hdrs_list,axis=0)
-
-hdrs_upper = np.minimum(hdrs_mean + hdrs_std,1)
-hdrs_lower = np.maximum(hdrs_mean - hdrs_std,0)
-plt.plot(mean_blah,hdrs_mean)
-plt.fill_between(mean_blah,hdrs_lower,hdrs_upper,color='grey',alpha=0.2)

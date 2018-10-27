@@ -66,7 +66,7 @@ aucs_from_run = []
 auc_curves_from_run = []
 null_distr_from_run = []
 
-for run in range(10):
+for run in range(1):
     
     analysis = DSV.ORegress(BRFrame,ClinFrame)
     analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
@@ -240,7 +240,9 @@ for run in range(10):
     #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
     aucs = []
     null_distr = []
-    _ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=False,show_clin=True)
+    _ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','906','907','908'])
+    
+    
     
     #%%
     #Here we're going to do iterations of randomness
@@ -251,7 +253,7 @@ for run in range(10):
     auc_curves = []
     for ii in range(n_iterations):
         analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
-        algo_list,null_algo = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6);
+        algo_list,null_algo = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','906','907','908']);
         aucs.append(algo_list[0])
         auc_curves.append(algo_list[1])
         null_distr.append(null_algo)
