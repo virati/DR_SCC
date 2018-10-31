@@ -36,7 +36,7 @@ import pdb
 
 #%%
 ## MAJOR PARAMETERS for our partial biometric analysis
-do_pts = ['901','903','906','907','908'] # Which patients do we want to include in this entire analysis?
+do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
 #do_pts = ['901']
 test_scale = 'HDRS17' # Which scale are we using as the measurement of the depression state?
 
@@ -102,16 +102,16 @@ for run in range(1):
     # Figures time
         
     #summary stats
-    # this one plots the permutation based results
-    #plt.figure()
-    #plt.suptitle('Permutation')
-    #plt.subplot(2,1,1)
-    #plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
-    #plt.title('Correlations distribution')
-    #
-    #plt.subplot(2,1,2)
-    #plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
-    #plt.title('p-values distribution')
+    #this one plots the permutation based results
+    plt.figure()
+    plt.suptitle('Permutation')
+    plt.subplot(2,1,1)
+    plt.hist(np.array([cc['DProd']['Dot']/cc['DProd']['Perfect'] for cc in summ_stats_runs]))
+    plt.title('Correlations distribution')
+    
+    plt.subplot(2,1,2)
+    plt.hist(np.array([cc['DProd']['pval'] for cc in summ_stats_runs]))
+    plt.title('p-values distribution')
     
     #%%
     #left_coeffs = np.median(np.array([cc['Left'] for cc in coeff_runs]),axis=0)
@@ -173,7 +173,7 @@ for run in range(1):
         plt.plot(np.arange(len(all_model_pairs)),models_perf)
         plt.xticks(np.arange(len(all_model_pairs)),all_model_pairs,rotation=90)
         plt.suptitle(corr_measure)
-    #plot_corr('SpearCorr')
+    plot_corr('SpearCorr')
     #%%
     
     
@@ -230,6 +230,43 @@ for run in range(1):
         plt.xlim((-0.1,4.1))
         plt.hlines(0,0,5)
     
+    
+    
+    #%%
+    # Now we have our final model
+    # Let's run on in random subsamples of our validation set
+    corr_distr = []
+    for ii in range(100):
+         _,_,corrs = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=False,show_clin=True,do_pts=['901','903','905','906','907','908'])
+         corr_distr.append(corrs)
+    
+    
+    
+    #%%
+    
+    
+    #% Make our distribution figures for all three
+    corr_dist_figs = plt.plot()
+
+    # all our spearman correlations
+    sp_corrs = np.array([rr['All']['Spearman']['r'] for rr in corr_distr])
+    plt.subplot(3,2,1)
+    plt.hist(sp_corrs)
+    plt.subplot(3,2,2)
+    plt.hist([rr['All']['Spearman']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
+    
+    pears_corrs = np.array([rr['All']['Pearson']['r'] for rr in corr_distr])
+    plt.subplot(3,2,3)
+    plt.hist(pears_corrs)
+    plt.subplot(3,2,4)
+    plt.hist([rr['All']['Pearson']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
+    
+    ransac_corrs = np.array([rr['Inliers']['Pearson']['r'] for rr in corr_distr])
+    plt.subplot(3,2,5)
+    plt.hist(ransac_corrs)
+    plt.subplot(3,2,6)
+    plt.hist([rr['Inliers']['Pearson']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
+    
     #%%
     # What do our prediction curves look like with the final model?
     #_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=False)
@@ -253,7 +290,7 @@ for run in range(1):
     auc_curves = []
     for ii in range(n_iterations):
         analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
-        algo_list,null_algo = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','906','907','908']);
+        algo_list,null_algo,_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','906','907','908']);
         aucs.append(algo_list[0])
         auc_curves.append(algo_list[1])
         null_distr.append(null_algo)
