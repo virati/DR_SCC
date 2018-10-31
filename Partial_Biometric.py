@@ -254,12 +254,14 @@ for run in range(1):
     plt.hist(sp_corrs)
     plt.subplot(3,2,2)
     plt.hist([rr['All']['Spearman']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
+    print(np.median(sp_corrs))
     
     pears_corrs = np.array([rr['All']['Pearson']['r'] for rr in corr_distr])
     plt.subplot(3,2,3)
     plt.hist(pears_corrs)
     plt.subplot(3,2,4)
     plt.hist([rr['All']['Pearson']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
+    print(np.median(pears_corrs))
     
     ransac_corrs = np.array([rr['Inliers']['Pearson']['r'] for rr in corr_distr])
     plt.subplot(3,2,5)
