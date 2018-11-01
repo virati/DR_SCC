@@ -28,6 +28,7 @@ sns.set(font_scale=4)
 # Misc libraries
 import copy
 import itertools
+import scipy.stats as stats
 
 #%%
 #Debugging
@@ -124,32 +125,38 @@ for run in range(1):
         if do_plot: plot_coeffs(left_coeffs,right_coeffs)
         
         return left_coeffs, right_coeffs
+    
     def plot_coeffs(left_coeffs,right_coeffs):
-        
-        
         #Plot our coefficients
         plt.figure()
         plt.subplot(1,2,1)
         plt.plot(np.mean(left_coeffs,axis=0))
+        sns.violinplot(data=left_coeffs,scale='width')
         for bb in range(5):
             plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
+            ks_res = stats.wilcoxon(left_coeffs[:,bb])
+            print(ks_res)
         
-        plt.ylim((-0.05,0.05))
-        plt.xlim((-0.1,4.1))
+        plt.ylim((-0.1,0.1))
+        plt.xlim((-0.5,4.5))
         plt.hlines(0,0,5)
-        
+        print('\n\n')
         plt.subplot(1,2,2)
         plt.plot(np.mean(right_coeffs,axis=0))
+        sns.violinplot(data=right_coeffs,scale='width')
         for bb in range(5):
             plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
+            ks_res = stats.wilcoxon(right_coeffs[:,bb])
+            print(ks_res)
         
-        plt.ylim((-0.05,0.05))
-        plt.xlim((-0.1,4.1))
+        plt.ylim((-0.1,0.1))
+        plt.xlim((-0.5,4.5))
         plt.hlines(0,0,5)
         plt.suptitle('Mean Coefficients')
         
         
     left_coeffs,right_coeffs = get_coeffs(coeff_runs)
+    plot_coeffs(left_coeffs,right_coeffs)
     
     #%%
         
@@ -201,11 +208,22 @@ for run in range(1):
         analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['ENR_Osc']['Model'])
          
         
-        #Here, we force the coefficients to be the median or mean or whatever
-        analysis.Model['FINAL']['Model'].coef_ = np.hstack((np.mean(left_coeffs,axis=0),np.mean(right_coeffs,axis=0)))
-        #analysis.Model['FINAL']['Model'].coef_ = np.array([0.1,0,2,0.3,0,4,0.1,0.2,-0.3,0.1])
+        #blank out left and right Delta for artifacts
+        mean_right = np.mean(right_coeffs,axis=0)
+        mean_left = np.mean(left_coeffs,axis=0)
         
-    
+        #Sanity check -> zero out all coefficients
+        mean_right[0] = 0.
+        mean_left[0] = 0.
+        
+        #Here, we force the coefficients to be the median or mean or whatever
+        
+        analysis.Model['FINAL']['Model'].coef_ = np.hstack((mean_left,mean_right))
+        #analysis.Model['FINAL']['Model'].coef_ = np.array([0.1,0,2,0.3,0,4wilcoxon,0.1,0.2,-0.3,0.1])
+        
+    #plt.figure()
+    #plt.plot(mean_left)
+    #plt.plot(mean_right)
     #%%
     #Plot out final model's coefficients
     #Plot our coefficients
