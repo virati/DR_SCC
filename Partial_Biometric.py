@@ -183,9 +183,11 @@ for run in range(1):
     plot_corr('SpearCorr')
     #%%
     
-    
     #%%
     # Rerun the best model
+    #This selects if we want to choose the best model out of our CV folds
+    # This is not a good option, for various reasons
+    
     choose_best = False
     if choose_best:
         #which one has max performance?
@@ -209,12 +211,12 @@ for run in range(1):
          
         
         #blank out left and right Delta for artifacts
-        mean_right = np.mean(right_coeffs,axis=0)
-        mean_left = np.mean(left_coeffs,axis=0)
+        mean_right = np.median(right_coeffs,axis=0)
+        mean_left = np.median(left_coeffs,axis=0)
         
         #Sanity check -> zero out all coefficients
-        mean_right[0] = 0.
-        mean_left[0] = 0.
+        #mean_right[0:5] = np.random.uniform(-0.05,0.05,(5,))
+        #mean_left[0:5] = np.random.uniform(-0.05,0.05,(5,))
         
         #Here, we force the coefficients to be the median or mean or whatever
         
