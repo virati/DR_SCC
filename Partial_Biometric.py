@@ -70,9 +70,11 @@ null_distr_from_run = []
 for run in range(1):
     
     analysis = DSV.ORegress(BRFrame,ClinFrame)
+    
     analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
     analysis.O_feat_extract() #Do a feature extraction of our entire datset
-    
+    #%%
+    analysis.plot_band_distributions(band='Gamma1')
     
     #%%
     
