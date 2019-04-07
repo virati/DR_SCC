@@ -49,6 +49,8 @@ All does a linear detrend across all concatenated observations. This is dumb and
 '''
 
 do_detrend = 'Block' 
+rmethod = 'ENR_Osc'
+    
 
 
 #%%
@@ -57,7 +59,7 @@ ClinFrame = ClinVect.CFrame(norm_scales=True)
 BRFrame = BRDF.BR_Data_Tree()
 
 # Run our main sequence for populating the BRFrame
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
+BRFrame.full_sequence(data_path='/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_Frame_july.npy')
 BRFrame.check_empty_phases() # Check to see if there are any empty phases. This should be folded into full_sequence soon TODO
 
 
@@ -74,7 +76,10 @@ for run in range(1):
     analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
     analysis.O_feat_extract() #Do a feature extraction of our entire datset
     #%%
-    analysis.plot_band_distributions(band='Gamma1')
+    #print the features available
+    #print(analysis.YFrame.file_meta[0]['FeatVect'].keys())
+    analysis.plot_band_distributions(band='Stim')
+    #analysis.plot_rec_stats()
     
     #%%
     
@@ -93,15 +98,13 @@ for run in range(1):
     
     all_model_pairs = list(all_pairs)
     #%%
+
     for run,pt_pair in enumerate(all_model_pairs):
         print(pt_pair)
-        analysis.O_regress(method='ENR_Osc',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
-        coeff_runs[run] = analysis.O_models(plot=False,models=['ENR_Osc'])
-        summ_stats_runs[run] = analysis.Clinical_Summary('ENR_Osc',plot_indiv=False,ranson=dorsac,doplot=False)
+        analysis.O_regress(method=rmethod,doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
+        coeff_runs[run] = analysis.O_models(plot=False,models=[rmethod])
+        summ_stats_runs[run] = analysis.Clinical_Summary(rmethod,plot_indiv=False,ranson=dorsac,doplot=False)
         #analysis.shuffle_summary('RIDGE')
-    
-    
-    #%%
     # Figures time
         
     #summary stats
@@ -139,7 +142,7 @@ for run in range(1):
             ks_res = stats.wilcoxon(left_coeffs[:,bb])
             print(ks_res)
         
-        plt.ylim((-0.1,0.1))
+        plt.ylim((-0.05,0.05))
         plt.xlim((-0.5,4.5))
         plt.hlines(0,0,5)
         print('\n\n')
@@ -151,7 +154,7 @@ for run in range(1):
             ks_res = stats.wilcoxon(right_coeffs[:,bb])
             print(ks_res)
         
-        plt.ylim((-0.1,0.1))
+        plt.ylim((-0.05,0.05))
         plt.xlim((-0.5,4.5))
         plt.hlines(0,0,5)
         plt.suptitle('Mean Coefficients')
@@ -159,6 +162,10 @@ for run in range(1):
         
     left_coeffs,right_coeffs = get_coeffs(coeff_runs)
     plot_coeffs(left_coeffs,right_coeffs)
+    
+    #%%
+    # try some FDR
+    
     
     #%%
         
@@ -174,6 +181,7 @@ for run in range(1):
         plt.hist(np.array([cc[corr_measure][1] for cc in summ_stats_runs]))
         plt.title('p-values distribution')
         plt.suptitle(corr_measure)
+        print(np.mean(np.array([cc[corr_measure][1] for cc in summ_stats_runs])))
         
         #Select the final model
         ## THIS ONE PLOTS OUR SPEARMAN CORR
@@ -183,7 +191,6 @@ for run in range(1):
         plt.xticks(np.arange(len(all_model_pairs)),all_model_pairs,rotation=90)
         plt.suptitle(corr_measure)
     plot_corr('SpearCorr')
-    #%%
     
     #%%
     # Rerun the best model
@@ -198,23 +205,23 @@ for run in range(1):
         #best_model = all_model_pairs[idx_max]
         for run,pt_pair in enumerate([best_model]):
             print(pt_pair)
-            analysis.O_regress(method='ENR_Osc',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
-            coeff_runs[run] = analysis.O_models(plot=False,models=['ENR_Osc'])
-            summ_stats_runs[run] = analysis.Clinical_Summary('ENR_Osc',plot_indiv=False,ranson=dorsac,doplot=False)
+            analysis.O_regress(method=rmethod,doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
+            coeff_runs[run] = analysis.O_models(plot=False,models=[rmethod])
+            summ_stats_runs[run] = analysis.Clinical_Summary(rmethod,plot_indiv=False,ranson=dorsac,doplot=False)
         
         
-        analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model['ENR_Osc']['Model'])
-        analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['ENR_Osc']['Model'])
+        analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model[rmethod]['Model'])
+        analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model[rmethod]['Model'])
         #analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
     
     else:
-        analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model['ENR_Osc']['Model'])
-        analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model['ENR_Osc']['Model'])
+        analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model[rmethod]['Model'])
+        analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model[rmethod]['Model'])
          
         
         #blank out left and right Delta for artifacts
-        mean_right = np.median(right_coeffs,axis=0)
-        mean_left = np.median(left_coeffs,axis=0)
+        mean_right = np.mean(right_coeffs,axis=0)
+        mean_left = np.mean(left_coeffs,axis=0)
         
         #Sanity check -> zero out all coefficients
         #mean_right[0:5] = np.random.uniform(-0.05,0.05,(5,))
@@ -258,7 +265,7 @@ for run in range(1):
     # Now we have our final model
     # Let's run on in random subsamples of our validation set
     corr_distr = []
-    for ii in range(100):
+    for ii in range(10):
          _,_,corrs = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=False,show_clin=True,do_pts=['901','903','905','906','907','908'])
          corr_distr.append(corrs)
     
@@ -312,12 +319,14 @@ for run in range(1):
     aucs = []
     null_distr = []
     auc_curves = []
+    oracle_distr = []
     for ii in range(n_iterations):
         analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
         algo_list,null_algo,_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','906','907','908']);
         aucs.append(algo_list[0])
         auc_curves.append(algo_list[1])
-        null_distr.append(null_algo)
+        null_distr.append(null_algo[0])
+        oracle_distr.append(null_algo[1])
         
     aucs = np.array(aucs)
     
@@ -336,6 +345,7 @@ for run in range(1):
         bins = np.linspace(0,0.5,25)
         plt.hist(aucs[:,2],stacked=False,color=['purple'],label=['CoinFlip Null'],bins=bins)
         plt.hist(null_distr,stacked=False,color=['green'],label=['Sparse Null'],bins=bins)
+        plt.hist(oracle_distr,stacked=False,color=['orange'],label=['Oracle'],bins=bins)
         plt.xlim((0,0.5))
         
         line_height = 600
@@ -351,11 +361,10 @@ for run in range(1):
         #plt.vlines(np.median(aucs[:,4]),0,line_height,color='yellow',label='Proposed')
         #pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
         #plt.hlines(20,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
-        #
+        
         #plt.vlines(np.median(aucs[:,5]),0,line_height,color='cyan',label='CenterOff')
         #co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
         #plt.hlines(20,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
-        
         
         #How many above?
         phdrs = np.sum(aucs[:,2] > np.median(aucs[:,0])) / n_iterations # Our HDRS

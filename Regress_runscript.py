@@ -8,8 +8,11 @@ This file does all the regressions on the oscillatory states over chronic timepo
 """
 
 #DBSpace libraries and sublibraries here
-import BR_DataFrame as BRDF
-from ClinVect import CFrame
+from DBSpace.readout import BR_DataFrame as BRDF
+from DBSpace.readout import ClinVect, DSV
+
+#import BR_DataFrame as BRDF
+#from ClinVect import CFrame
 
 
 # General python libraries
@@ -31,7 +34,7 @@ import itertools
 #%%
 #This sets up our clinical frame for the regression
 
-ClinFrame = CFrame(norm_scales=True)
+ClinFrame = ClinVect.CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
