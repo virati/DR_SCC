@@ -53,15 +53,25 @@ rmethod = 'ENR_Osc'
     
 
 
-#%%
+#%% Initial
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=True)
 BRFrame = BRDF.BR_Data_Tree()
 
 # Run our main sequence for populating the BRFrame
-BRFrame.full_sequence(data_path='/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_Frame_july.npy')
+#BRFrame.full_sequence(data_path='/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_Frame_july.npy')
+BRFrame.full_sequence(data_path='/tmp/Chronic_Frame.npy')
 BRFrame.check_empty_phases() # Check to see if there are any empty phases. This should be folded into full_sequence soon TODO
+#%%
 
+# EVERYTHING BELOW IS THE SCRIPT VERSION, NEEDS TO BE FOLDED INTO THE CLASS
+#readout = DSV.Lin_Readout(BRFrame,ClinFrame)
+
+#%%
+#readout.train_model()
+#readout.validate_model()
+#readout.standard_stats()
+#readout.permutation_stats()
 
 #%%
 # This sets up the regression
@@ -75,13 +85,14 @@ for run in range(1):
     
     analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
     analysis.O_feat_extract() #Do a feature extraction of our entire datset
-    #%%
+
     #print the features available
     #print(analysis.YFrame.file_meta[0]['FeatVect'].keys())
     analysis.plot_band_distributions(band='Stim')
     #analysis.plot_rec_stats()
     
-    #%%
+    #analysis.pt_CV()
+
     
     dorsac = True
     print('DOING CV RIDGE REGRESSION NOW....................................................................')
@@ -106,7 +117,7 @@ for run in range(1):
         summ_stats_runs[run] = analysis.Clinical_Summary(rmethod,plot_indiv=False,ranson=dorsac,doplot=False)
         #analysis.shuffle_summary('RIDGE')
     # Figures time
-        
+        #%%
     #summary stats
     #this one plots the permutation based results
     plt.figure()

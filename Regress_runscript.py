@@ -45,7 +45,8 @@ BRFrame.check_empty_phases()
 
 
 
-from DSV import ORegress
+from DBSpace.readout import DSV
+import DSV.ORegress as ORegress
 
 analysis = ORegress(BRFrame,ClinFrame)
 
