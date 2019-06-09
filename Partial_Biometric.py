@@ -11,6 +11,7 @@ This is the *GO TO* for the partial oscillatory biometric reported in Paper 2 - 
 #DBSpace libraries and sublibraries here
 from DBSpace.readout import BR_DataFrame as BRDF
 from DBSpace.readout import ClinVect, DSV
+from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 
 # General python libraries
 import scipy.signal as sig
@@ -29,7 +30,7 @@ sns.set(font_scale=4)
 import copy
 import itertools
 import scipy.stats as stats
-
+import pickle
 #%%
 #Debugging
 import pdb
@@ -56,24 +57,9 @@ rmethod = 'ENR_Osc'
 #%% Initial
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=True)
-BRFrame = BRDF.BR_Data_Tree()
+#BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
+BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
-# Run our main sequence for populating the BRFrame
-#BRFrame.full_sequence(data_path='/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_Frame_july.npy')
-BRFrame.full_sequence(data_path='/tmp/Chronic_Frame.npy')
-BRFrame.check_empty_phases() # Check to see if there are any empty phases. This should be folded into full_sequence soon TODO
-#%%
-
-# EVERYTHING BELOW IS THE SCRIPT VERSION, NEEDS TO BE FOLDED INTO THE CLASS
-#readout = DSV.Lin_Readout(BRFrame,ClinFrame)
-
-#%%
-#readout.train_model()
-#readout.validate_model()
-#readout.standard_stats()
-#readout.permutation_stats()
-
-#%%
 # This sets up the regression
 aucs_from_run = []
 auc_curves_from_run = []

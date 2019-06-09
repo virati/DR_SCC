@@ -5,11 +5,14 @@ Created on Sun Feb 11 15:39:35 2018
 
 @author: virati
 This file does all the regressions on the oscillatory states over chronic timepoints
+USE THIS to look at OLS for all recordings as well as CV_EN
+# Main script for thesis work
 """
 
 #DBSpace libraries and sublibraries here
 from DBSpace.readout import BR_DataFrame as BRDF
 from DBSpace.readout import ClinVect, DSV
+from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 
 #import BR_DataFrame as BRDF
 #from ClinVect import CFrame
@@ -29,26 +32,21 @@ sns.set_context('paper')
 # Misc tools
 import copy
 import itertools
+import pickle
+
+from DBSpace.readout import DSV
 
 
 #%%
 #This sets up our clinical frame for the regression
 
+print('Loading Clinical and BrainRadio Frames...')
 ClinFrame = ClinVect.CFrame(norm_scales=True)
-#ClinFrame.plot_scale(pts='all',scale='HDRS17')
-#ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
-BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
-#BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
-BRFrame.check_empty_phases()
+BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
-
-
-from DBSpace.readout import DSV
-import DSV.ORegress as ORegress
-
-analysis = ORegress(BRFrame,ClinFrame)
+print('Starting the readout analysis...')
+analysis = DSV.ORegress(BRFrame,ClinFrame)
 
 #%%
 analysis.split_validation_set(do_split = True)
@@ -58,12 +56,9 @@ all_pts = ['901','903','905','906','907','908']
 
 #%%
 
-regr_type = 'RIDGE'
+regr_type = 'OLSday'
 test_scale = 'HDRS17'
 do_detrend='Block'
-
-
-
 
 ranson = True
 if regr_type == 'OLSnite':
@@ -169,7 +164,6 @@ elif regr_type == 'CV_RIDGE':
     plt.hist(np.array([cc['SpearCorr'][1] for cc in summ_stats_runs]))
     plt.title('p-values distribution')
     
-    
     #left_coeffs = np.median(np.array([cc['Left'] for cc in coeff_runs]),axis=0)
     #right_coeffs = np.median(np.array([cc['Right'] for cc in coeff_runs]),axis=0)
     left_coeffs = np.array([cc['Left'] for cc in coeff_runs])
@@ -210,7 +204,6 @@ elif regr_type == 'CV_RIDGE':
     #final_l_coefs = 
     
     analysis.Model['FINAL']['Model'].coef_ = np.hstack((np.median(left_coeffs,axis=0),np.median(right_coeffs,axis=0)))
-
     #analysis.Model['FINAL']['Model'].coef_ = np.vstack((final_l_coefs,final_r_coefs))
 
 
@@ -224,6 +217,8 @@ for ii in range(n_iterations):
     aucs.append(analysis.Model_Validation(method='FINAL',do_detrend='None',do_plots=False,randomize=0.7))
 aucs = np.array(aucs)
 #%%
+# EVERYTHING BELOW IS RELATED TO THE PRC-AUC curve analysis
+
 plt.figure()
 #plt.hist(aucs[:,2],label='Nulls')
 #plt.hist(aucs[:,0],label='HDRS')
