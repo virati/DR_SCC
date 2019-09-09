@@ -8,8 +8,10 @@ File to build and validate ONDEMAND SCC readouts
 """
 #DBSpace libraries and sublibraries here
 from DBSpace.readout import BR_DataFrame as BRDF
+from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 from DBSpace.readout import ClinVect, DSV
 
+import pickle
 # General python libraries
 import scipy.signal as sig
 import numpy as np
@@ -34,7 +36,7 @@ import ipdb
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=True)
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame_2019.pickle')
-BRFrame = 
+BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_Frame_2019.pickle',"rb"))
 
 readout = DSV.DMD_RO(BRFrame,ClinFrame)
 readout.default_run()
