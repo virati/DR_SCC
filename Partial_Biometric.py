@@ -72,13 +72,8 @@ for run in range(1):
     analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
     analysis.O_feat_extract() #Do a feature extraction of our entire datset
 
-    #print the features available
-    #print(analysis.YFrame.file_meta[0]['FeatVect'].keys())
     analysis.plot_band_distributions(band='Stim')
-    #analysis.plot_rec_stats()
     
-    #analysis.pt_CV()
-
     
     dorsac = True
     print('DOING CV RIDGE REGRESSION NOW....................................................................')
@@ -261,10 +256,15 @@ for run in range(1):
     #%%
     # Now we have our final model
     # Let's run on in random subsamples of our validation set
+    # The goal of this is to get a confidence interval on the regression line
     corr_distr = []
-    for ii in range(10):
+    for ii in range(1):
          _,_,corrs = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=False,show_clin=True,do_pts=['901','903','905','906','907','908'])
          corr_distr.append(corrs)
+    
+    
+    #%%
+    #Let's just do one shot now with the SNS regression line figure
     
     
     
@@ -300,7 +300,7 @@ for run in range(1):
     #_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=False)
     
     #%%
-    
+    # Here, we start moving into the AUC-PRC analysis of our model
     # Now we apply this model to the validation set to see what's what
     #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
     aucs = []
@@ -311,7 +311,7 @@ for run in range(1):
     
     #%%
     #Here we're going to do iterations of randomness
-    n_iterations = 10
+    n_iterations = 100
     if n_iterations > 1: plot_algos = False
     aucs = []
     null_distr = []

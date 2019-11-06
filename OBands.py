@@ -11,10 +11,10 @@ Linear Regression approaches will extend this class
 import sys
 
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
-import DBS_Osc as dbo
-from DBS_Osc import nestdict
+import DBSpace as dbo
+from DBSpace import nestdict
 
-from DBS_Osc import unity,displog
+from DBSpace import unity,displog
 import scipy.stats as stats
 
 import pdb
@@ -53,11 +53,11 @@ class OBands:
                     datacontainer = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
                     #Do we want to do any preprocessing for the PSDs before we send it to the next round?
                     #Maybe a poly-fit subtraction?
-                    feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
+                    feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis['F'],dofunc['param'])
                 else:
                     pre_correction = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
-                    datacontainer,_ = dbo.poly_subtr(pre_correction,self.BRFrame.data_basis)
-                    feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis,dofunc['param'])
+                    datacontainer,_ = dbo.poly_subtr(pre_correction,self.BRFrame.data_basis['F'])
+                    feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis['F'],dofunc['param'])
                     
             rr.update({'FeatVect':feat_dict})
          
@@ -231,7 +231,7 @@ class OBands:
         
         print(pt_day_nite)
 
-    def scatter_state(self,weeks='all',pt='all',feat='Alpha',circ='',plot=True,plot_type='scatter'):
+    def scatter_state(self,weeks='all',pt='all',feat='Alpha',circ='',plot=True,plot_type='scatter',stat='ks'):
         #generate our data to visualize
         if weeks == 'all':
             weeks = dbo.Phase_List('ephys')
@@ -260,10 +260,20 @@ class OBands:
 
         outstats = defaultdict(dict)
         
+        weeks_osc_distr = {'Left':[],'Right':[]}
+        
         for cc,ch in enumerate(['Left','Right']):
             weekdistr = {week:[a for (a,b) in feats[ch] if b == week] for week in weeks}
-            #outstats[ch] = stats.ranksums(weekdistr[weeks[0]],weekdistr[weeks[1]])
-            outstats[ch] = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
+            #
+            if stat == 'ks':
+                outstats[ch] = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
+            elif stat == 'ranksum':
+                outstats[ch] = stats.ranksums(weekdistr[weeks[0]],weekdistr[weeks[1]])
+            elif stat == 't':
+                outstats[ch] = stats.ttest_1samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
+                
+            weeks_osc_distr[ch] = weekdistr
+            
         #plot the figure
         if plot:
             plt.figure()
@@ -295,4 +305,4 @@ class OBands:
             plt.suptitle(feat + ' over weeks; ' + str(pt))
                     
         
-        return feats,outstats
+        return feats,outstats, weeks_osc_distr

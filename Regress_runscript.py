@@ -56,7 +56,7 @@ all_pts = ['901','903','905','906','907','908']
 
 #%%
 
-regr_type = 'OLSday'
+regr_type = 'RIDGE'
 test_scale = 'HDRS17'
 do_detrend='Block'
 
