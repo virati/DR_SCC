@@ -28,7 +28,8 @@ sns.set_style("white")
 
 import numpy as np
 import pickle
-
+from matplotlib.patches import Rectangle, Circle
+from numpy import ndenumerate
 
 
 #%%
@@ -78,15 +79,15 @@ P_val = np.array([[[ks_stats[pt][band][side][1] for side in ['Left','Right']] fo
 pre_feat_vals = np.array([[[week_distr[pt][band][side]['C01'] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 post_feat_vals = np.array([[[week_distr[pt][band][side]['C24'] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 #%%
-
+    
 def get_distr_change(patient,band,plot=True):
     
     pp = pts.index(patient)
     ff = all_feats.index(band)
     if plot:
         plt.figure()
-        sns.violinplot(x=pre_feat_vals[pp,ff])
-        sns.violinplot(x=post_feat_vals[pp,ff],color='red',alpha=0.3)
+        sns.violinplot(y=pre_feat_vals[pp,ff])
+        sns.violinplot(y=post_feat_vals[pp,ff],color='red',alpha=0.3)
 
     return (np.mean(post_feat_vals[pp,ff]) - np.mean(pre_feat_vals[pp,ff]))
 
@@ -95,6 +96,66 @@ for pp,pt in enumerate(pts):
     for ff,freq in enumerate(all_feats):
         change_grid[pp,ff] = get_distr_change(pt,freq,plot=False)
 
+
+
+#%%
+def all_ensemble_change(plot=True):
+    
+    pre_flat_list = []
+    post_flat_list = []
+    
+    for ff,freq in enumerate(all_feats):
+        pre_flat_list.append([item for sublist in pre_feat_vals[:,ff] for item in sublist])
+        post_flat_list.append([item for sublist in post_feat_vals[:,ff] for item in sublist])
+        
+    if plot:
+        plt.figure()
+        ax = sns.violinplot(data=pre_flat_list,color='blue')
+        ax = sns.violinplot(data=post_flat_list,color='red',alpha=0.3)
+        
+        
+        plt.setp(ax.collections,alpha=0.3)
+
+all_ensemble_change()
+
+
+#%%
+# want to marginalize across patients and compare all band observations in C01 with all from C24
+def get_ensemble_change(band,plot=True):
+    ff = all_feats.index(band)
+    pre_flat_list = [item for sublist in pre_feat_vals[:,ff] for item in sublist]
+    post_flat_list = [item for sublist in post_feat_vals[:,ff] for item in sublist]
+    if plot:
+        plt.figure()
+        ax = sns.violinplot(x=pre_flat_list)
+        ax = sns.violinplot(x=post_flat_list,color='red',alpha=0.3)
+        plt.title(band)
+        plt.xlim(-10,10)
+        plt.setp(ax.collections,alpha=0.3)
+    #do some stats here
+    stat_check = stats.ks_2samp(pre_flat_list,post_flat_list)
+    return {'diff':(np.mean(pre_flat_list) - np.mean(post_flat_list)),'var':(np.var(pre_flat_list) - np.var(post_flat_list)),'ks':stat_check}
+
+
+def get_ensemble_dist(band,plot=True):
+    ff = all_feats.index(band)
+    pre_flat_list = [item for sublist in pre_feat_vals[:,ff] for item in sublist]
+    post_flat_list = [item for sublist in post_feat_vals[:,ff] for item in sublist]
+    
+    return pre_flat_list, post_flat_list
+
+test = nestdict()#np.zeros(len(all_feats))
+
+for ff,freq in enumerate(all_feats):
+    test[ff] = get_ensemble_change(freq,plot=True)
+#%%
+list_of_p = [test[num]['ks'][1] for num,band in enumerate(all_feats)]
+plt.figure()
+#plt.pcolormesh(list_of_p)
+plt.plot(list_of_p)
+plt.hlines(0.005,0,10)
+plt.hlines(0.05,0,10,linestyle='dotted')
+        
 #%%
 plt.figure()
 plt.pcolormesh(change_grid,cmap=plt.cm.get_cmap('jet'))
@@ -102,6 +163,23 @@ plt.colorbar()
 plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
 plt.yticks(np.arange(6)+0.5,pts)
 plt.title('Band Change over Timepoints')
+
+ax = plt.axes()
+
+for index,value in ndenumerate(P_val):
+    if value < (0.05/10):
+        if change_grid[index] > 0:
+            usecolor='red'
+        else:
+            usecolor='blue'
+            
+        print(index)
+        ax.add_patch(Rectangle((index[1], index[0]), 1, 1, fill=False, edgecolor=usecolor, lw=3))
+        ax.add_patch(Circle((index[1]+0.5, index[0]+0.5), 0.2, fill=True, facecolor=usecolor, edgecolor='white', lw=2))
+plt.show()
+
+
+
 
 plt.figure()
 #plt.subplot(2,1,1)
