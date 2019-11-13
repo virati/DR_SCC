@@ -44,7 +44,7 @@ BRFrame.check_meta()
 #Move forward with traditional oscillatory band analysis
 from OBands import *
 analysis = OBands(BRFrame)
-analysis.feat_extract(do_corrections=True)
+analysis.feat_extract(do_corrections=False)
 
 ##PLOTS
 
