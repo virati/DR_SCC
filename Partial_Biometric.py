@@ -72,7 +72,8 @@ for run in range(1):
     analysis.split_validation_set(do_split = True) #Split our entire dataset into a validation and training set
     analysis.O_feat_extract() #Do a feature extraction of our entire datset
 
-    analysis.plot_band_distributions(band='Stim')
+    #If we want to see the distributions, we can see them here.
+    #analysis.plot_band_distributions(band='Stim')
     
     
     dorsac = True
@@ -89,7 +90,6 @@ for run in range(1):
     summ_stats_runs  = [0] * num_pairs
     
     all_model_pairs = list(all_pairs)
-    #%%
 
     for run,pt_pair in enumerate(all_model_pairs):
         print(pt_pair)
@@ -305,7 +305,7 @@ for run in range(1):
     #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
     aucs = []
     null_distr = []
-    _ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','906','907','908'])
+    _ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','905','906','907','908'])
     
     
     
@@ -317,13 +317,21 @@ for run in range(1):
     null_distr = []
     auc_curves = []
     oracle_distr = []
+    au_rocs = []
     for ii in range(n_iterations):
         analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
-        algo_list,null_algo,_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','906','907','908']);
+        #First, we'll do a simplified binary sens/spec vs the HDRS17
+        ss_rocs = analysis.binary_classif(method='FINAL',do_detrend='Block',randomize=0.6,do_pts = ['901','903','905','906','907','908'])
+        au_rocs.append(ss_rocs)
+        
+        #Model validation below does it against the actual stimulation changes; need PR-AUC due to gross imbalance in stim changes
+        algo_list,null_algo,_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','905','906','907','908']);
         aucs.append(algo_list[0])
         auc_curves.append(algo_list[1])
         null_distr.append(null_algo[0])
         oracle_distr.append(null_algo[1])
+        #Here, we need to do a sens/spec or prec/recall analysis for each iteration
+        
         
     aucs = np.array(aucs)
     
