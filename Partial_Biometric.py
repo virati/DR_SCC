@@ -318,11 +318,13 @@ for run in range(1):
     auc_curves = []
     oracle_distr = []
     au_rocs = []
+    roc_curve_list = []
     for ii in range(n_iterations):
         analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
         #First, we'll do a simplified binary sens/spec vs the HDRS17
-        ss_rocs = analysis.binary_classif(method='FINAL',do_detrend='Block',randomize=0.6,do_pts = ['901','903','905','906','907','908'])
+        ss_rocs,roc_curves = analysis.binary_classif(method='FINAL',do_detrend='Block',randomize=0.6,do_pts = ['901','903','905','906','907','908'])
         au_rocs.append(ss_rocs)
+        roc_curve_list.append(roc_curves)
         
         #Model validation below does it against the actual stimulation changes; need PR-AUC due to gross imbalance in stim changes
         algo_list,null_algo,_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','905','906','907','908']);

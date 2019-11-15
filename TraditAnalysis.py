@@ -44,7 +44,7 @@ BRFrame.check_meta()
 #Move forward with traditional oscillatory band analysis
 from OBands import *
 analysis = OBands(BRFrame)
-analysis.feat_extract(do_corrections=False)
+analysis.feat_extract(do_corrections=True)
 
 ##PLOTS
 
@@ -158,7 +158,7 @@ plt.hlines(0.05,0,10,linestyle='dotted')
         
 #%%
 plt.figure()
-plt.pcolormesh(change_grid,cmap=plt.cm.get_cmap('jet'))
+plt.pcolormesh(change_grid,cmap=plt.cm.get_cmap('viridis'))
 plt.colorbar()
 plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
 plt.yticks(np.arange(6)+0.5,pts)
@@ -174,7 +174,7 @@ for index,value in ndenumerate(P_val):
             usecolor='blue'
             
         print(index)
-        ax.add_patch(Rectangle((index[1], index[0]), 1, 1, fill=False, edgecolor=usecolor, lw=3))
+        ax.add_patch(Rectangle((index[1], index[0]), 1, 1, fill=False, edgecolor='red', lw=5))
         ax.add_patch(Circle((index[1]+0.5, index[0]+0.5), 0.2, fill=True, facecolor=usecolor, edgecolor='white', lw=2))
 plt.show()
 
