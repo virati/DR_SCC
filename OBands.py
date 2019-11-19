@@ -30,6 +30,91 @@ sns.set_context('talk')
 sns.set(font_scale=4)
 sns.set_style('white')
 
+class naive_readout:
+    def __init__(self,analysis):
+        self.analysis = analysis
+        
+        self.pts = ['901','903','905','906','907','908']
+        self.bands = ['Delta','Theta','Alpha','Beta*','Gamma1']
+        self.all_feats = ['L-' + band for band in bands] + ['R-' + band for band in bands]
+        
+        self.circ = 'day'
+        
+    def sig_bands(self,stats='ks',weeks=['C01','C24']):
+        self.ks_stats = nestdict()
+        self.week_distr = nestdict()
+        
+        for pt in self.pts:
+            for ff in self.bands:
+                print('Computing ' + ' ' + ff)
+                _,self.ks_stats[pt][ff],self.week_distr[pt][ff] = self.analysis.scatter_state(weeks=weeks,pt=pt,feat=ff,circ=self.circ,plot=False,plot_type='scatter',stat=stats)
+
+        self.K_weeks = weeks
+        self.K_stat_type = stats
+        self.K_stats = np.array([[[ks_stats[pt][band][side][0] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+        self.P_val = np.array([[[ks_stats[pt][band][side][1] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+        
+        #Do the change values here too
+        self.pre_feat_vals = np.array([[[self.week_distr[pt][band][side][self.K_weeks[0]] for side in ['Left','Right']] for band in self.bands] for pt in self.pts]).reshape(6,-1,order='F')
+        self.post_feat_vals = np.array([[[self.week_distr[pt][band][side][self.K_weeks[1]] for side in ['Left','Right']] for band in self.bands] for pt in self.pts]).reshape(6,-1,order='F')
+
+    def band_change(self,patient,band,plot=False):
+
+        pp = pts.index(patient)
+        ff = self.all_feats.index(band)
+        if plot:
+            plt.figure()
+            sns.violinplot(y=self.pre_feat_vals[pp,ff])
+            sns.violinplot(y=self.post_feat_vals[pp,ff],color='red',alpha=0.3)
+    
+        return (np.mean(post_feat_vals[pp,ff]) - np.mean(pre_feat_vals[pp,ff]))
+    
+    def band_change_analysis(self):
+        change_grid = np.zeros((len(self.pts),len(self.all_feats)))
+        for pp,pt in enumerate(self.pts):
+            for ff,freq in enumerate(self.all_feats):
+                change_grid[pp,ff] = self.band_change(pt,freq,plot=False)
+
+    def flat_ensemble_change(self,band):
+        ff = all_feats.index(band)
+        pre_flat_list = [item for sublist in pre_feat_vals[:,ff] for item in sublist]
+        post_flat_list = [item for sublist in post_feat_vals[:,ff] for item in sublist]
+        
+        return pre_flat_list, post_flat_list
+
+    def all_ensemble_change(self,plot=True):
+        pre_flat_list = []
+        post_flat_list = []
+        
+        for ff,freq in enumerate(self.all_feats):
+            pre_flat_list.append([item for sublist in self.pre_feat_vals[:,ff] for item in sublist])
+            post_flat_list.append([item for sublist in self.post_feat_vals[:,ff] for item in sublist])
+            
+        if plot:
+            plt.figure()
+            ax = sns.violinplot(data=pre_flat_list,color='blue')
+            ax = sns.violinplot(data=post_flat_list,color='red',alpha=0.3)
+            
+            
+            plt.setp(ax.collections,alpha=0.3)
+    
+    def get_ensemble_change(self,band,plot=True):
+        ff = self.all_feats.index(band)
+        pre_flat_list = [item for sublist in self.pre_feat_vals[:,ff] for item in sublist]
+        post_flat_list = [item for sublist in self.post_feat_vals[:,ff] for item in sublist]
+        if plot:
+            plt.figure()
+            ax = sns.violinplot(x=pre_flat_list)
+            ax = sns.violinplot(x=post_flat_list,color='red',alpha=0.3)
+            plt.title(band)
+            plt.xlim(-10,10)
+            plt.setp(ax.collections,alpha=0.3)
+        #do some stats here
+        stat_check = stats.ks_2samp(pre_flat_list,post_flat_list)
+        return {'diff':(np.mean(pre_flat_list) - np.mean(post_flat_list)),'var':(np.var(pre_flat_list) - np.var(post_flat_list)),'ks':stat_check}
+
+
+
 class OBands:
     def __init__(self,BRFrame):
         #Bring in the BR Data Frame
