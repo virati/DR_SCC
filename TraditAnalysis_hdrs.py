@@ -43,14 +43,19 @@ all_feats = ['L-' + band for band in bands] + ['R-' + band for band in bands]
 ClinFrame = ClinVect.CFrame(norm_scales=True)
 
 hdrs_info = nestdict()
+week_labels = ClinFrame.week_labels()
 
 for pt in pts:
-    pt_hdrs_traj = [a for a in ClinFrame.DSS_dict['DBS'+pt]['HDRS17']]
-    hdrs_info[pt]['max']['week'] = np.argmax(pt_hdrs_traj)
-    hdrs_info[pt]['min']['week'] = np.argmin(pt_hdrs_traj)
-    hdrs_info[pt]['max']['HDRS'] = pt_hdrs_traj[hdrs_info[pt]['max']['week']]
-    hdrs_info[pt]['min']['HDRS'] = pt_hdrs_traj[hdrs_info[pt]['min']['week']]
-
+    pt_hdrs_traj = [a for a in ClinFrame.DSS_dict['DBS'+pt]['HDRS17raw']][8:]
+    
+    hdrs_info[pt]['max']['index'] = np.argmax(pt_hdrs_traj)
+    hdrs_info[pt]['min']['index'] = np.argmin(pt_hdrs_traj)
+    hdrs_info[pt]['max']['week'] = week_labels[np.argmax(pt_hdrs_traj)+8]
+    hdrs_info[pt]['min']['week'] = week_labels[np.argmin(pt_hdrs_traj)+8]
+    
+    hdrs_info[pt]['max']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['max']['index']]
+    hdrs_info[pt]['min']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['min']['index']]
+    hdrs_info[pt]['traj']['HDRSr'] = pt_hdrs_traj
 
 #%%
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
