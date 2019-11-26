@@ -31,14 +31,41 @@ sns.set(font_scale=4)
 sns.set_style('white')
 
 class naive_readout:
-    def __init__(self,analysis):
-        self.analysis = analysis
+    def __init__(self,feat_frame,ClinFrame):
+        self.feat_frame = feat_frame
         
         self.pts = ['901','903','905','906','907','908']
         self.bands = ['Delta','Theta','Alpha','Beta*','Gamma1']
         self.all_feats = ['L-' + band for band in bands] + ['R-' + band for band in bands]
         
+        self.ClinFrame = ClinFrame
+        
         self.circ = 'day'
+    
+    def find_pt_extremes(self):
+        hdrs_info = nestdict()
+        week_labels = ClinFrame.week_labels()
+        
+        for pt in self.pts:
+            pt_hdrs_traj = [a for a in ClinFrame.DSS_dict['DBS'+pt]['HDRS17raw']][8:]
+            
+            hdrs_info[pt]['max']['index'] = np.argmax(pt_hdrs_traj)
+            hdrs_info[pt]['min']['index'] = np.argmin(pt_hdrs_traj)
+            hdrs_info[pt]['max']['week'] = week_labels[np.argmax(pt_hdrs_traj)+8]
+            hdrs_info[pt]['min']['week'] = week_labels[np.argmin(pt_hdrs_traj)+8]
+            
+            hdrs_info[pt]['max']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['max']['index']]
+            hdrs_info[pt]['min']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['min']['index']]
+            hdrs_info[pt]['traj']['HDRSr'] = pt_hdrs_traj
+
+    def set_comparison_weeks(self,fix=[]):
+        #we do this on a per-patient basis
+        if fix == []:
+            return {pt:{'high':'C01','low':'C24'}}    
+        else:
+            return {pt:{'high':fix[0],'low':fix[1]}}
+    
+    
         
     def sig_bands(self,stats='ks',weeks=['C01','C24']):
         self.ks_stats = nestdict()
@@ -47,7 +74,7 @@ class naive_readout:
         for pt in self.pts:
             for ff in self.bands:
                 print('Computing ' + ' ' + ff)
-                _,self.ks_stats[pt][ff],self.week_distr[pt][ff] = self.analysis.scatter_state(weeks=weeks,pt=pt,feat=ff,circ=self.circ,plot=False,plot_type='scatter',stat=stats)
+                _,self.ks_stats[pt][ff],self.week_distr[pt][ff] = self.feat_frame.scatter_state(weeks=weeks,pt=pt,feat=ff,circ=self.circ,plot=False,plot_type='scatter',stat=stats)
 
         self.K_weeks = weeks
         self.K_stat_type = stats
@@ -315,13 +342,69 @@ class OBands:
         
         
         print(pt_day_nite)
+    
+    
+    def set_states(self,default=True):
+        if default:
+            phases[pt]['high'] = 'C01'
+            phases[pt]['low'] = 'C24'
+        else:
+            pass
+        weeks = [high,low]
+        
+        
+    def compare_states(self,weeks,pt=dbo.all_pts,feat='Alpha',circ='',plot=True,plot_type='scatter',stat='ks'):
+        #this assumes we've already populated the 'high' and 'low' values
+        #generate our data to visualize
+            
+        fmeta = self.BRFrame.file_meta
+        feats = {'Left':0,'Right':0}
+        
+        swap_key = {weeks[0]:'depr',weeks[1]:'notdepr'}
+        
+        if feat == 'fSlope' or feat == 'nFloor':
+            dispfunc = unity
+        else:
+            dispfunc = unity
+        
+        #do day and night here
+        if circ != '':
+            fdnmeta = [rr for rr in fmeta if rr['Circadian'] == circ]
+        else:
+            fdnmeta = fmeta
+        
+        feats['Left'] = [(dispfunc(rr['FeatVect'][feat]['Left']),rr['Phase']) for rr in fdnmeta if rr['Patient'] in pt and rr['Phase'] in weeks]
+        feats['Right'] = [(dispfunc(rr['FeatVect'][feat]['Right']),rr['Phase']) for rr in fdnmeta if rr['Patient'] in pt and rr['Phase'] in weeks]
 
+        outstats = defaultdict(dict)
+        weeks_osc_distr = {'Left':[],'Right':[]}
+        
+        for cc,ch in enumerate(['Left','Right']):
+            weekdistr = {swap_key[week]:[a for (a,b) in feats[ch] if b == week] for week in weeks}
+            if stat == 'ks':
+                outstats[ch] = stats.ks_2samp(weekdistr[swap_key[weeks[0]]],weekdistr[swap_key[weeks[1]]])
+            elif stat == 'ranksum':
+                outstats[ch] = stats.ranksums(weekdistr[swap_key[weeks[0]]],weekdistr[swap_key[weeks[1]]])
+            elif stat == 't':
+                outstats[ch] = stats.ttest_1samp(weekdistr[swap_key[weeks[0]]],weekdistr[swap_key[weeks[1]]])
+                
+            weeks_osc_distr[ch] = weekdistr
+        
+        return feats,outstats, weeks_osc_distr
+    
+    
     def scatter_state(self,weeks='all',pt='all',feat='Alpha',circ='',plot=True,plot_type='scatter',stat='ks'):
         #generate our data to visualize
         if weeks == 'all':
             weeks = dbo.Phase_List('ephys')
         if pt == 'all':
             pt = dbo.all_pts
+            
+        #Swap key effort here
+        if 'C01' in weeks and 'C24' in weeks:
+            swap_key = {'C01':'Depr','C24':'NotDepr'}
+        else:
+            swap_key = {key:key for key in weeks}
         
         fmeta = self.BRFrame.file_meta
         feats = {'Left':0,'Right':0}
@@ -348,7 +431,7 @@ class OBands:
         weeks_osc_distr = {'Left':[],'Right':[]}
         
         for cc,ch in enumerate(['Left','Right']):
-            weekdistr = {week:[a for (a,b) in feats[ch] if b == week] for week in weeks}
+            weekdistr = {swap_key[week]:[a for (a,b) in feats[ch] if b == week] for week in weeks}
             #
             if stat == 'ks':
                 outstats[ch] = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])
