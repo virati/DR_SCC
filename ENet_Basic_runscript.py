@@ -34,7 +34,9 @@ analysis = DSV.DSV(BRFrame,ClinFrame,lim_freq=60)
 
 ENet_params = {'Alpha':(0.1,0.2),'Lambda':(0.5,0.6)}
 
-analysis.run_EN(alpha_list=np.linspace(0.1,0.5,100),scale='HDRS17')
+#%%
+analysis.run_EN(alpha_list=
+                np.linspace(0.1,0.5,100),scale='HDRS17')
 analysis.plot_EN_coeffs()
 #%%
 #aanalysis.plot_dsgn_matrix()
