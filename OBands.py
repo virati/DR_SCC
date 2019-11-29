@@ -353,9 +353,12 @@ class OBands:
         weeks = [high,low]
         
         
-    def compare_states(self,weeks,pt=dbo.all_pts,feat='Alpha',circ='',plot=True,plot_type='scatter',stat='ks'):
+    def compare_states(self,weeks,pt='all',feat='Alpha',circ='',plot=True,plot_type='scatter',stat='ks'):
         #this assumes we've already populated the 'high' and 'low' values
         #generate our data to visualize
+        if pt == 'all':
+            pt = dbo.all_pts
+            
             
         fmeta = self.BRFrame.file_meta
         feats = {'Left':0,'Right':0}
@@ -431,7 +434,7 @@ class OBands:
         weeks_osc_distr = {'Left':[],'Right':[]}
         
         for cc,ch in enumerate(['Left','Right']):
-            weekdistr = {swap_key[week]:[a for (a,b) in feats[ch] if b == week] for week in weeks}
+            weekdistr = {week:[a for (a,b) in feats[ch] if b == week] for week in weeks}
             #
             if stat == 'ks':
                 outstats[ch] = stats.ks_2samp(weekdistr[weeks[0]],weekdistr[weeks[1]])

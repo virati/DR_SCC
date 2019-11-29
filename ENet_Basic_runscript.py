@@ -8,8 +8,10 @@ Elastic Net Analysis on BrainRadio Data
 THIS USES THE NEW BR_DATAFRAME class
 """
 
-from BR_DataFrame import *
-from ClinVect import CFrame
+from DBSpace.readout.BR_DataFrame import BR_Data_Tree
+from DBSpace.readout import ClinVect
+import pickle
+from DBSpace.readout import DSV
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -17,17 +19,18 @@ plt.close('all')
 import numpy as np
 
 #%%
-ClinFrame = CFrame(norm_scales=True)
+ClinFrame = ClinVect.CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
 #%%
-BRFrame = BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
-BRFrame.check_empty_phases()
+#BRFrame = BR_Data_Tree()
+#BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
+#BRFrame.check_empty_phases()
+
+BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 #%%
-from DSV import *
-analysis = DSV(BRFrame,ClinFrame,lim_freq=60)
+analysis = DSV.DSV(BRFrame,ClinFrame,lim_freq=60)
 
 ENet_params = {'Alpha':(0.1,0.2),'Lambda':(0.5,0.6)}
 

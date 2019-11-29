@@ -133,6 +133,7 @@ def get_ensemble_change(band,plot=True):
         plt.xlim(-10,10)
         plt.setp(ax.collections,alpha=0.3)
     #do some stats here
+    print(band)
     stat_check = stats.ks_2samp(pre_flat_list,post_flat_list)
     return {'diff':(np.mean(pre_flat_list) - np.mean(post_flat_list)),'var':(np.var(pre_flat_list) - np.var(post_flat_list)),'ks':stat_check}
 
@@ -143,11 +144,12 @@ def get_ensemble_dist(band,plot=True):
     post_flat_list = [item for sublist in post_feat_vals[:,ff] for item in sublist]
     
     return pre_flat_list, post_flat_list
-
+#%%
 test = nestdict()#np.zeros(len(all_feats))
 
 for ff,freq in enumerate(all_feats):
-    test[ff] = get_ensemble_change(freq,plot=True)
+    test[ff] = get_ensemble_change(freq,plot=False)
+
 #%%
 list_of_p = [test[num]['ks'][1] for num,band in enumerate(all_feats)]
 plt.figure()

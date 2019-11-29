@@ -80,25 +80,45 @@ sig_stats = nestdict()
 for pt in pts:
     for ff in bands:
         # if we want to compare max vs min hdrs
-        #feats,stats,week_distr[pt][ff] = feat_frame.compare_states([hdrs_info[pt]['max']['week'],hdrs_info[pt]['min']['week']],feat=ff)
+        feats,sig_stats,week_distr[pt][ff] = feat_frame.compare_states([hdrs_info[pt]['max']['week'],hdrs_info[pt]['min']['week']],feat=ff,circ='day',stat='ks')
         # if we want to compare early vs late
-        feats,sig_stats[pt][ff],week_distr[pt][ff] = feat_frame.compare_states(['C01','C24'],feat=ff)
+        #feats,sig_stats[pt][ff],week_distr[pt][ff] = feat_frame.compare_states(["C01","C24"],pt=pt,feat=ff,circ='day',stat='ks')
     
 
+depr_list = []
+notdepr_list = []
+aggr_week_distr = nestdict()
+
 for ff in bands:
-    aggr_week_distr = {dz:{side:[item for sublist in [week_distr[pt][ff][side][dz] for pt in pts] for item in sublist] for side in ['Left','Right']} for dz in ['depr','notdepr']}
+    aggr_week_distr[ff] = {dz:{side:[item for sublist in [week_distr[pt][ff][side][dz] for pt in pts] for item in sublist] for side in ['Left','Right']} for dz in ['depr','notdepr']}
+    
     plt.figure()
-    plt.subplot(121)
-    ax1 = sns.violinplot(y=aggr_week_distr['depr']['Left'],alpha=0.2)
-    ax1 = sns.violinplot(y=aggr_week_distr['notdepr']['Left'],color='red',alpha=0.2)
-    plt.setp(ax1.collections,alpha=0.3)
-    print(stats.ks_2samp(np.array(aggr_week_distr['depr']['Left']),np.array(aggr_week_distr['notdepr']['Left'])))
-    
-    plt.subplot(122)
-    ax2 = sns.violinplot(y=aggr_week_distr['depr']['Right'],alpha=0.2)
-    ax2 = sns.violinplot(y=aggr_week_distr['notdepr']['Right'],color='red',alpha=0.2)
-    print(stats.ks_2samp(aggr_week_distr['depr']['Right'],aggr_week_distr['notdepr']['Right']))
-    
-    plt.setp(ax2.collections,alpha=0.3)
+    for ss,side in enumerate(['Left','Right']):
+        
+        print(ff + ' ' + side)
+        
+        plt.subplot(1,2,ss+1)
+        ax = sns.violinplot(y=aggr_week_distr[ff]['depr'][side],alpha=0.2)
+        plt.setp(ax.collections,alpha=0.3)
+        ax = sns.violinplot(y=aggr_week_distr[ff]['notdepr'][side],color='red',alpha=0.2)
+        plt.setp(ax.collections,alpha=0.3)
+        print(stats.ks_2samp(np.array(aggr_week_distr[ff]['depr'][side]),np.array(aggr_week_distr[ff]['notdepr'][side])))
+        
     plt.suptitle(ff + ' ' + ' min/max HDRS')
+
+for side in ['Left','Right']:
+    for ff in bands:
+        depr_list.append(aggr_week_distr[ff]['depr'][side])
+        notdepr_list.append(aggr_week_distr[ff]['notdepr'][side])
+    
+    #%%
+depr_list_flat = [item for sublist in depr_list for item in sublist]
+notdepr_list_flat = [item for sublist in notdepr_list for item in sublist]
+
+# Plot them all in same plot
+plt.figure()
+ax = sns.violinplot(data=depr_list,color='blue')
+ax = sns.violinplot(data=notdepr_list,color='red',alpha=0.3)
+_ = plt.setp(ax.collections,alpha=0.3)
+
 #%%
