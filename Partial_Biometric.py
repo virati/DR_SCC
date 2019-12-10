@@ -83,7 +83,7 @@ for run in range(1):
     
     all_pairs = list(itertools.combinations(do_pts,3))
     #if you want to remove DBS905:
-    #all_pairs = list(itertools.combinations(['901','903','906','907','908'],3))
+    #all_pairs = list(itertools.combinations(['901','9903','906','907','908'],3))
     
     num_pairs = len(list(all_pairs))
     coeff_runs = [0] * num_pairs
@@ -337,6 +337,20 @@ for run in range(1):
         
     aucs = np.array(aucs)
     
+#%%
+# Need to do our AU-ROC plotting here
+plt.figure()
+for aa in roc_curve_list:
+    plt.plot(aa[0],aa[1],alpha=0.2)
+    
+matr_roc_curve_list = np.array(np.array(roc_curve_list))
+avg_roc_curve_list = np.mean(matr_roc_curve_list,axis=0)
+plt.plot(avg_roc_curve_list[0],avg_roc_curve_list[1])
+plt.plot([0,1],[0,1])
+
+#%%
+plt.figure()
+plt.hist(au_rocs)
     #
     
     

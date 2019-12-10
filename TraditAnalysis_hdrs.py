@@ -42,23 +42,22 @@ all_feats = ['L-' + band for band in bands] + ['R-' + band for band in bands]
 
 # for each patient, let's find the highest and lowest HDRS17 value and the week we find it
 ClinFrame = ClinVect.CFrame(norm_scales=True)
-
-hdrs_info = nestdict()
-week_labels = ClinFrame.week_labels()
-
-for pt in pts:
-    pt_hdrs_traj = [a for a in ClinFrame.DSS_dict['DBS'+pt]['HDRS17raw']][8:]
-    
-    hdrs_info[pt]['max']['index'] = np.argmax(pt_hdrs_traj)
-    hdrs_info[pt]['min']['index'] = np.argmin(pt_hdrs_traj)
-    hdrs_info[pt]['max']['week'] = week_labels[np.argmax(pt_hdrs_traj)+8]
-    hdrs_info[pt]['min']['week'] = week_labels[np.argmin(pt_hdrs_traj)+8]
-    
-    hdrs_info[pt]['max']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['max']['index']]
-    hdrs_info[pt]['min']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['min']['index']]
-    hdrs_info[pt]['traj']['HDRSr'] = pt_hdrs_traj
-
-    
+hdrs_info = ClinFrame.min_max_weeks()
+#
+#hdrs_info = nestdict()
+#week_labels = ClinFrame.week_labels()
+#
+#for pt in pts:
+#    pt_hdrs_traj = [a for a in ClinFrame.DSS_dict['DBS'+pt]['HDRS17raw']][8:]
+#    
+#    hdrs_info[pt]['max']['index'] = np.argmax(pt_hdrs_traj)
+#    hdrs_info[pt]['min']['index'] = np.argmin(pt_hdrs_traj)
+#    hdrs_info[pt]['max']['week'] = week_labels[np.argmax(pt_hdrs_traj)+8]
+#    hdrs_info[pt]['min']['week'] = week_labels[np.argmin(pt_hdrs_traj)+8]
+#    
+#    hdrs_info[pt]['max']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['max']['index']]
+#    hdrs_info[pt]['min']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['min']['index']]
+#    hdrs_info[pt]['traj']['HDRSr'] = pt_hdrs_traj
 
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 #do a check to see if any PSDs are entirely zero; bad sign
@@ -70,6 +69,7 @@ from OBands import *
 feat_frame = OBands(BRFrame)
 feat_frame.feat_extract(do_corrections=True)
 
+
 #main_readout = naive_readout(feat_frame,ClinFrame)
 #%%
 #week_1 = 'C01'
@@ -80,9 +80,9 @@ sig_stats = nestdict()
 for pt in pts:
     for ff in bands:
         # if we want to compare max vs min hdrs
-        feats,sig_stats,week_distr[pt][ff] = feat_frame.compare_states([hdrs_info[pt]['max']['week'],hdrs_info[pt]['min']['week']],feat=ff,circ='day',stat='ks')
+        #feats,sig_stats,week_distr[pt][ff] = feat_frame.compare_states([hdrs_info[pt]['max']['week'],hdrs_info[pt]['min']['week']],feat=ff,circ='day',stat='ks')
         # if we want to compare early vs late
-        #feats,sig_stats[pt][ff],week_distr[pt][ff] = feat_frame.compare_states(["C01","C24"],pt=pt,feat=ff,circ='day',stat='ks')
+        feats,sig_stats[pt][ff],week_distr[pt][ff] = feat_frame.compare_states(["C01","C24"],pt=pt,feat=ff,circ='day',stat='ks')
     
 
 depr_list = []
@@ -111,13 +111,13 @@ for side in ['Left','Right']:
         depr_list.append(aggr_week_distr[ff]['depr'][side])
         notdepr_list.append(aggr_week_distr[ff]['notdepr'][side])
     
-    #%%
+#%%
 depr_list_flat = [item for sublist in depr_list for item in sublist]
 notdepr_list_flat = [item for sublist in notdepr_list for item in sublist]
 
 # Plot them all in same plot
 plt.figure()
-ax = sns.violinplot(data=depr_list,color='blue')
+ax = sns.violinplot(data=depr_list,color='blue') 
 ax = sns.violinplot(data=notdepr_list,color='red',alpha=0.3)
 _ = plt.setp(ax.collections,alpha=0.3)
 

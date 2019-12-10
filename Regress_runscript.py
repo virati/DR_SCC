@@ -7,6 +7,8 @@ Created on Sun Feb 11 15:39:35 2018
 This file does all the regressions on the oscillatory states over chronic timepoints
 USE THIS to look at OLS for all recordings as well as CV_EN
 # Main script for thesis work
+This is getting obsolete!!
+Pretty much only use this for the old school OLS/Ridge/LASSO approaches
 """
 
 #DBSpace libraries and sublibraries here
