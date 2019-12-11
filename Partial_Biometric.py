@@ -40,6 +40,8 @@ import pdb
 #%%
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
+# We need to split out the above one to have different training and testing sets
+do_pts = ['901','903','906','907','908'] # Which patients do we want to include in the training set?
 #do_pts = ['901']
 test_scale = 'HDRS17' # Which scale are we using as the measurement of the depression state?
 
@@ -263,14 +265,53 @@ for run in range(1):
          _,_,corrs = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=False,show_clin=True,do_pts=['901','903','905','906','907','908'])
          corr_distr.append(corrs)
     
+    #%%
+    # What do our prediction curves look like with the final model?
+    #_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=False)
     
     #%%
-    #Let's just do one shot now with the SNS regression line figure
+    # Here, we start moving into the AUC-PRC analysis of our model
+    # Now we apply this model to the validation set to see what's what
+    #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
+    aucs = []
+    null_distr = []
+    _ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','905','906','907','908'])
     
     
     
     #%%
+    #Here we're going to do iterations of randomness
+    #SHOULD DO THIS BEFORE CORRELATION DISTRIBUTIONS
+    n_iterations = 100
+    if n_iterations > 1: plot_algos = False
+    aucs = []
+    null_distr = []
+    auc_curves = []
+    oracle_distr = []
+    au_rocs = []
+    roc_curve_list = []
+    corr_distr = []
+    for ii in range(n_iterations):
+        analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
+        #First, we'll do a simplified binary sens/spec vs the HDRS17
+        ss_rocs,roc_curves = analysis.binary_classif(method='FINAL',do_detrend='Block',randomize=0.6,do_pts = ['901','903','905','906','907','908'])
+        au_rocs.append(ss_rocs)
+        roc_curve_list.append(roc_curves)
+        
+        #Model validation below does it against the actual stimulation changes; need PR-AUC due to gross imbalance in stim changes
+        algo_list,null_algo,corrs = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','905','906','907','908']);
+        corr_distr.append(corrs)
+        aucs.append(algo_list[0])
+        auc_curves.append(algo_list[1])
+        null_distr.append(null_algo[0])
+        oracle_distr.append(null_algo[1])
+        #Here, we need to do a sens/spec or prec/recall analysis for each iteration
+        
+        
+    aucs = np.array(aucs)
     
+#%%
+# Plot our correlations across all iterations
     
     #% Make our distribution figures for all three
     corr_dist_figs = plt.plot()
@@ -296,47 +337,6 @@ for run in range(1):
     plt.subplot(3,2,6)
     plt.hist([rr['Inliers']['Pearson']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
     
-    #%%
-    # What do our prediction curves look like with the final model?
-    #_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=False)
-    
-    #%%
-    # Here, we start moving into the AUC-PRC analysis of our model
-    # Now we apply this model to the validation set to see what's what
-    #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
-    aucs = []
-    null_distr = []
-    _ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','905','906','907','908'])
-    
-    
-    
-    #%%
-    #Here we're going to do iterations of randomness
-    n_iterations = 100
-    if n_iterations > 1: plot_algos = False
-    aucs = []
-    null_distr = []
-    auc_curves = []
-    oracle_distr = []
-    au_rocs = []
-    roc_curve_list = []
-    for ii in range(n_iterations):
-        analysis.Model['RANDOM']['Model'].coef_ = np.random.uniform(-0.04,0.04,size=(1,10));
-        #First, we'll do a simplified binary sens/spec vs the HDRS17
-        ss_rocs,roc_curves = analysis.binary_classif(method='FINAL',do_detrend='Block',randomize=0.6,do_pts = ['901','903','905','906','907','908'])
-        au_rocs.append(ss_rocs)
-        roc_curve_list.append(roc_curves)
-        
-        #Model validation below does it against the actual stimulation changes; need PR-AUC due to gross imbalance in stim changes
-        algo_list,null_algo,_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',do_plots=plot_algos,randomize=0.6,do_pts=['901','903','905','906','907','908']);
-        aucs.append(algo_list[0])
-        auc_curves.append(algo_list[1])
-        null_distr.append(null_algo[0])
-        oracle_distr.append(null_algo[1])
-        #Here, we need to do a sens/spec or prec/recall analysis for each iteration
-        
-        
-    aucs = np.array(aucs)
 
 #%%
 # Plot a histogram of our AU-ROCs
