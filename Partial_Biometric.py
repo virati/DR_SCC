@@ -16,6 +16,7 @@ from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 # General python libraries
 import scipy.signal as sig
 import numpy as np
+from scipy import interp
 
 # Plotting Libraries
 import matplotlib.pyplot as plt
@@ -336,10 +337,37 @@ for run in range(1):
         
         
     aucs = np.array(aucs)
-    
+
 #%%
-# Need to do our AU-ROC plotting here
+# Plot a histogram of our AU-ROCs
 plt.figure()
+plt.hist(au_rocs)
+
+#%%
+
+# Need to do our AU-ROC plotting here
+
+fig,ax = plt.subplots()
+mean_fpr = np.linspace(0,1,100)
+interp_tpr = []
+for aa in roc_curve_list:
+    interp_tpr_individ = interp(mean_fpr,aa[0],aa[1])
+    interp_tpr_individ[0] = 0
+    interp_tpr.append(interp_tpr_individ)
+    
+mean_tpr = np.mean(interp_tpr,axis=0)
+std_tpr = np.std(interp_tpr,axis=0)
+
+tprs_upper = np.minimum(mean_tpr + std_tpr,1)
+tprs_lower = np.maximum(mean_tpr - std_tpr,0)
+
+ax.plot(mean_fpr,mean_tpr)
+ax.fill_between(mean_fpr,tprs_lower,tprs_upper,alpha=0.2)
+ax.plot(mean_fpr,mean_fpr,linestyle='dotted')
+
+
+#%%
+# if we want to plot all the individual curves
 for aa in roc_curve_list:
     plt.plot(aa[0],aa[1],alpha=0.2)
     
@@ -348,68 +376,64 @@ avg_roc_curve_list = np.mean(matr_roc_curve_list,axis=0)
 plt.plot(avg_roc_curve_list[0],avg_roc_curve_list[1])
 plt.plot([0,1],[0,1])
 
-#%%
-plt.figure()
-plt.hist(au_rocs)
-    #
     
     
     #%%
     # Display the surrogate results
-    if 1:
-        plt.figure()
-        #plt.hist(aucs[:,2],label='Nulls')
-        #plt.hist(aucs[:,0],label='HDRS')
-        #plt.hist(aucs[:,1],label='Candidate')
-        #plt.hist(aucs[:,3],label='RandMod')
-        #plt.subplot(2,1,1)
-        
-        #plt.hist(aucs[:,2:4],stacked=False,color=['green','purple'],label=['Null','RandM'],bins=bins)
-        bins = np.linspace(0,0.5,25)
-        plt.hist(aucs[:,2],stacked=False,color=['purple'],label=['CoinFlip Null'],bins=bins)
-        plt.hist(null_distr,stacked=False,color=['green'],label=['Sparse Null'],bins=bins)
-        plt.hist(oracle_distr,stacked=False,color=['orange'],label=['Oracle'],bins=bins)
-        plt.xlim((0,0.5))
-        
-        line_height = 600
-        
-        plt.vlines(np.median(aucs[:,0]),0,line_height,color='red',label='HDRS',linewidth=5)
-        hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
-        plt.hlines(line_height,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
-        
-        plt.vlines(np.median(aucs[:,1]),0,line_height,color='blue',label='Candidate')
-        cb_sem = np.sqrt(np.var(aucs[:,1])) / np.sqrt(n_iterations)
-        plt.hlines(line_height,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
-        
-        #plt.vlines(np.median(aucs[:,4]),0,line_height,color='yellow',label='Proposed')
-        #pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
-        #plt.hlines(20,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
-        
-        #plt.vlines(np.median(aucs[:,5]),0,line_height,color='cyan',label='CenterOff')
-        #co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
-        #plt.hlines(20,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
-        
-        #How many above?
-        phdrs = np.sum(aucs[:,2] > np.median(aucs[:,0])) / n_iterations # Our HDRS
-        pcb= np.sum(aucs[:,2] > np.median(aucs[:,1])) / n_iterations # our Candidate
-        #pmin = np.sum(aucs[:,2] > np.median(aucs[:,4])) / n_iterations
-        print('HDRS over coin flip' + str(phdrs))
-        print('Candidate over coin flip' + str(pcb))
-        
-        psparsehdrs = np.sum(null_distr > np.median(aucs[:,0])) / n_iterations
-        psparsecb = np.sum(null_distr> np.median(aucs[:,1])) / n_iterations 
-        #print(phdrs)
-        #print(pcb)
-        
-        print('HDRS over sparse' + str(psparsehdrs))
-        print('Candidate over sparse' + str(psparsecb))
+if 1:
+    plt.figure()
+    #plt.hist(aucs[:,2],label='Nulls')
+    #plt.hist(aucs[:,0],label='HDRS')
+    #plt.hist(aucs[:,1],label='Candidate')
+    #plt.hist(aucs[:,3],label='RandMod')
+    #plt.subplot(2,1,1)
     
-    aucs_from_run.append(aucs)
-    auc_curves_from_run.append(auc_curves)
+    #plt.hist(aucs[:,2:4],stacked=False,color=['green','purple'],label=['Null','RandM'],bins=bins)
+    bins = np.linspace(0,0.5,25)
+    plt.hist(aucs[:,2],stacked=False,color=['purple'],label=['CoinFlip Null'],bins=bins)
+    plt.hist(null_distr,stacked=False,color=['green'],label=['Sparse Null'],bins=bins)
+    plt.hist(oracle_distr,stacked=False,color=['orange'],label=['Oracle'],bins=bins)
+    plt.xlim((0,0.5))
     
-    null_distr_from_run.append(null_distr)
+    line_height = 600
     
-    plt.legend()
+    plt.vlines(np.median(aucs[:,0]),0,line_height,color='red',label='HDRS',linewidth=5)
+    hdrs_sem = np.sqrt(np.var(aucs[:,0])) / np.sqrt(n_iterations)
+    plt.hlines(line_height,np.median(aucs[:,0]) - hdrs_sem,np.median(aucs[:,0]) + hdrs_sem,color='red')
+    
+    plt.vlines(np.median(aucs[:,1]),0,line_height,color='blue',label='Candidate')
+    cb_sem = np.sqrt(np.var(aucs[:,1])) / np.sqrt(n_iterations)
+    plt.hlines(line_height,np.median(aucs[:,1]) - cb_sem,np.median(aucs[:,1]) + cb_sem,color='blue')
+    
+    #plt.vlines(np.median(aucs[:,4]),0,line_height,color='yellow',label='Proposed')
+    #pc_sem = np.sqrt(np.var(aucs[:,4])) / np.sqrt(n_iterations)
+    #plt.hlines(20,np.median(aucs[:,4]) - pc_sem,np.median(aucs[:,4]) + pc_sem,color='yellow')
+    
+    #plt.vlines(np.median(aucs[:,5]),0,line_height,color='cyan',label='CenterOff')
+    #co_sem = np.sqrt(np.var(aucs[:,5])) / np.sqrt(n_iterations)
+    #plt.hlines(20,np.median(aucs[:,5]) - co_sem,np.median(aucs[:,5]) + co_sem,color='cyan')
+    
+    #How many above?
+    phdrs = np.sum(aucs[:,2] > np.median(aucs[:,0])) / n_iterations # Our HDRS
+    pcb= np.sum(aucs[:,2] > np.median(aucs[:,1])) / n_iterations # our Candidate
+    #pmin = np.sum(aucs[:,2] > np.median(aucs[:,4])) / n_iterations
+    print('HDRS over coin flip' + str(phdrs))
+    print('Candidate over coin flip' + str(pcb))
+    
+    psparsehdrs = np.sum(null_distr > np.median(aucs[:,0])) / n_iterations
+    psparsecb = np.sum(null_distr> np.median(aucs[:,1])) / n_iterations 
+    #print(phdrs)
+    #print(pcb)
+    
+    print('HDRS over sparse' + str(psparsehdrs))
+    print('Candidate over sparse' + str(psparsecb))
+
+aucs_from_run.append(aucs)
+auc_curves_from_run.append(auc_curves)
+
+null_distr_from_run.append(null_distr)
+
+plt.legend()
 #%%
 import pickle
 with open('/tmp/AUCs.pickle','wb') as handle:
