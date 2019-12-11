@@ -41,7 +41,7 @@ import pdb
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
 # We need to split out the above one to have different training and testing sets
-do_pts = ['901','903','906','907','908'] # Which patients do we want to include in the training set?
+#do_pts = ['901','903','906','907','908'] # Which patients do we want to include in the training set?
 #do_pts = ['901']
 test_scale = 'HDRS17' # Which scale are we using as the measurement of the depression state?
 
