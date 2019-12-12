@@ -101,8 +101,9 @@ for run in range(1):
         summ_stats_runs[run] = analysis.Clinical_Summary(rmethod,plot_indiv=False,ranson=dorsac,doplot=False)
         #analysis.shuffle_summary('RIDGE')
     # Figures time
-        #%%
-    #summary stats
+        
+    #Here we're just plotting the TRAINING SET permutation stats, which is probably broken right now
+    # Save for later if we need to do it
     #this one plots the permutation based results
     plt.figure()
     plt.suptitle('Permutation')
@@ -307,7 +308,6 @@ for run in range(1):
         oracle_distr.append(null_algo[1])
         #Here, we need to do a sens/spec or prec/recall analysis for each iteration
         
-        
     aucs = np.array(aucs)
     
 #%%
@@ -323,6 +323,7 @@ for run in range(1):
     plt.subplot(3,2,2)
     plt.hist([rr['All']['Spearman']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
     print(np.median(sp_corrs))
+    plt.title('Spearman')
     
     pears_corrs = np.array([rr['All']['Pearson']['r'] for rr in corr_distr])
     plt.subplot(3,2,3)
@@ -330,13 +331,15 @@ for run in range(1):
     plt.subplot(3,2,4)
     plt.hist([rr['All']['Pearson']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
     print(np.median(pears_corrs))
+    plt.title('Pearson (all)')
     
     ransac_corrs = np.array([rr['Inliers']['Pearson']['r'] for rr in corr_distr])
     plt.subplot(3,2,5)
     plt.hist(ransac_corrs)
     plt.subplot(3,2,6)
     plt.hist([rr['Inliers']['Pearson']['p'] for rr in corr_distr],bins=np.linspace(0,1,100))
-    
+    plt.title('Pearson (inliers)')
+    plt.suptitle('Validation Performance')
 
 #%%
 # Plot a histogram of our AU-ROCs

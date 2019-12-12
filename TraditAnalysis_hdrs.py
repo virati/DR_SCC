@@ -111,7 +111,7 @@ for side in ['Left','Right']:
         depr_list.append(aggr_week_distr[ff]['depr'][side])
         notdepr_list.append(aggr_week_distr[ff]['notdepr'][side])
     
-#%%
+
 depr_list_flat = [item for sublist in depr_list for item in sublist]
 notdepr_list_flat = [item for sublist in notdepr_list for item in sublist]
 
