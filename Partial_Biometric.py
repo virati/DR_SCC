@@ -255,17 +255,6 @@ for run in range(1):
         plt.xlim((-0.1,4.1))
         plt.hlines(0,0,5)
     
-    
-    
-    #%%
-    # Now we have our final model
-    # Let's run on in random subsamples of our validation set
-    # The goal of this is to get a confidence interval on the regression line
-    corr_distr = []
-    for ii in range(1):
-         _,_,corrs = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=False,show_clin=True,do_pts=['901','903','905','906','907','908'])
-         corr_distr.append(corrs)
-    
     #%%
     # What do our prediction curves look like with the final model?
     #_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=False)
