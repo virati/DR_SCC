@@ -56,7 +56,6 @@ do_detrend = 'Block'
 rmethod = 'ENR_Osc'
     
 
-
 #%% Initial
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=True)
@@ -362,12 +361,6 @@ ax.plot(mean_fpr,mean_fpr,linestyle='dotted')
 # if we want to plot all the individual curves
 for aa in roc_curve_list:
     plt.plot(aa[0],aa[1],alpha=0.2)
-    
-matr_roc_curve_list = np.array(np.array(roc_curve_list))
-avg_roc_curve_list = np.mean(matr_roc_curve_list,axis=0)
-plt.plot(avg_roc_curve_list[0],avg_roc_curve_list[1])
-plt.plot([0,1],[0,1])
-
     
     
     #%%
