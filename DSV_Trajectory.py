@@ -4,22 +4,23 @@
 Created on Wed May 23 21:16:13 2018
 
 @author: virati
+Plot the 2d trajectory of the DSV signal across all patients
 """
 
-import BR_DataFrame as BRDF
-#from BR_DataFrame import *
-from ClinVect import CFrame
+from DBSpace.readout.ClinVect import CFrame
 import scipy.signal as sig
 import numpy as np
 import matplotlib.pyplot as plt
 plt.close('all')
 
 import itertools
-from DSV import DSV, ORegress
+from DBSpace.readout import DSV
+from DBSpace.readout.DSV import DSV, ORegress
+from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 
 import sys
 sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/DBSpace/')
-import DBS_Osc as dbo
+import DBSpace as dbo
 
 import seaborn as sns
 sns.set_context('paper')
@@ -27,16 +28,19 @@ sns.set(font_scale=4)
 sns.set_style("white")
 
 from scipy.interpolate import interp1d
+import pickle
 
 
 ClinFrame = CFrame(norm_scales=True)
 #ClinFrame.plot_scale(pts='all',scale='HDRS17')
 #ClinFrame.plot_scale(pts=['901'],scale='MADRS')
 
-BRFrame = BRDF.BR_Data_Tree()
-BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
+#BRFrame = BRDF.BR_Data_Tree()
+#BRFrame.full_sequence(data_path='/home/virati/Chronic_Frame_july.npy')
 #BRFrame.full_sequence(data_path='/tmp/Chronic_Frame_DEF.npy')
-BRFrame.check_empty_phases()
+#BRFrame.check_empty_phases()
+
+BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
 analysis = ORegress(BRFrame,ClinFrame)
 analysis.O_feat_extract()
