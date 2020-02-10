@@ -12,5 +12,7 @@ There's got to be some signal measurable in the brain that can tell us how bad t
 ![](imgs/A2_overview.png)
 In this project, my goal was to use patient recordings captured over months of therapy to decode the severity of their depression, or their *depression state*.
 
+
+## Methods
 ![](imgs/A2_SysDiag.png)
 
