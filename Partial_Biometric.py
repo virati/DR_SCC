@@ -25,7 +25,7 @@ import seaborn as sns
 plt.close('all')
 sns.set_context('paper')
 sns.set_style('white')
-sns.set(font_scale=4)
+sns.set(font_scale=1)
 
 # Misc libraries
 import copy
@@ -58,7 +58,7 @@ rmethod = 'ENR_Osc'
 
 #%% Initial
 # Now we set up our DBSpace environment
-ClinFrame = ClinVect.CFrame(norm_scales=True)
+ClinFrame = ClinVect.CFrame(norm_scales=False)
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 

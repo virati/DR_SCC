@@ -67,7 +67,7 @@ BRFrame.check_meta()
 #Move forward with traditional oscillatory band analysis
 from OBands import *
 feat_frame = OBands(BRFrame)
-feat_frame.feat_extract(do_corrections=True)
+feat_frame.feat_extract(do_corrections=False)
 
 
 #main_readout = naive_readout(feat_frame,ClinFrame)
