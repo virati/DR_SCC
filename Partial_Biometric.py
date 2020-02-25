@@ -60,7 +60,7 @@ rmethod = 'ENR_Osc'
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=False)
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
-BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
+BRFrame = pickle.load(open('/home/virati/Chronic_FrameFeb2020.pickle',"rb"))
 
 # This sets up the regression
 aucs_from_run = []
