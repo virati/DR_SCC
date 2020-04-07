@@ -52,13 +52,13 @@ None does not do this
 All does a linear detrend across all concatenated observations. This is dumb and should not be done. Will eliminate this since it makes no sense
 '''
 
-do_detrend = 'None' 
+do_detrend = 'Block' 
 rmethod = 'ENR_Osc'
     
 
 #%% Initial
 # Now we set up our DBSpace environment
-ClinFrame = ClinVect.CFrame(norm_scales=False)
+ClinFrame = ClinVect.CFrame(norm_scales=True)
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
