@@ -32,7 +32,7 @@ import copy
 import itertools
 import scipy.stats as stats
 import pickle
-#%%
+
 #Debugging
 import ipdb
 
@@ -52,7 +52,7 @@ None does not do this
 All does a linear detrend across all concatenated observations. This is dumb and should not be done. Will eliminate this since it makes no sense
 '''
 
-do_detrend = 'Block' 
+do_detrend = 'None' 
 rmethod = 'ENR_Osc'
     
 
@@ -60,8 +60,10 @@ rmethod = 'ENR_Osc'
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=False)
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
-BRFrame = pickle.load(open('/home/virati/Chronic_FrameFeb2020.pickle',"rb"))
+BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
+
+#%%
 # This sets up the regression
 aucs_from_run = []
 auc_curves_from_run = []
