@@ -11,10 +11,12 @@ File for patient specific readout
 #DBSpace libraries and sublibraries here
 from DBSpace.readout import BR_DataFrame as BRDF
 from DBSpace.readout import ClinVect, DSV
+from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 
 # General python libraries
 import scipy.signal as sig
 import numpy as np
+import pickle
 
 # Plotting Libraries
 import matplotlib.pyplot as plt
@@ -30,9 +32,10 @@ test_scale = 'HDRS17'
 do_detrend = 'None'
 
 #%%
-# Now we set up our DBSpace environment
+
 ClinFrame = ClinVect.CFrame(norm_scales=True)
-BRFrame = BRDF.BR_Data_Tree(intermediate_file='Chronic_Frame.npy')
+#BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
+BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
 # The below has been folded into the class
 # Run our main sequence for populating the BRFrame
@@ -47,7 +50,7 @@ analysis = DSV.ORegress(BRFrame,ClinFrame)
 
 #%%
 
-model = 'OLSnite'
+model = 'ENR_Osc'
 for pt in ['901','903','905','906','907','908']:
     print('Patient ' + pt + ' specific model')
 
