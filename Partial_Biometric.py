@@ -165,7 +165,8 @@ for run in range(1):
     
     
     #%%
-        
+    corr_measure='PearsCorr'
+    models_perf = np.array([cc[corr_measure][0] for cc in summ_stats_runs])   
     def plot_corr(corr_measure='PearsCorr'):
         plt.figure()
         
@@ -183,7 +184,7 @@ for run in range(1):
         #Select the final model
         ## THIS ONE PLOTS OUR SPEARMAN CORR
         plt.figure()
-        models_perf = np.array([cc[corr_measure][0] for cc in summ_stats_runs])
+
         plt.plot(np.arange(len(all_model_pairs)),models_perf)
         plt.xticks(np.arange(len(all_model_pairs)),all_model_pairs,rotation=90)
         plt.suptitle(corr_measure)
@@ -194,24 +195,25 @@ for run in range(1):
     #This selects if we want to choose the best model out of our CV folds
     # This is not a good option, for various reasons
     
-    choose_best = False
-    if choose_best:
+    choose_best = 0
+    if choose_best == 0:
         #which one has max performance?
-        #idx_max = np.argmax(models_perf)
-        #max_perf = models_perf[idx_max]
-        #best_model = all_model_pairs[idx_max]
+        idx_max = np.nanargmax(models_perf)
+        max_perf = models_perf[idx_max]
+        best_model = all_model_pairs[idx_max]
+
+
         for run,pt_pair in enumerate([best_model]):
             print(pt_pair)
             analysis.O_regress(method=rmethod,doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=pt_pair)
             coeff_runs[run] = analysis.O_models(plot=False,models=[rmethod])
             summ_stats_runs[run] = analysis.Clinical_Summary(rmethod,plot_indiv=False,ranson=dorsac,doplot=False)
         
-        
         analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model[rmethod]['Model'])
         analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model[rmethod]['Model'])
         #analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
     
-    else:
+    elif choose_best == 1:
         analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model[rmethod]['Model'])
         analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model[rmethod]['Model'])
          
@@ -228,7 +230,17 @@ for run in range(1):
         
         analysis.Model['FINAL']['Model'].coef_ = np.hstack((mean_left,mean_right))
         #analysis.Model['FINAL']['Model'].coef_ = np.array([0.1,0,2,0.3,0,4wilcoxon,0.1,0.2,-0.3,0.1])
+    elif choose_best == 2:
+        coeff_left = coeff_runs[idx_max]['Left']
+        coeff_right = coeff_runs[idx_max]['Right']
         
+        analysis.Model['FINAL']['Model'].coef_ = np.hstack((coeff_left,coeff_right))
+    elif choose_best == 3:
+        coeff_left = np.array([0.0,0.0,0.0,0.0,0.0])
+        coeff_right = np.array([0.0,0.0,0.0,0.0,0.0])
+        
+        analysis.Model['FINAL']['Model'].coef_ = np.hstack((coeff_left,coeff_right))
+
     #plt.figure()
     #plt.plot(mean_left)
     #plt.plot(mean_right)
