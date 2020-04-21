@@ -194,8 +194,8 @@ plot_corr('SpearCorr')
 #This selects if we want to choose the best model out of our CV folds
 # This is not a good option, for various reasons
 
-choose_best = 1
-if choose_best == 0:
+choose_best = 'mean'
+if choose_best == 'retrain':
     #which one has max performance?
     idx_max = np.nanargmax(models_perf)
     max_perf = models_perf[idx_max]
@@ -211,7 +211,7 @@ if choose_best == 0:
     analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model[rmethod]['Model'])
     #analysis.O_regress(method='RIDGE',doplot=False,avgweeks=True,ignore_flags=False,circ='day',scale=test_scale,lindetrend=do_detrend,train_pts=['903','906','907'],finalWrite=True)
 
-elif choose_best == 1:
+elif choose_best == 'mean':
     analysis.Model['FINAL']['Model'] =  copy.deepcopy(analysis.Model[rmethod]['Model'])
     analysis.Model['RANDOM']['Model'] = copy.deepcopy(analysis.Model[rmethod]['Model'])
      
@@ -228,12 +228,12 @@ elif choose_best == 1:
     
     analysis.Model['FINAL']['Model'].coef_ = np.hstack((mean_left,mean_right))
     #analysis.Model['FINAL']['Model'].coef_ = np.array([0.1,0,2,0.3,0,4wilcoxon,0.1,0.2,-0.3,0.1])
-elif choose_best == 2:
+elif choose_best == 'best':
     coeff_left = coeff_runs[idx_max]['Left']
     coeff_right = coeff_runs[idx_max]['Right']
     
     analysis.Model['FINAL']['Model'].coef_ = np.hstack((coeff_left,coeff_right))
-elif choose_best == 3:
+elif choose_best == 'zero':
     coeff_left = np.array([0.0,0.0,0.0,0.0,0.0])
     coeff_right = np.array([0.0,0.0,0.0,0.0,0.0])
     
