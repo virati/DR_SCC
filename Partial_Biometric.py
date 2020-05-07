@@ -276,7 +276,7 @@ if 0:
 #We should have a model right now. Now we're going to do a final validation set on ALL PATIENTS using the held out validation set
 aucs = []
 null_distr = []
-_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','905','906','907','908'])
+_ = analysis.Model_Validation(method='FINAL',do_detrend='Block',randomize=0.7,do_plots=True,show_clin=True,do_pts=['901','903','905','906','907','908']) #THIS IS WHAT GIVES THE PATIENT GRAPHS
 
 
 
