@@ -4,7 +4,7 @@
 Created on Tue Apr 21 09:32:00 2020
 
 @author: virati
-This is the script that runs the 'standard' SCC Readout training and testing.
+This is the script that runs the patient-CV SCC Readout training and testing.
 """
 
 from DBSpace.readout import BR_DataFrame as BRDF
@@ -13,12 +13,11 @@ from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 
 # Misc libraries
 import copy
-import itertools
 import pickle
+
 
 #Debugging
 import ipdb
-
 
 #
 ## MAJOR PARAMETERS for our partial biometric analysis
@@ -43,14 +42,15 @@ ClinFrame = ClinVect.CStruct()
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
 #%%
-main_readout = decoder.weekly_decoder(BRFrame,ClinFrame,pts=do_pts,clin_measure=test_scale)
+main_readout = decoder.weekly_decoderCV(BRFrame,ClinFrame,pts=do_pts,clin_measure=test_scale)
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)
 
 #%%
 main_readout.train_setup()
 main_readout.train_model()
-main_readout.plot_decode_coeffs(main_readout.decode_model)
+main_readout.plot_decode_CV()
+
 #%%
 main_readout.test_setup()
 main_readout.test_model()
