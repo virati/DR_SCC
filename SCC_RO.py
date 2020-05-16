@@ -19,13 +19,13 @@ import pickle
 import ipdb
 
 
-#%%
+#
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
 # We need to split out the above one to have different training and testing sets
 #do_pts = ['901','903','906','907','908'] # Which patients do we want to include in the training set?
 #do_pts = ['901']
-test_scale = 'HDRS17' # Which scale are we using as the measurement of the depression state?
+test_scale = 'pHDRS17' # Which scale are we using as the measurement of the depression state?
 
 ''' DETRENDING
 Which detrending scheme are we doing
@@ -34,17 +34,21 @@ None does not do this
 All does a linear detrend across all concatenated observations. This is dumb and should not be done. Will eliminate this since it makes no sense
 '''
 
-#%% Initial
+# Initial
 # Now we set up our DBSpace environment
-ClinFrame = ClinVect.CFrame(norm_scales=True)
+#ClinFrame = ClinVect.CFrame(norm_scales=True)
+ClinFrame = ClinVect.CStruct()
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
 #%%
-main_readout = decoder.RO(BRFrame,ClinFrame,pts=do_pts)
+main_readout = decoder.weekly_decoder(BRFrame,ClinFrame,pts=do_pts,clin_measure=test_scale)
 main_readout.filter_recs(rec_class='main_study')
-main_readout.split_validation_set(0.6)
+main_readout.split_train_set(0.6)
 
 #%%
-# Go through an calculate the oscillatory state for all recordings
-main_readout.train_set_x = main_readout.calculate_oscillatory_states(main_readout.train_set)
+main_readout.train_setup()
+main_readout.train_model()
+
+main_readout.test_setup()
+main_readout.test_model()
