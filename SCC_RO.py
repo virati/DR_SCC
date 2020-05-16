@@ -7,27 +7,12 @@ Created on Tue Apr 21 09:32:00 2020
 """
 
 from DBSpace.readout import BR_DataFrame as BRDF
-from DBSpace.readout import ClinVect, DSV
+from DBSpace.readout import ClinVect, decoder
 from DBSpace.readout.BR_DataFrame import BR_Data_Tree
-
-# General python libraries
-import scipy.signal as sig
-import numpy as np
-from scipy import interp
-
-# Plotting Libraries
-import matplotlib.pyplot as plt
-import seaborn as sns
-#Do some cleanup of the plotting space
-plt.close('all')
-sns.set_context('paper')
-sns.set_style('white')
-sns.set(font_scale=1)
 
 # Misc libraries
 import copy
 import itertools
-import scipy.stats as stats
 import pickle
 
 #Debugging
@@ -49,10 +34,6 @@ None does not do this
 All does a linear detrend across all concatenated observations. This is dumb and should not be done. Will eliminate this since it makes no sense
 '''
 
-do_detrend = 'Block' 
-rmethod = 'ENR_Osc'
-    
-
 #%% Initial
 # Now we set up our DBSpace environment
 ClinFrame = ClinVect.CFrame(norm_scales=True)
@@ -60,6 +41,10 @@ ClinFrame = ClinVect.CFrame(norm_scales=True)
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
 #%%
-main_readout = DSV.RO(BRFrame,ClinFrame,pts=do_pts)
+main_readout = decoder.RO(BRFrame,ClinFrame,pts=do_pts)
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_validation_set(0.6)
+
+#%%
+# Go through an calculate the oscillatory state for all recordings
+main_readout.train_set_x = main_readout.calculate_oscillatory_states(main_readout.train_set)

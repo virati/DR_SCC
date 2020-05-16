@@ -52,7 +52,7 @@ None does not do this
 All does a linear detrend across all concatenated observations. This is dumb and should not be done. Will eliminate this since it makes no sense
 '''
 
-do_detrend = 'Block' 
+do_detrend = 'None' 
 rmethod = 'ENR_Osc'
     
 
@@ -132,25 +132,30 @@ def plot_coeffs(left_coeffs,right_coeffs):
     plt.figure()
     plt.subplot(1,2,1)
     plt.plot(np.mean(left_coeffs,axis=0))
-    sns.violinplot(data=left_coeffs,scale='width')
+    
+    vp_obj = sns.violinplot(data=left_coeffs,scale='width')
+    plt.setp(vp_obj.collections,alpha=0.3)
+            
     for bb in range(5):
         plt.scatter(bb*np.ones((num_pairs)),left_coeffs[:,bb],alpha=0.5,s=200)
         ks_res = stats.wilcoxon(left_coeffs[:,bb])
         print(ks_res)
     
-    plt.ylim((-0.05,0.05))
+    plt.ylim((-1,1))
     plt.xlim((-0.5,4.5))
     plt.hlines(0,0,5)
     print('\n\n')
     plt.subplot(1,2,2)
     plt.plot(np.mean(right_coeffs,axis=0))
-    sns.violinplot(data=right_coeffs,scale='width')
+    vp_obj = sns.violinplot(data=right_coeffs,scale='width')
+    plt.setp(vp_obj.collections,alpha=0.3)
+    
     for bb in range(5):
         plt.scatter(bb*np.ones((num_pairs)),right_coeffs[:,bb],alpha=0.5,s=200)
         ks_res = stats.wilcoxon(right_coeffs[:,bb])
         print(ks_res)
     
-    plt.ylim((-0.05,0.05))
+    plt.ylim((-1,1))
     plt.xlim((-0.5,4.5))
     plt.hlines(0,0,5)
     plt.suptitle('Mean Coefficients')
