@@ -53,4 +53,8 @@ main_readout.test_setup()
 main_readout.test_model()
 #%%
 main_readout.plot_test_stats()
+#%%
 main_readout.plot_test_regression_figure()
+
+#%%
+# Now we move on to the classifier analysis
