@@ -21,6 +21,7 @@ import ipdb
 
 import matplotlib.pyplot as plt
 plt.rcParams['image.cmap'] = 'tab10'
+plt.close('all')
 
 #
 ## MAJOR PARAMETERS for our partial biometric analysis
@@ -55,11 +56,12 @@ main_readout.plot_decode_CV()
 #%%
 main_readout.test_setup()
 main_readout.test_model()
-#%%
+#%%0
 main_readout.plot_test_stats()
 #%%
 main_readout.plot_test_regression_figure()
-main_readout.plot_combo_paths()
+#main_readout.plot_combo_paths()
+main_readout._path_slope_regression()
 #%%
 # Now we move on to the classifier analysis
 threshold_c = controller_analysis(main_readout)
