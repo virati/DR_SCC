@@ -16,6 +16,7 @@ from DBSpace import nestdict
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.rcParams['text.usetex'] = True
+import numpy as np
 
 # Misc libraries
 import copy
@@ -24,7 +25,7 @@ import pickle
 
 #Debugging
 import ipdb
-#%%
+
 ## MAJOR PARAMETERS for our partial biometric analysis
 test_scale = 'pHDRS17' # Which scale are we using as the measurement of the depression state?
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
@@ -42,27 +43,20 @@ All does a linear detrend across all concatenated observations. This is dumb and
 ClinFrame = ClinVect.CStruct()
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
+do_shuffled_null = False
 
-#%%
 pt_coeff = nestdict()
 for do_pt in do_pts:
     main_readout = decoder.base_decoder(BRFrame = BRFrame,ClinFrame = ClinFrame,pts=do_pt,clin_measure=test_scale)
     main_readout.filter_recs(rec_class='main_study')
     main_readout.split_train_set(0.6)
     
-    main_readout.train_setup()
-    main_readout.train_model()
+    null_slopes = main_readout.model_analysis(do_null=True,n_iter=100)
+    main_slope = main_readout.model_analysis()
     
-    main_readout.test_setup()
-    _, stats = main_readout.test_model()
-    print(stats)
-    pt_coeff[do_pt] = main_readout.get_coeffs()
-    #main_readout.plot_test_stats()
-    #main_readout.plot_test_stats()
-    #main_readout.plot_test_regression_figure()
-    #main_readout.plot_test_ensemble()
-    #plt.suptitle(do_pt)
-#%%
+    print(np.sum(null_slopes > main_slope[0])/100)
+    
+    pt_coeff[do_pt] = main_readout.decode_model.coef_
 
 # Plot all the coeffs
 plt.figure()

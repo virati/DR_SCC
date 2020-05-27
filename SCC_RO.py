@@ -16,6 +16,9 @@ import copy
 import itertools
 import pickle
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 #Debugging
 import ipdb
 
@@ -43,14 +46,18 @@ ClinFrame = ClinVect.CStruct()
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 
 #%%
-main_readout = decoder.weekly_decoder(BRFrame,ClinFrame,pts=do_pts,clin_measure=test_scale)
+main_readout = decoder.weekly_decoder(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR_all')
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)
 
 #%%
 main_readout.train_setup()
 main_readout.train_model()
-main_readout.plot_decode_coeffs(main_readout.decode_model)
 #%%
 main_readout.test_setup()
-main_readout.test_model()
+_,stats = main_readout.test_model()
+print(stats)
+#%%
+main_readout.plot_coeff_sig_path(do_plot=True)
+main_readout.plot_test_predictions()
+main_readout.plot_decode_coeffs(main_readout.decode_model)

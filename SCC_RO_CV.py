@@ -58,3 +58,4 @@ main_readout.plot_test_regression_figure()
 
 #%%
 # Now we move on to the classifier analysis
+threshold_c = controller_analysis(main_readout)
