@@ -19,6 +19,9 @@ import pickle
 #Debugging
 import ipdb
 
+import matplotlib.pyplot as plt
+plt.rcParams['image.cmap'] = 'tab10'
+
 #
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
@@ -46,6 +49,7 @@ main_readout.split_train_set(0.6)
 #%%
 main_readout.train_setup()
 main_readout.train_model()
+#%%
 main_readout.plot_decode_CV()
 
 #%%
@@ -55,7 +59,7 @@ main_readout.test_model()
 main_readout.plot_test_stats()
 #%%
 main_readout.plot_test_regression_figure()
-
+main_readout.plot_combo_paths()
 #%%
 # Now we move on to the classifier analysis
 threshold_c = controller_analysis(main_readout)
