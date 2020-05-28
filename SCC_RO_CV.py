@@ -9,6 +9,7 @@ This is the script that runs the patient-CV SCC Readout training and testing.
 
 from DBSpace.readout import BR_DataFrame as BRDF
 from DBSpace.readout import ClinVect, decoder
+from DBSpace.readout import decoder as decoder
 from DBSpace.readout.BR_DataFrame import BR_Data_Tree
 
 # Misc libraries
@@ -64,4 +65,5 @@ main_readout.plot_test_regression_figure()
 main_readout._path_slope_regression()
 #%%
 # Now we move on to the classifier analysis
-threshold_c = controller_analysis(main_readout)
+threshold_c = decoder.controller_analysis(main_readout)
+threshold_c.classif_runs()
