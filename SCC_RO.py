@@ -58,6 +58,7 @@ main_readout.test_setup()
 _,stats = main_readout.test_model()
 print(stats)
 #%%
-main_readout.plot_coeff_sig_path(do_plot=True)
+#main_readout.plot_coeff_sig_path(do_plot=True)
 main_readout.plot_test_predictions()
 main_readout.plot_decode_coeffs(main_readout.decode_model)
+main_readout._path_slope_regression()
