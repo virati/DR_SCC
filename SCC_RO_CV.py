@@ -27,7 +27,7 @@ plt.close('all')
 
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
-test_scale = 'pHDRS17' # Which scale are we using as the measurement of the depression state?
+test_scale = 'pHDRS17' # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 # Initial
 # Now we set up our DBSpace environment
