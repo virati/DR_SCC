@@ -159,6 +159,8 @@ plt.hlines(0.005,0,10)
 plt.hlines(0.05,0,10,linestyle='dotted')
         
 #%%
+
+''' We plot the grids here'''
 plt.figure()
 plt.pcolormesh(change_grid,cmap=plt.cm.get_cmap('viridis'))
 plt.colorbar()
