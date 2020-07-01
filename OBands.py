@@ -168,7 +168,7 @@ class OBands:
                     feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis['F'],dofunc['param'])
                 else:
                     pre_correction = {ch: rr['Data'][ch] for ch in rr['Data'].keys()}
-                    datacontainer,_ = dbo.poly_subtr(pre_correction,self.BRFrame.data_basis['F'])
+                    datacontainer,_ = dbo.poly_subtrEEG(pre_correction,self.BRFrame.data_basis['F'])
                     feat_dict[featname] = dofunc['fn'](datacontainer,self.BRFrame.data_basis['F'],dofunc['param'])
                     
             rr.update({'FeatVect':feat_dict})
