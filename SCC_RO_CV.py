@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Apr 21 09:32:00 2020
-
+asdf
 @author: virati
 This is the script that runs the patient-CV SCC Readout training and testing.
 """
