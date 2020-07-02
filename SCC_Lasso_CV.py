@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Apr 21 09:32:00 2020
-asdf
+Created on Thu Jul  2 13:20:52 2020
+
 @author: virati
-This is the script that runs the patient-CV SCC Readout training and testing.
 """
 
 from DBSpace.readout import BR_DataFrame as BRDF
@@ -27,22 +26,17 @@ plt.close('all')
 
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
-test_scale = 'DSC' # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
+test_scale = 'pHDRS17' # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 # Initial
 # Now we set up our DBSpace environment
 #ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
-if test_scale == 'mHDRS':
-    ClinFrame.gen_mHDRS()
-elif test_scale == 'DSC':
-    ClinFrame.gen_DSC()
-    
 #BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
 
 #%%
-main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False) #main analysis is -3.4
+main_readout = decoder.weakly_decoderCV_Lasso(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False) #main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)
@@ -51,7 +45,6 @@ main_readout.split_train_set(0.6)
 main_readout.train_setup()
 optimal_alpha = main_readout._path_slope_regression()
 main_readout.train_model()
-
 #%%
 main_readout.plot_decode_CV()
 
