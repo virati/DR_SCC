@@ -30,13 +30,13 @@ ClinFrame = ClinVect.CFrame(norm_scales=True)
 
 BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
 #%%
-analysis = DSV.DSV(BRFrame,ClinFrame,lim_freq=100,use_scale='HDRS17')
+analysis = DSV.DSV(BRFrame,ClinFrame,lim_freq=40,use_scale='HDRS17')
 
-ENet_params = {'Alpha':(0.1,0.2),'Lambda':(0.5,0.6)}
+ENet_params = {'Alpha':(5,6),'Lambda':(0.9)}
 
 #%%
 analysis.run_EN(alpha_list=
-                np.linspace(0.1,0.5,100))
+                np.linspace(50,60,100))
 analysis.plot_EN_coeffs()
 #%%
 #aanalysis.plot_dsgn_matrix()

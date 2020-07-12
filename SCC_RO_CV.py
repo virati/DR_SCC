@@ -27,7 +27,7 @@ plt.close('all')
 
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
-test_scale = 'DSC' # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
+test_scale = 'pHDRS17' # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 # Initial
 # Now we set up our DBSpace environment
@@ -67,5 +67,5 @@ main_readout.plot_test_regression_figure()
 #main_readout.plot_combo_paths()
 #%%
 # Now we move on to the classifier analysis
-threshold_c = decoder.controller_analysis(main_readout,bin_type='threshold')
+threshold_c = decoder.controller_analysis(main_readout,bin_type='stim_changes')
 threshold_c.classif_runs()

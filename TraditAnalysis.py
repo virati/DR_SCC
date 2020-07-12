@@ -44,7 +44,7 @@ BRFrame.check_meta()
 #Move forward with traditional oscillatory band analysis
 from OBands import *
 analysis = OBands(BRFrame)
-analysis.feat_extract(do_corrections=True)
+analysis.feat_extract(do_corrections=False)
 
 ##PLOTS
 
@@ -54,6 +54,7 @@ analysis.feat_extract(do_corrections=True)
 #First thing is the per-patient weekly averages plotted for left and right
 #_ = analysis.mean_psds(weeks=["C01","C24"],patients='all')
 
+do_weeks = ["B04","C24"]
 
 #%%
 # Do comparison of two timepoints here
@@ -69,15 +70,15 @@ week_distr = nestdict()
 for pt in pts:
     for ff in bands:
         print('Computing ' + ' ' + ff)
-        _,ks_stats[pt][ff],week_distr[pt][ff] =analysis.scatter_state(weeks=["C01","C24"],pt=pt,feat=ff,circ=circ,plot=False,plot_type='scatter',stat='ks')
+        _,ks_stats[pt][ff],week_distr[pt][ff] =analysis.scatter_state(weeks=do_weeks,pt=pt,feat=ff,circ=circ,plot=False,plot_type='scatter',stat='ks')
         #plt.title('Plotting feature ' + ff)
     #analysis.scatter_state(week=['C01','C23'],pt='all',feat='Alpha',circ='night',plot_type='boxplot')
 
 # Make our big stats 2d grid for all features across all patients
 K_stats = np.array([[[ks_stats[pt][band][side][0] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 P_val = np.array([[[ks_stats[pt][band][side][1] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
-pre_feat_vals = np.array([[[week_distr[pt][band][side]['C01'] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
-post_feat_vals = np.array([[[week_distr[pt][band][side]['C24'] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 #%%
     
 def get_distr_change(patient,band,plot=True):
@@ -91,6 +92,8 @@ def get_distr_change(patient,band,plot=True):
 
     return (np.mean(post_feat_vals[pp,ff]) - np.mean(pre_feat_vals[pp,ff]))
 
+
+#%%
 change_grid = np.zeros((len(pts),len(all_feats)))
 for pp,pt in enumerate(pts):
     for ff,freq in enumerate(all_feats):
@@ -112,8 +115,8 @@ def all_ensemble_change(plot=True):
         plt.figure()
         ax = sns.violinplot(data=pre_flat_list,color='blue')
         ax = sns.violinplot(data=post_flat_list,color='red',alpha=0.3)
-        
-        
+        plt.legend(do_weeks)
+        plt.suptitle(do_weeks)
         plt.setp(ax.collections,alpha=0.3)
 
 all_ensemble_change()
@@ -166,7 +169,7 @@ plt.pcolormesh(change_grid,cmap=plt.cm.get_cmap('viridis'))
 plt.colorbar()
 plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
 plt.yticks(np.arange(6)+0.5,pts)
-plt.title('Band Change over Timepoints')
+plt.title('Band Change over Timepoints: ' + str(do_weeks))
 
 ax = plt.axes()
 
