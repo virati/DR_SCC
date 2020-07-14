@@ -49,7 +49,7 @@ main_readout.split_train_set(0.6)
 
 #%%
 main_readout.train_setup()
-optimal_alpha = main_readout._path_slope_regression()
+optimal_alpha = main_readout._path_slope_regression(suppress_vars=0.6) #suppress_vars = 1 works well if we're not doing THarm analysis
 main_readout.train_model()
 
 #%%
@@ -67,5 +67,5 @@ main_readout.plot_test_regression_figure()
 #main_readout.plot_combo_paths()
 #%%
 # Now we move on to the classifier analysis
-threshold_c = decoder.controller_analysis(main_readout,bin_type='stim_changes')
+threshold_c = decoder.controller_analysis(main_readout,bin_type='threshold')#'stim_change')#'threshold')
 threshold_c.classif_runs()
