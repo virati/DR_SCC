@@ -47,7 +47,7 @@ do_shuffled_null = False
 #%%
 pt_coeff = nestdict()
 for do_pt in do_pts:
-    main_readout = decoder.base_decoder(BRFrame = BRFrame,ClinFrame = ClinFrame,pts=do_pt,clin_measure=test_scale)
+    main_readout = decoder.base_decoder(BRFrame = BRFrame,ClinFrame = ClinFrame,pts=do_pt,clin_measure=test_scale,shuffle_null=False,FeatureSet='main')
     main_readout.filter_recs(rec_class='main_study')
     main_readout.split_train_set(0.6)
     

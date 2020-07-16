@@ -22,7 +22,7 @@ import ipdb
 import matplotlib.pyplot as plt
 plt.rcParams['image.cmap'] = 'tab10'
 plt.close('all')
-
+#%%
 
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
@@ -36,7 +36,7 @@ ClinFrame = ClinVect.CStruct()
 BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
 
 #%%
-main_readout = decoder.weakly_decoderCV_Lasso(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False) #main analysis is -3.4
+main_readout = decoder.weakly_decoderCV_Lasso(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='main') #main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)
