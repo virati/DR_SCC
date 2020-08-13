@@ -33,7 +33,7 @@ from numpy import ndenumerate
 
 
 #%%
-BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
+BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
 #BRFrame.full_sequence(data_path='/home/virati/Dropbox/Chronic_Frame_June.npy')
 
 #do a check to see if any PSDs are entirely zero; bad sign
@@ -54,7 +54,7 @@ analysis.feat_extract(do_corrections=False)
 #First thing is the per-patient weekly averages plotted for left and right
 #_ = analysis.mean_psds(weeks=["C01","C24"],patients='all')
 
-do_weeks = ["B04","C24"]
+do_weeks = ["C01","C24"]
 
 #%%
 # Do comparison of two timepoints here
