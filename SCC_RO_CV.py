@@ -4,7 +4,7 @@
 Created on Tue Apr 21 09:32:00 2020
 asdf
 @author: virati
-This is the script that runs the patient-CV SCC Readout training and testing.
+THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
 """
 
 from DBSpace.readout import BR_DataFrame as BRDF
@@ -29,9 +29,6 @@ import seaborn as sns
 sns.set_context('paper')
 sns.set(font_scale=4)
 sns.set_style('white')
-
-
-
 
 ## MAJOR PARAMETERS for our partial biometric analysis
 do_pts = ['901','903','905','906','907','908'] # Which patients do we want to include in this entire analysis?
