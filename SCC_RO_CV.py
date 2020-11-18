@@ -47,14 +47,14 @@ elif test_scale == 'DSC':
 BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
 
 #%%
-main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='stim_alt') #main analysis is -3.4
+main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='stim_check') #main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)
 
 #%%
 main_readout.train_setup()
-optimal_alpha = main_readout._path_slope_regression(suppress_vars=1/40,override_alpha=2**-3) #suppress_vars = 1 works well if we're not doing THarm analysis
+optimal_alpha = main_readout._path_slope_regression()#suppress_vars=1/40)#,override_alpha=2**-3) #suppress_vars = 1 works well if we're not doing THarm analysis
 main_readout.train_model()
 
 #%%
