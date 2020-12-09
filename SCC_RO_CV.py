@@ -72,5 +72,5 @@ main_readout.plot_test_regression_figure()
 #main_readout.plot_combo_paths()
 #%%
 # Now we move on to the classifier analysis
-threshold_c = decoder.controller_analysis(main_readout,bin_type='threshold')#'stim_change')#'threshold')
+threshold_c = decoder.controller_analysis(main_readout,bin_type='stim_change')#'stim_change')#'threshold')
 threshold_c.classif_runs()
