@@ -47,7 +47,7 @@ elif test_scale == 'DSC':
 BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
 
 #%%
-main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='stim_check') #main analysis is -3.4
+main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='main') #main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)
@@ -73,4 +73,9 @@ main_readout.plot_test_regression_figure()
 #%%
 # Now we move on to the classifier analysis
 threshold_c = decoder.controller_analysis(main_readout,bin_type='stim_changes')#'stim_changes')#'threshold')
-threshold_c.classif_runs()
+#threshold_c.classif_runs()
+threshold_c.controller_runs()
+#%%
+test = [(a,b) for a,b in zip(main_readout.test_set_pt,main_readout.test_set_ph) if a == '901']
+print(test)
+print(ClinFrame.Stim_Change_Table())
