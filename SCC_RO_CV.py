@@ -5,6 +5,8 @@ Created on Tue Apr 21 09:32:00 2020
 asdf
 @author: virati
 THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
+
+Intermediate file is formed by 
 """
 
 from DBSpace.readout import BR_DataFrame as BRDF
