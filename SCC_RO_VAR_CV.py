@@ -49,7 +49,7 @@ elif test_scale == 'DSC':
 BRFrame = pickle.load(open('/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_FrameMay2020.pickle',"rb"))
 
 #%%
-main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='main') #main analysis is -3.4
+main_readout = decoder.weekly_decoderCV(BRFrame=BRFrame,ClinFrame=ClinFrame,pts=do_pts,clin_measure=test_scale,algo='ENR',alpha=-4,shuffle_null=False,FeatureSet='main',variance=True) #main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class='main_study')
 main_readout.split_train_set(0.6)

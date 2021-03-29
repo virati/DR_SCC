@@ -47,31 +47,16 @@ do_shuffled_null = False
 #%%
 pt_coeff = nestdict()
 for do_pt in do_pts:
-    main_readout = decoder.base_decoder(BRFrame = BRFrame,ClinFrame = ClinFrame,pts=do_pt,clin_measure=test_scale,shuffle_null=False,FeatureSet='main')
+    main_readout = decoder.var_decoder(BRFrame = BRFrame,ClinFrame = ClinFrame,pts=do_pt,clin_measure=test_scale,shuffle_null=False,FeatureSet='main')
     main_readout.filter_recs(rec_class='main_study')
     main_readout.split_train_set(0.6)
     
-    null_slopes,null_r2 = main_readout.model_analysis(do_null=True,n_iter=100)
+    #null_slopes,null_r2 = main_readout.model_analysis(do_null=True,n_iter=100)
     main_slope,main_r2 = main_readout.model_analysis()
-    
     
     print(do_pt + ' Slope: ' + str(main_slope))
     print('p<' + str(np.sum(null_slopes > main_slope[0])/100))
     print('R2: ' + str(main_r2))
     print('p<' + str(np.sum(null_r2 > main_r2[0])/100))
     
-    plt.figure()
-    plt.hist(null_slopes)
-    plt.vlines(main_slope[0],0,10,linewidth=20)
-    plt.title(do_pt + ' predictive readout')
-    
     pt_coeff[do_pt] = main_readout.decode_model.coef_
-#%%
-# Plot all the coeffs
-plt.figure()
-[plt.plot(pt_coeff[pt],alpha=0.7,linewidth=5,label=pt) for pt in do_pts]
-plt.vlines(4.5,-1,1,linewidth=20)
-plt.hlines(0,0,9,linestyle='dotted')
-plt.xticks(range(10),[r'$\delta$',r'$\theta$',r'$\alpha$',r'$\beta*$',r'$\gamma1$',r'$\delta$',r'$\theta$',r'$\alpha$',r'$\beta*$',r'$\gamma1$'])
-plt.ylim((-0.15,0.15))
-plt.legend()
