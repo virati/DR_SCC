@@ -1,6 +1,4 @@
 #%%
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue Apr 21 09:32:00 2020
 asdf
@@ -10,12 +8,12 @@ THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
 Intermediate file is formed by 
 """
 
-from DBSpace.readout import BR_DataFrame as BRDF
-from DBSpace.readout import ClinVect, decoder
-from DBSpace.readout import decoder as decoder
-from DBSpace.readout.BR_DataFrame import BR_Data_Tree
-import pickle
+from dbspace.readout import BR_DataFrame as BRDF
+from dbspace.readout import ClinVect, decoder
+from dbspace.readout import decoder as decoder
+from dbspace.readout.BR_DataFrame import BR_Data_Tree
 
+import pickle
 import matplotlib.pyplot as plt
 
 plt.rcParams["image.cmap"] = "tab10"
@@ -39,7 +37,7 @@ do_pts = [
 test_scale = "pHDRS17"  # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 # Initial
-# Now we set up our DBSpace environment
+# Now we set up our dbspace environment
 # ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
 if test_scale == "mHDRS":
@@ -65,6 +63,7 @@ main_readout = decoder.weekly_decoderCV(
     alpha=-4,
     shuffle_null=False,
     FeatureSet="main",
+    variance=False,
 )  # main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class="main_study")
