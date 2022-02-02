@@ -8,18 +8,15 @@ THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
 Intermediate file is formed by 
 """
 
-from dbspace.readout import BR_DataFrame as BRDF
-from dbspace.readout import ClinVect, decoder
-from dbspace.readout import decoder as decoder
-from dbspace.readout.BR_DataFrame import BR_Data_Tree
-
 import pickle
-import matplotlib.pyplot as plt
-
-plt.rcParams["image.cmap"] = "tab10"
-plt.close("all")
-
 import seaborn as sns
+
+import matplotlib.pyplot as plt
+from dbspace.readout import ClinVect, decoder
+
+#%%
+plt.rcParams["image.cmap"] = "tab10"
+
 
 sns.set_context("paper")
 sns.set(font_scale=4)
@@ -36,6 +33,7 @@ do_pts = [
 ]  # Which patients do we want to include in this entire analysis?
 test_scale = "pHDRS17"  # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
+#%%
 # Initial
 # Now we set up our dbspace environment
 # ClinFrame = ClinVect.CFrame(norm_scales=True)
@@ -52,6 +50,9 @@ BRFrame = pickle.load(
         "rb",
     )
 )
+
+#%% [markdown]
+## Train, test, validate the weekly decoder
 
 #%%
 main_readout = decoder.weekly_decoderCV(
