@@ -34,8 +34,8 @@ do_pts = [
 test_scale = "pHDRS17"  # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 #%%
-# Initial
-# Now we set up our dbspace environment
+# Initialize our Clinical Frame and load in our BR Frame
+
 # ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
 if test_scale == "mHDRS":
@@ -92,10 +92,7 @@ main_readout.plot_test_regression_figure()
 # main_readout.plot_combo_paths()
 #%%
 # Now we move on to the classifier analysis
-threshold_c = decoder.controller_analysis(
-    main_readout, bin_type="stim_changes"
-)  #'stim_changes')#'threshold')
-# threshold_c.classif_runs()
+threshold_c = decoder.controller_analysis(main_readout, bin_type="stim_changes")
 threshold_c.controller_runs()
 #%%
 test = [
