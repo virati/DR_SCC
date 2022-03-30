@@ -49,17 +49,19 @@ All does a linear detrend across all concatenated observations. This is dumb and
 # Now we set up our dbspace environment
 # ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
-BRFrame = BRDF.BR_Data_Tree(preFrame="Chronic_Frame.pickle")
-
-# BRFrame = pickle.load(
-#    open(
-#        "/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_FrameMay2020.pickle",
-#        "rb",
-#    )
+# BRFrame = BRDF.BR_Data_Tree(
+#    clin_vector_file="../../assets/intermediate_data/ClinVec.json",
 # )
+
+BRFrame = pickle.load(
+    open(
+        "../../assets/intermediate_data/ChronicFrame_April2022.pickle",
+        "rb",
+    )
+)
 do_shuffled_null = False
 #%%
-pt_coeff = nestdict()
+pt_coeff = {pt: [] for pt in do_pts}
 for do_pt in do_pts:
     main_readout = decoder.base_decoder(
         BRFrame=BRFrame,
