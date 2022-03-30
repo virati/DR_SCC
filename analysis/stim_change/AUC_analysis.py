@@ -48,6 +48,7 @@ hdrs_list = []
 curve_lib = {key: [] for key in color_code.keys()}
 algo_list = ["HDRS", "CB", "Random"]
 
+
 plt.figure()
 for rr in range(8):
     for itr in range(5):
@@ -67,6 +68,7 @@ for rr in range(8):
         # plt.plot(auc_curves_from_run[rr][itr]['HDRS'][1],auc_curves_from_run[rr][itr]['HDRS'][0],color='red',alpha=0.1)
         # plt.plot(auc_curves_from_run[rr][itr]['CB'][1],auc_curves_from_run[rr][itr]['CB'][0],color='blue',alpha=0.1)
         # plt.plot(auc_curves_from_run[rr][itr]['Random'][1],auc_curves_from_run[rr][itr]['Random'][0],color='green',alpha=0.1)
+
 #%%
 # Plot of AUCs with shaded errors
 plt.figure()
@@ -92,6 +94,7 @@ all_nulls = np.array(null_curves_from_run).reshape(
     -1,
 )
 
+
 flat_aacus = [item for sublist in aacus_from_run for item in sublist]
 algo_aucs = np.array(flat_aacus)
 
@@ -106,7 +109,6 @@ if use_normal_null:
     end_algo = 3
 else:
     end_algo = 2
-
 
 for aa, algo in enumerate(algo_list[0:end_algo]):
     plt.hist(

@@ -90,8 +90,10 @@ EN_alpha = 0.2
 DM = ElasticNet(alpha=EN_alpha, tol=0.001, normalize=True, positive=False)
 DM.fit(DsgnX, clinY)
 
+
 plt.figure()
 coefs = DM.coef_
 csize = coefs.shape[0]
 plt.plot(coefs[0 : int(np.ceil(csize / 2))], color="blue")
 plt.plot(coefs[int(np.ceil(csize / 2) + 1) :], color="red")
+
