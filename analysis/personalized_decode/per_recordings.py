@@ -23,11 +23,7 @@ import numpy as np
 # Misc libraries
 import pickle
 
-# Debugging
-## MAJOR PARAMETERS for our partial biometric analysis
-test_scale = (
-    "nHDRS17"  # Which scale are we using as the measurement of the depression state?
-)
+test_scale = "nHDRS17"
 do_pts = [
     "901",
     "903",
@@ -35,24 +31,10 @@ do_pts = [
     "906",
     "907",
     "908",
-]  # Which patients do we want to include in this entire analysis?
-
-
-""" DETRENDING
-Which detrending scheme are we doing
-This is important. Block goes into each patient and does zero-mean and linear detrend across time
-None does not do this
-All does a linear detrend across all concatenated observations. This is dumb and should not be done. Will eliminate this since it makes no sense
-"""
-
+]
 # Initial
 # Now we set up our dbspace environment
-# ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
-# BRFrame = BRDF.BR_Data_Tree(
-#    clin_vector_file="../../assets/intermediate_data/ClinVec.json",
-# )
-
 BRFrame = pickle.load(
     open(
         "../../assets/intermediate_data/ChronicFrame_April2022.pickle",

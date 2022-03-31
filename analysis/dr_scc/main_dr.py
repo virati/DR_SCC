@@ -1,22 +1,20 @@
-#%%
 """
 Created on Tue Apr 21 09:32:00 2020
 asdf
 @author: virati
 THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
 
-Intermediate file is formed by 
+Intermediate file is formed by
 """
 
+#%%
 import pickle
 import seaborn as sns
 
 import matplotlib.pyplot as plt
 from dbspace.readout import ClinVect, decoder
 
-#%%
 plt.rcParams["image.cmap"] = "tab10"
-
 
 sns.set_context("paper")
 sns.set(font_scale=4)
@@ -46,7 +44,7 @@ elif test_scale == "DSC":
 # BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(
     open(
-        "/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_FrameMay2020.pickle",
+        "../../assets/intermediate_data/ChronicFrame_April2022.pickle",
         "rb",
     )
 )
@@ -90,6 +88,11 @@ main_readout.plot_test_stats()
 #%%
 main_readout.plot_test_regression_figure()
 # main_readout.plot_combo_paths()
+
+#%% [markdown]
+# Now we're doing a controller analysis
+
+
 #%%
 # Now we move on to the classifier analysis
 threshold_c = decoder.controller_analysis(main_readout, bin_type="stim_changes")
