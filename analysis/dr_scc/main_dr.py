@@ -13,6 +13,7 @@ import seaborn as sns
 
 import matplotlib.pyplot as plt
 from dbspace.readout import ClinVect, decoder
+import dbspace.utils.frames.BR_DataFrame as BR_DataFrame
 
 plt.rcParams["image.cmap"] = "tab10"
 
@@ -34,7 +35,6 @@ test_scale = "pHDRS17"  # Which scale are we using as the measurement of the dep
 #%%
 # Initialize our Clinical Frame and load in our BR Frame
 
-# ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
 if test_scale == "mHDRS":
     ClinFrame.gen_mHDRS()
@@ -44,7 +44,7 @@ elif test_scale == "DSC":
 # BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(
     open(
-        "../../assets/intermediate_data/ChronicFrame_April2022.pickle",
+        "/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/SCC_Readout/assets/intermediate_data/ChronicFrame_April2022.pickle",
         "rb",
     )
 )
@@ -88,20 +88,3 @@ main_readout.plot_test_stats()
 #%%
 main_readout.plot_test_regression_figure()
 # main_readout.plot_combo_paths()
-
-#%% [markdown]
-# Now we're doing a controller analysis
-
-
-#%%
-# Now we move on to the classifier analysis
-threshold_c = decoder.controller_analysis(main_readout, bin_type="stim_changes")
-threshold_c.controller_runs()
-#%%
-test = [
-    (a, b)
-    for a, b in zip(main_readout.test_set_pt, main_readout.test_set_ph)
-    if a == "901"
-]
-print(test)
-print(ClinFrame.Stim_Change_Table())
