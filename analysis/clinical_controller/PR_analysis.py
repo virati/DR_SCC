@@ -69,8 +69,13 @@ main_readout.train_model()
 main_readout.test_setup()
 main_readout.test_model()
 
+#%%
 threshold_c = decoder.controller_analysis(main_readout, bin_type="stim_changes")
 threshold_c.controller_runs()
+#%%
+threshold_c.controller_runs_plot(
+    plot_controllers=["empirical", "empirical+readout"], plot_pr_aucs=True
+)
 #%%
 test = [
     (a, b)
