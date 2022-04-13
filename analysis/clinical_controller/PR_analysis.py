@@ -11,7 +11,7 @@ sns.set_context("paper")
 sns.set(font_scale=4)
 sns.set_style("white")
 
-## MAJOR PARAMETERS for our partial biometric analysis
+#%%
 do_pts = [
     "901",
     "903",
@@ -19,18 +19,11 @@ do_pts = [
     "906",
     "907",
     "908",
-]  # Which patients do we want to include in this entire analysis?
+]
 test_scale = "pHDRS17"  # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 #%%
-# Initialize our Clinical Frame and load in our BR Frame
-
-# ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
-if test_scale == "mHDRS":
-    ClinFrame.gen_mHDRS()
-elif test_scale == "DSC":
-    ClinFrame.gen_DSC()
 
 # BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(
