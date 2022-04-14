@@ -1,18 +1,17 @@
-# SCC Readouts
-A major aim of my PhD.
-This repo has all the code for the oscillatory decoder of depression state from SCC-LFP
+# Depression Readout from Subcallosal Cingulate
 
-The overview [notebook](Notebooks/DR_Overview.ipynb) is the best starting point.
+## Overview
+Oscillations measured over months in the subcallosal cingulate may help us _decode_ depression - or find a measure that can help us better track the depression symptoms of patients.
+
+This repo is the code for Chapter 3 of my dissertation.
 
 
-## Decoding Depression
-The brain gives rise to behaviors, and when those behaviors go wrong we can get things like depression.
-There's got to be some signal measurable in the brain that can tell us how bad the depression is.
-
-![](imgs/A2_overview.png)
-In this project, my goal was to use patient recordings captured over months of therapy to decode the severity of their depression, or their *depression state*.
-
+## Introduction
 
 ## Methods
-![](imgs/A2_SysDiag.png)
 
+## Discussion
+
+## Conclusions
+Part of measured depression can be decoded from oscillations in the SCC.
+In particular, $\delta$ and $\beta$, in asymmetric patterns, are involved.
