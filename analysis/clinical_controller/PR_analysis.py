@@ -1,28 +1,17 @@
 #%%
-"""
-Created on Tue Apr 21 09:32:00 2020
-asdf
-@author: virati
-THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
-
-Intermediate file is formed by 
-"""
-
 import pickle
 import seaborn as sns
 
 import matplotlib.pyplot as plt
 from dbspace.readout import ClinVect, decoder
 
-#%%
 plt.rcParams["image.cmap"] = "tab10"
-
 
 sns.set_context("paper")
 sns.set(font_scale=4)
 sns.set_style("white")
 
-## MAJOR PARAMETERS for our partial biometric analysis
+#%%
 do_pts = [
     "901",
     "903",
@@ -30,23 +19,16 @@ do_pts = [
     "906",
     "907",
     "908",
-]  # Which patients do we want to include in this entire analysis?
+]
 test_scale = "pHDRS17"  # Which scale are we using as the measurement of the depression state? pHDRS17 = nHDRS (from paper) and is a patient-specific normalized HDRS
 
 #%%
-# Initialize our Clinical Frame and load in our BR Frame
-
-# ClinFrame = ClinVect.CFrame(norm_scales=True)
 ClinFrame = ClinVect.CStruct()
-if test_scale == "mHDRS":
-    ClinFrame.gen_mHDRS()
-elif test_scale == "DSC":
-    ClinFrame.gen_DSC()
 
 # BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
 BRFrame = pickle.load(
     open(
-        "/home/virati/Dropbox/projects/Research/MDD-DBS/Data/Chronic_FrameMay2020.pickle",
+        "../../assets/intermediate_data/ChronicFrame_April2022.pickle",
         "rb",
     )
 )
@@ -77,23 +59,16 @@ optimal_alpha = (
 )  # suppress_vars=1/40)#,override_alpha=2**-3) #suppress_vars = 1 works well if we're not doing THarm analysis
 main_readout.train_model()
 
-#%%
-main_readout.plot_decode_CV()
-
-#%%
 main_readout.test_setup()
 main_readout.test_model()
 
-main_readout.plot_test_timecourse()
 #%%
-main_readout.plot_test_stats()
-#%%
-main_readout.plot_test_regression_figure()
-# main_readout.plot_combo_paths()
-#%%
-# Now we move on to the classifier analysis
 threshold_c = decoder.controller_analysis(main_readout, bin_type="stim_changes")
 threshold_c.controller_runs()
+#%%
+threshold_c.controller_runs_plot(
+    plot_controllers=["empirical", "empirical+readout"], plot_pr_aucs=True
+)
 #%%
 test = [
     (a, b)
