@@ -1,3 +1,4 @@
+#%%
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -7,7 +8,7 @@ Created on Wed May 23 21:16:13 2018
 Plot the 2d trajectory of the DSV signal across all patients
 """
 
-from DBSpace.readout.ClinVect import CFrame
+from dbspace.readout.ClinVect import CFrame
 import scipy.signal as sig
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,9 +16,9 @@ import matplotlib.pyplot as plt
 plt.close("all")
 
 import itertools
-from DBSpace.readout import DSV
-from DBSpace.readout.DSV import DSV, ORegress
-from DBSpace.readout.BR_DataFrame import BR_Data_Tree
+from dbspace.readout import DSV
+from dbspace.readout.DSV import DSV, ORegress
+from dbspace.readout.BR_DataFrame import BR_Data_Tree
 from dbspace.readout.ClinVect import Phase_List
 
 import sys
