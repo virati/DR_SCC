@@ -9,7 +9,7 @@ packages = [{include = "dr_scc"}]
 [tool.poetry.dependencies]
 python = "^3.8.15"
 numpy = "^1.24.0"
-dbspace = "^0.1.0"
+dbspace = { path = "/home/vscode/dbspace", develop = true }
 
 
 [tool.poetry.group.dev.dependencies]
