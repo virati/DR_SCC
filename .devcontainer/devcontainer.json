@@ -48,6 +48,7 @@
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	"mounts": [
-		"type=bind,source=${localEnv:HOME}/Dropbox/Projects/Research/MDD-DBS/Ephys/DBSpace,target=/home/vscode/dbspace"
+		"type=bind,source=${localEnv:HOME}/Dropbox/Projects/Research/MDD-DBS/Ephys/DBSpace,target=/dbspace",
+		"type=bind,source=${localEnv:HOME}/MDD_Data,target=/data"
 	]
 }
