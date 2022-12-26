@@ -1,10 +1,9 @@
 [tool.poetry]
 name = "dr-scc"
 version = "0.1.0"
-description = "Package for Depression Readout Construction"
-authors = ["Vineet Tiruvadi <virati@gmail.com>"]
+description = "Depression Readout Project Repository"
+authors = ["Vineet Tiruvadi <vineet.tiruvadi@gmail.com>"]
 readme = "README.md"
-packages = [{include = "dr_scc"}]
 
 [tool.poetry.dependencies]
 python = "^3.8.15"
