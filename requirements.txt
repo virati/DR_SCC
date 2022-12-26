@@ -20,7 +20,6 @@ configobj==5.0.6
 constantly==15.1.0
 cryptography==35.0.0
 cycler==0.10.0
--e git+https://github.com/virati/DBSpace.git@4f1551d20495319a394a38c5a063da8a22ef13ed#egg=DBSpace
 debugpy==1.5.1
 decorator==5.1.0
 entrypoints==0.3
