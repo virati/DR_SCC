@@ -49,6 +49,6 @@
 	"remoteUser": "vscode",
 	"mounts": [
 		"type=bind,source=${localEnv:HOME}/Dropbox/Projects/Research/MDD-DBS/Ephys/DBSpace,target=/dbspace",
-		"type=bind,source=${localEnv:HOME}/MDD_Data,target=/data"
+		"type=bind,source=${localEnv:HOME}/mdd_data,target=/data"
 	]
 }
