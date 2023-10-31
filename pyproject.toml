@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "3.8.17"
-dbspace = {path = "/dbspace"}
+dbspace = {path = "/dbspace", develop=true}
 
 
 [tool.poetry.group.dev.dependencies]
