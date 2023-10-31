@@ -337,7 +337,7 @@ description = "Library for data-congruent, model-centric DBS Research"
 optional = false
 python-versions = "3.8.17"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 matplotlib = "^3.4.3"
@@ -1726,4 +1726,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "3.8.17"
-content-hash = "0cb5fe5b83b5f738c483ecea1b104df962ad2fbfd53a408cfc7c6eaf40cc8cb6"
+content-hash = "488e7883b37cf41e0b38e901d2c55364dc032ead987b494e0bea815c24e1bd42"
