@@ -1,31 +1,17 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Feb  7 09:24:26 2018
+#%%
+%reload_ext autoreload
+%autoreload 2
 
-@author: virati
-Traditional Analysis, comparing two timepoints
-"""
-
-from DBSpace.readout.BR_DataFrame import BR_Data_Tree
+from dbspace.readout.BR_DataFrame import BR_Data_Tree
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
-plt.close('all')
-
-import sys
-#Need to important DBSpace and DBS_Osc Libraries
-#sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/SigProc/CFC-Testing/Python CFC/')
-import DBSpace as dbo
-from DBSpace import nestdict
-
+import dbspace as dbo
+from dbspace.utils.structures import nestdict
 import seaborn as sns
 #sns.set_context("paper")
-
 sns.set(font_scale=4)
 sns.set_style("white")
-#Bring in our data first
-
 import numpy as np
 import pickle
 from matplotlib.patches import Rectangle, Circle
@@ -33,23 +19,15 @@ from numpy import ndenumerate
 
 
 #%%
-BRFrame = pickle.load(open('/home/virati/Dropbox/Data/Chronic_FrameMay2020.pickle',"rb"))
-#BRFrame.full_sequence(data_path='/home/virati/Dropbox/Chronic_Frame_June.npy')
-
-#do a check to see if any PSDs are entirely zero; bad sign
+frame_to_analyse = 'Chronic_Frame_Dec2022'
+BRFrame = pickle.load(open(f"/tmp/{frame_to_analyse}.pickle","rb"))
 BRFrame.check_meta()
-
 
 #%%
 #Move forward with traditional oscillatory band analysis
-from OBands import *
-analysis = OBands(BRFrame)
+from dbspace.readout.OBands import OBands
+analysis = OBands(BRFrame, ['901','903','905','906','907','908'])
 analysis.feat_extract(do_corrections=False)
-
-##PLOTS
-
-#focus_feats =['Delta','Theta','Alpha','Beta']
-#Now we're ready for the plots
 #%%
 #First thing is the per-patient weekly averages plotted for left and right
 #_ = analysis.mean_psds(weeks=["C01","C24"],patients='all')
@@ -79,6 +57,7 @@ K_stats = np.array([[[ks_stats[pt][band][side][0] for side in ['Left','Right']] 
 P_val = np.array([[[ks_stats[pt][band][side][1] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+
 #%%
     
 def get_distr_change(patient,band,plot=True):
