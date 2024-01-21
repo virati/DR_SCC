@@ -64,11 +64,11 @@ for pt in pts:
             pre_feat_vals.append(week_distr[pt][band][side][do_weeks[0]])
             post_feat_vals.append(week_distr[pt][band][side][do_weeks[1]])
 
+#pre_feat_vals = np.array(pre_feat_vals, dtype=object).reshape(6,-1,order='F')
+#post_feat_vals = np.array(post_feat_vals, dtype=object).reshape(6,-1,order='F')
 #%%
-pre_feat_vals = np.array(pre_feat_vals, dtype=object).reshape(6,-1,order='F')
-post_feat_vals = np.array(post_feat_vals, dtype=object).reshape(6,-1,order='F')
-#pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
-#post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts],dtype=object).reshape(6,-1,order='F')
+post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts],dtype=object).reshape(6,-1,order='F')
 
 #%%
     
@@ -90,6 +90,10 @@ for pp,pt in enumerate(pts):
     for ff,freq in enumerate(all_feats):
         change_grid[pp,ff] = get_distr_change(pt,freq,plot=False)
 
+plt.figure()
+plt.imshow(change_grid)
+plt.yticks(range(len(pts)),pts)
+plt.xticks(range(len(all_feats)), all_feats, rotation=90)
 
 
 #%%
