@@ -5,7 +5,6 @@
 from dbspace.readout.BR_DataFrame import BR_Data_Tree
 from dbspace.utils.structures import nestdict
 from dbspace.readout import OBands
-from collections import defaultdict
 import scipy.stats as stats
 
 import matplotlib.pyplot as plt
