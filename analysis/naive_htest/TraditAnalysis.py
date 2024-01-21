@@ -55,8 +55,19 @@ for pt in pts:
 # Make our big stats 2d grid for all features across all patients
 K_stats = np.array([[[ks_stats[pt][band][side][0] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 P_val = np.array([[[ks_stats[pt][band][side][1] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
-pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
-post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+
+pre_feat_vals = []
+post_feat_vals = []
+for pt in pts:
+    for band in bands:
+        for side in ['Left','Right']:
+            pre_feat_vals.append(week_distr[pt][band][side][do_weeks[0]])
+            post_feat_vals.append(week_distr[pt][band][side][do_weeks[1]])
+
+pre_feat_vals = np.array(pre_feat_vals, dtype=object).reshape(6,-1,order='F')
+
+#pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
+#post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 
 #%%
     
