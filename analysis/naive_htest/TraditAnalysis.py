@@ -64,8 +64,9 @@ for pt in pts:
             pre_feat_vals.append(week_distr[pt][band][side][do_weeks[0]])
             post_feat_vals.append(week_distr[pt][band][side][do_weeks[1]])
 
+#%%
 pre_feat_vals = np.array(pre_feat_vals, dtype=object).reshape(6,-1,order='F')
-
+post_feat_vals = np.array(post_feat_vals, dtype=object).reshape(6,-1,order='F')
 #pre_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[0]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 #post_feat_vals = np.array([[[week_distr[pt][band][side][do_weeks[1]] for side in ['Left','Right']] for band in bands] for pt in pts]).reshape(6,-1,order='F')
 
