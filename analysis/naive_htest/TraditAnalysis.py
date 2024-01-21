@@ -4,6 +4,7 @@
 
 from dbspace.readout.BR_DataFrame import BR_Data_Tree
 from collections import defaultdict
+import scipy.stats as stats
 
 import matplotlib.pyplot as plt
 import dbspace as dbo
@@ -199,7 +200,7 @@ plt.yticks(np.arange(6)+0.5,pts)
 plt.xticks(np.arange(10)+0.5,bands + bands,rotation=90)
 plt.title('Significant P-value')
 #%%
-P_val_num = (P_val<(0.05/10)).astype(np.int)
+P_val_num = (P_val<(0.05/10)).astype(int)
 sig_feats = P_val_num.sum(axis=0) >= 5
 sig_feats_name = (d for d,s in zip(bands,sig_feats))
 #print(np.array(bands)[sig_feats.astype(np.int)])
@@ -208,7 +209,3 @@ for ii in plt.get_fignums():
     plt.figure(ii)
     
     plt.savefig('/tmp/' + str(ii) + circ + '.svg')
-
-#%%
-#Do day-night comparisons across all bands
-#analysis.day_vs_nite()
