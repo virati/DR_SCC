@@ -1,19 +1,10 @@
-"""
-Created on Tue Apr 21 09:32:00 2020
-asdf
-@author: virati
-THIS IS THE SCRIPT THAT RUNS THE PARSIMONIOUS READOUT from dissertation!
-
-Intermediate file is formed by
-"""
-
 #%%
 import pickle
 import seaborn as sns
 
 import matplotlib.pyplot as plt
 from dbspace.readout import ClinVect, decoder
-import dbspace.utils.frames.BR_DataFrame as BR_DataFrame
+import dbspace.readout.BR_DataFrame as BR_DataFrame
 
 plt.rcParams["image.cmap"] = "tab10"
 
@@ -35,19 +26,14 @@ test_scale = "pHDRS17"  # Which scale are we using as the measurement of the dep
 #%%
 # Initialize our Clinical Frame and load in our BR Frame
 
-ClinFrame = ClinVect.CStruct()
+ClinFrame = ClinVect.CStruct("/data/clinical/mayberg_2013/clinical_vectors_all.json")
 if test_scale == "mHDRS":
     ClinFrame.gen_mHDRS()
 elif test_scale == "DSC":
     ClinFrame.gen_DSC()
 
-# BRFrame = BRDF.BR_Data_Tree(preFrame='Chronic_Frame.pickle')
-BRFrame = pickle.load(
-    open(
-        "/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/SCC_Readout/assets/intermediate_data/ChronicFrame_April2022.pickle",
-        "rb",
-    )
-)
+frame_to_analyse = 'Chronic_Frame_Dec2022'
+BRFrame = pickle.load(open(f"/tmp/{frame_to_analyse}.pickle","rb"))
 
 #%% [markdown]
 ## Train, test, validate the weekly decoder
