@@ -1,4 +1,5 @@
 # Depression Readout from Subcallosal Cingulate (DR-SCC)
+## Dissertation Version
 
 ## Overview
 The goal of this project was to link oscillations in bilateral subcallosal cingulate cortex (SCC) to depression severity measured with the Hamilton Depression Rating Scale (HDRS).
