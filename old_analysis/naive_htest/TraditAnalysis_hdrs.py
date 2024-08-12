@@ -1,38 +1,28 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Feb  7 09:24:26 2018
+#%%
+%reload_ext autoreload
+%autoreload 2
 
-@author: virati
-Traditional Analysis, comparing extremes of HDRS17
-"""
-
-from DBSpace.readout.BR_DataFrame import BR_Data_Tree
-from collections import defaultdict
+from dbspace.readout.BR_DataFrame import BR_Data_Tree
+from dbspace.utils.structures import nestdict
+from dbspace.readout import OBands
 import scipy.stats as stats
 
 import matplotlib.pyplot as plt
 plt.close('all')
 
-import sys
-#Need to important DBSpace and DBS_Osc Libraries
-#sys.path.append('/home/virati/Dropbox/projects/Research/MDD-DBS/Ephys/SigProc/CFC-Testing/Python CFC/')
-import DBSpace as dbo
-from DBSpace import nestdict
-from DBSpace.readout import ClinVect
+from dbspace.utils.structures import nestdict
+from dbspace.readout import ClinVect
 
 import seaborn as sns
-#sns.set_context("paper")
-
 sns.set(font_scale=4)
 sns.set_style("white")
-#Bring in our data first
 
 import numpy as np
 import pickle
 from matplotlib.patches import Rectangle, Circle
 from numpy import ndenumerate
 
+#%%
 ## Parameters for the analysis
 ks_stats = nestdict()
 pts = ['901','903','905','906','907','908']
@@ -41,9 +31,9 @@ all_feats = ['L-' + band for band in bands] + ['R-' + band for band in bands]
 
 
 # for each patient, let's find the highest and lowest HDRS17 value and the week we find it
-ClinFrame = ClinVect.CFrame(norm_scales=True)
+ClinFrame = ClinVect.CFrame(clinical_metadata_file = "/data/clinical/mayberg_2013/clinical_vectors_all.json", norm_scales=True)
 hdrs_info = ClinFrame.min_max_weeks()
-#
+
 #hdrs_info = nestdict()
 #week_labels = ClinFrame.week_labels()
 #
@@ -59,14 +49,14 @@ hdrs_info = ClinFrame.min_max_weeks()
 #    hdrs_info[pt]['min']['HDRSr'] = pt_hdrs_traj[hdrs_info[pt]['min']['index']]
 #    hdrs_info[pt]['traj']['HDRSr'] = pt_hdrs_traj
 
-BRFrame = pickle.load(open('/home/virati/Chronic_Frame.pickle',"rb"))
+frame_to_analyse = 'Chronic_Frame_Dec2022'
+BRFrame = pickle.load(open(f"/tmp/{frame_to_analyse}.pickle","rb"))
 #do a check to see if any PSDs are entirely zero; bad sign
 BRFrame.check_meta()
-
+#%%
 
 #Move forward with traditional oscillatory band analysis
-from OBands import *
-feat_frame = OBands(BRFrame)
+feat_frame = OBands.OBands(BRFrame)
 feat_frame.feat_extract(do_corrections=True)
 
 
