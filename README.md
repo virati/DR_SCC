@@ -1,6 +1,10 @@
-# Depression Readout from Subcallosal Cingulate (DR-SCC)
+# Depression Oscillatory-Readout from Subcallosal Cingulate (DoR-SCC)
 
 ## Overview
+This project is focused on developing and assessing an oscillatory readout of depression from hourly SCC recordings taken alongside SCCwm-DBS.
+This was Aim 2 of [my dissertation]().
+
+## Approach
 The goal of this project was to link oscillations in bilateral subcallosal cingulate cortex (SCC) to depression severity measured with the Hamilton Depression Rating Scale (HDRS).
 The resulting decoding model(s) yielded readouts, with the main one being the _depression readout from subcallosal cingulate cortex_ (DR-SCC).
 
