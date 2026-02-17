@@ -27,7 +27,7 @@ sns.set_style("white")
 base_data_dir = "/home/virati/Data/phd_vrt_2013/"
 frame_to_analyse = 'Chronic_FrameFeb2026_F'
 do_weeks = ["C01","C24"]
-correct_for_mismatch_compression = False
+correct_for_mismatch_compression = True
 
 base_data_dir = Path(base_data_dir)
 frame_to_analyse = Path(frame_to_analyse)
@@ -43,7 +43,8 @@ analysis.feat_extract(do_corrections=correct_for_mismatch_compression)
 # %%
 # for a single patient and week, plot the distribution for a single oscillation
 
-weeks = dbo.readout.ClinVect.Phase_List('ephys')
+from dbspace.readout.ClinVect import Phase_List
+weeks = Phase_List('ephys')
 pt_stacks = analysis.patient_stacks(['905'])
 pt_stack = pt_stacks['905']
 

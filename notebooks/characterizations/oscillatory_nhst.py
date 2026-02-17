@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.WARNING)
 
-from matplotlib.path import Path
+from pathlib import Path
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -31,7 +31,7 @@ from dbspace.readout.OBands import OBands
 base_data_dir = "/home/virati/Data/phd_vrt_2013/"
 frame_to_analyse = 'Chronic_FrameFeb2026_F'
 do_weeks = ["C01","C24"]
-correct_for_mismatch_compression = False
+correct_for_mismatch_compression = True
 
 
 #%%
@@ -233,7 +233,7 @@ plt.title('Significant P-value')
 # %%
 P_val_num = (P_val<(0.05/10)).astype(int)
 sig_feats = P_val_num.sum(axis=0) >= 5
-sig_feats_name = (d for d,s in zip(bands,sig_feats))
+sig_feats_name = [d for d, s in zip(all_feats, sig_feats) if s]
 #print(np.array(bands)[sig_feats.astype(np.int)])
     
 for ii in plt.get_fignums():
