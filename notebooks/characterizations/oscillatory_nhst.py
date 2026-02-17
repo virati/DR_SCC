@@ -6,6 +6,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.WARNING)
 
+from matplotlib.path import Path
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -26,13 +27,17 @@ from dbspace.readout.OBands import OBands
 # ## Date: 3/25/2024
 # 
 # 
-
 # %%
+base_data_dir = "/home/virati/Data/phd_vrt_2013/"
 frame_to_analyse = 'Chronic_FrameFeb2026_F'
 do_weeks = ["C01","C24"]
 correct_for_mismatch_compression = False
 
-BRFrame = pickle.load(open(f"/home/virati/Data/phd_vrt_2013/{frame_to_analyse}.pickle","rb"))
+
+#%%
+base_data_dir = Path(base_data_dir)
+frame_to_analyse = Path(frame_to_analyse)
+BRFrame = pickle.load(open(f"{base_data_dir / frame_to_analyse}.pickle","rb"))
 BRFrame.check_meta()
 
 
