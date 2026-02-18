@@ -40,6 +40,9 @@ BRFrame.check_meta()
 analysis = OBands(BRFrame, ['901','903','905','906','907','908'])
 analysis.feat_extract(do_corrections=correct_for_mismatch_compression)
 
+# %% Plot distribution of oscillatory power across all observations
+analysis.plot_power_distributions()
+
 # %%
 # for a single patient and week, plot the distribution for a single oscillation
 

@@ -71,17 +71,11 @@ main_readout = decoder.weekly_decoderCV(
     shuffle_null=False,
     FeatureSet="main",
     variance="both",
+    standardize=True,
 )  # main analysis is -3.4
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class="main_study")
 main_readout.split_train_set(0.8)
-
-# %% Plot distribution of oscillatory power across all observations
-from dbspace.readout.OBands import OBands
-
-obands = OBands(BRFrame, do_patients=do_pts)
-obands.plot_power_distributions()
-
 
 # %%
 main_readout.train_setup()
