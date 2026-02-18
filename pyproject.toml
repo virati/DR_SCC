@@ -6,4 +6,5 @@ readme = "README.md"
 requires-python = "==3.8.17"
 dependencies = [
     "python-dotenv>=1.0.1",
+    "statsmodels>=0.14.1",
 ]
