@@ -28,6 +28,16 @@ Predicting depression scale (HDRS) from bilateral subcallosal cingulate LFPs.
 
 - **Temporal split** instead of random split — current `train_test_split(shuffle=True)` can leak temporal autocorrelation. Try training on earlier phases, testing on later ones
 
+## Nonlinear Mapping (if SCC power → HDRS is nonlinear)
+
+Ordered by departure from current pipeline:
+
+1. **Polynomial/interaction features (degree 2) + ElasticNet** — smallest change. Add squared terms and pairwise interactions via `sklearn.preprocessing.PolynomialFeatures`, then let ElasticNet's L1 penalty zero out irrelevant nonlinear terms. Coefficients remain interpretable (can see which squared/interaction terms survive). Slots directly into existing `weekly_decoderCV` framework. **Recommended first step.**
+2. **Support Vector Regression (SVR) with RBF kernel** — fits nonlinear mapping without specifying functional form. Use SHAP values for feature importance. Good next step if polynomial features don't help.
+3. **Random Forest / Gradient Boosted Trees** (XGBoost, `GradientBoostingRegressor`) — naturally captures interactions and nonlinearity. SHAP for interpretability. Risk of overfitting with N~168 weeks.
+4. **Gaussian Process Regression** — gives uncertainty estimates on predictions (clinically valuable). Can learn the kernel from data. Scales fine for this dataset size.
+5. **Small MLP** — probably overkill for N=168 and 20 features. High overfitting risk.
+
 ## Priority
 
 Inter-hemispheric coherence and log-transforming power are probably the highest bang-for-buck. The mixed-effects framing is the most important methodological improvement given N=6 patients.
