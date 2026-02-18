@@ -243,6 +243,65 @@ for pt in do_pts:
     plt.legend()
 
 # %% [markdown]
+# # Feature importance: Permutation Importance
+# Measures how much validation R2 drops when each feature is randomly shuffled.
+# This is model-agnostic and works directly with the fitted SVR.
+
+# %%
+from sklearn.inspection import permutation_importance
+
+perm_result = permutation_importance(
+    svr_model, val_y_scaled, val_c, n_repeats=30, scoring="r2", random_state=2011,
+)
+
+sorted_idx = perm_result.importances_mean.argsort()[::-1]
+sorted_labels = np.array(feat_labels)[sorted_idx]
+sorted_means = perm_result.importances_mean[sorted_idx]
+sorted_stds = perm_result.importances_std[sorted_idx]
+
+fig, ax = plt.subplots(figsize=(12, 5))
+ax.bar(range(len(sorted_labels)), sorted_means, yerr=sorted_stds, capsize=2, alpha=0.7)
+ax.set_xticks(range(len(sorted_labels)))
+ax.set_xticklabels(sorted_labels, rotation=45, ha="right")
+ax.set_ylabel("R2 decrease when shuffled")
+ax.set_title("Permutation Feature Importance (validation set)")
+ax.axhline(0, color="gray", linestyle="dotted")
+plt.tight_layout()
+
+# Print top features
+print("Top features by permutation importance:")
+for i in range(min(10, len(sorted_labels))):
+    print(f"  {sorted_labels[i]:>20s}: {sorted_means[i]:.4f} +/- {sorted_stds[i]:.4f}")
+
+# %% [markdown]
+# # Feature importance: SHAP values
+# SHAP gives per-prediction, per-feature attribution. Shows not just which features
+# matter, but the direction and magnitude of their effect for each observation.
+
+# %%
+try:
+    import shap
+
+    explainer = shap.KernelExplainer(svr_model.predict, dev_y_scaled)
+    shap_values = explainer.shap_values(val_y_scaled)
+
+    # Beeswarm: per-observation feature effects
+    plt.figure()
+    shap.summary_plot(shap_values, val_y_scaled, feature_names=feat_labels, show=False)
+    plt.title("SHAP Values (validation set)")
+    plt.tight_layout()
+
+    # Bar: mean |SHAP| per feature
+    plt.figure()
+    shap.summary_plot(shap_values, val_y_scaled, feature_names=feat_labels, plot_type="bar", show=False)
+    plt.title("Mean |SHAP| Feature Importance")
+    plt.tight_layout()
+
+except ImportError:
+    print("SHAP not installed — skipping. Install with: pip install shap")
+    print("Permutation importance (above) is the primary feature importance measure.")
+
+# %% [markdown]
 # # Hyperparameter landscape (patient-level CV)
 
 # %%
