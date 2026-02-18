@@ -74,7 +74,8 @@ main_readout = decoder.weekly_decoderCV(
     alpha=-4,
     shuffle_null=False,
     FeatureSet="main",
-    variance=False,
+    variance="both",
+    standardize=True,
 )
 main_readout.global_plotting = True
 main_readout.filter_recs(rec_class="main_study")
