@@ -217,6 +217,9 @@ for run_curves in all_auc_curves:
             if algo not in iter_curves:
                 continue
             prec, rec = iter_curves[algo]
+            # Deduplicate recall values (keep last precision at each recall)
+            _, unique_idx = np.unique(rec, return_index=True)
+            rec, prec = rec[unique_idx], prec[unique_idx]
             interp_func = interp1d(rec, prec, kind="zero", bounds_error=False, fill_value=0)
             interp_prec = interp_func(mean_recall)
             curve_lib[algo].append(interp_prec)
