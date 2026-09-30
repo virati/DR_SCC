@@ -188,9 +188,13 @@ if (O / "confirm_C3_summary.csv").exists():
               f"- Observed best gain: **{f(c3.observed_max_gain)}** ({c3.cell})",
               f"- Null best gain: mean {f(c3.null_max_mean)}, 95th percentile {f(c3.null_max_95pct)}",
               f"- Selection-corrected p = **{f(c3.p_selection_corrected)}** → " + ("**survives**" if c3.survives else "**does not survive**"), "",
-              "| norm | target | model | gain vs persistence | selection-corrected p |", "|---|---|---|---|---|"]
-    lines += [f"| {r.norm} | {r.target} | {r.model} | {f(r.gain_vs_persistence)} | {f(r.p_selection_corrected)} |"
-              for r in cells.itertuples()]
+              "| norm | target | model | model R² | model r | persistence R² | persistence r | gain | selection-corrected p |",
+              "|---|---|---|---|---|---|---|---|---|"]
+    FS = pd.read_csv(O / "fooof_E1_scores.csv").set_index(["norm", "target", "model"])
+    for r in cells.itertuples():
+        m, p0 = FS.loc[(r.norm, r.target, r.model)], FS.loc[(r.norm, r.target, "M0_persistence")]
+        lines.append(f"| {r.norm} | {r.target} | {r.model} | {f(m.R2)} | {f(m.r)} | {f(p0.R2)} | {f(p0.r)} | "
+                     f"{f(r.gain_vs_persistence)} | {f(r.p_selection_corrected)} |")
     lines += ["", "<!-- ai-end -->", ""]
 
 (HERE / "RESULTS.md").write_text("\n".join(lines))

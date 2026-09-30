@@ -220,27 +220,27 @@ Null = the best gain over persistence across all 20 explored FOOOF cells, per ci
 - Null best gain: mean -0.071, 95th percentile 0.051
 - Selection-corrected p = **0.010** → **survives**
 
-| norm | target | model | gain vs persistence | selection-corrected p |
-|---|---|---|---|---|
-| baseline | T-raw | M3_ENR+time | 0.188 | 0.010 |
-| baseline | T-raw | M4_mixed | 0.100 | 0.020 |
-| baseline | T-raw | M6_SVR+time | 0.088 | 0.020 |
-| baseline | T-raw | M5_SVR | 0.029 | 0.089 |
-| raw | T-raw | M4_mixed | -0.006 | 0.188 |
-| raw | T-raw | M6_SVR+time | -0.036 | 0.317 |
-| raw | T-raw | M2_ENR | -0.043 | 0.347 |
-| raw | T-raw | M5_SVR | -0.055 | 0.426 |
-| raw | T-raw | M3_ENR+time | -0.079 | 0.525 |
-| baseline | T-raw | M2_ENR | -0.163 | 0.901 |
-| baseline | T-smooth | M4_mixed | -0.292 | 1.000 |
-| baseline | T-smooth | M3_ENR+time | -0.324 | 1.000 |
-| baseline | T-smooth | M6_SVR+time | -0.419 | 1.000 |
-| raw | T-smooth | M4_mixed | -0.481 | 1.000 |
-| baseline | T-smooth | M5_SVR | -0.527 | 1.000 |
-| raw | T-smooth | M5_SVR | -0.562 | 1.000 |
-| raw | T-smooth | M6_SVR+time | -0.667 | 1.000 |
-| raw | T-smooth | M2_ENR | -0.671 | 1.000 |
-| raw | T-smooth | M3_ENR+time | -0.776 | 1.000 |
-| baseline | T-smooth | M2_ENR | -0.845 | 1.000 |
+| norm | target | model | model R² | model r | persistence R² | persistence r | gain | selection-corrected p |
+|---|---|---|---|---|---|---|---|---|
+| baseline | T-raw | M3_ENR+time | 0.246 | 0.497 | 0.058 | 0.551 | 0.188 | 0.010 |
+| baseline | T-raw | M4_mixed | 0.159 | 0.504 | 0.058 | 0.551 | 0.100 | 0.020 |
+| baseline | T-raw | M6_SVR+time | 0.146 | 0.388 | 0.058 | 0.551 | 0.088 | 0.020 |
+| baseline | T-raw | M5_SVR | 0.087 | 0.320 | 0.058 | 0.551 | 0.029 | 0.089 |
+| raw | T-raw | M4_mixed | 0.052 | 0.456 | 0.058 | 0.551 | -0.006 | 0.188 |
+| raw | T-raw | M6_SVR+time | 0.023 | 0.223 | 0.058 | 0.551 | -0.036 | 0.317 |
+| raw | T-raw | M2_ENR | 0.015 | 0.205 | 0.058 | 0.551 | -0.043 | 0.347 |
+| raw | T-raw | M5_SVR | 0.003 | 0.197 | 0.058 | 0.551 | -0.055 | 0.426 |
+| raw | T-raw | M3_ENR+time | -0.020 | 0.116 | 0.058 | 0.551 | -0.079 | 0.525 |
+| baseline | T-raw | M2_ENR | -0.105 | 0.010 | 0.058 | 0.551 | -0.163 | 0.901 |
+| baseline | T-smooth | M4_mixed | 0.489 | 0.714 | 0.781 | 0.897 | -0.292 | 1.000 |
+| baseline | T-smooth | M3_ENR+time | 0.457 | 0.687 | 0.781 | 0.897 | -0.324 | 1.000 |
+| baseline | T-smooth | M6_SVR+time | 0.362 | 0.616 | 0.781 | 0.897 | -0.419 | 1.000 |
+| raw | T-smooth | M4_mixed | 0.300 | 0.626 | 0.781 | 0.897 | -0.481 | 1.000 |
+| baseline | T-smooth | M5_SVR | 0.254 | 0.505 | 0.781 | 0.897 | -0.527 | 1.000 |
+| raw | T-smooth | M5_SVR | 0.219 | 0.474 | 0.781 | 0.897 | -0.562 | 1.000 |
+| raw | T-smooth | M6_SVR+time | 0.114 | 0.345 | 0.781 | 0.897 | -0.667 | 1.000 |
+| raw | T-smooth | M2_ENR | 0.110 | 0.359 | 0.781 | 0.897 | -0.671 | 1.000 |
+| raw | T-smooth | M3_ENR+time | 0.005 | 0.158 | 0.781 | 0.897 | -0.776 | 1.000 |
+| baseline | T-smooth | M2_ENR | -0.064 | 0.095 | 0.781 | 0.897 | -0.845 | 1.000 |
 
 <!-- ai-end -->
