@@ -113,7 +113,10 @@ def normalize(W, how):
     for pt, idx in W.groupby("pt").groups.items():
         base = W.loc[idx][W.loc[idx, "t"] <= 3][cols]  # B01-B04
         mu, sd = base.mean(), base.std(ddof=1).replace(0, np.nan)
-        out.loc[idx, cols] = (W.loc[idx, cols] - mu) / sd
+        if how == "center":  # POST-HOC variant (not in PROTOCOL.md): subtract B-week mean, no scaling
+            out.loc[idx, cols] = W.loc[idx, cols] - mu
+        else:
+            out.loc[idx, cols] = (W.loc[idx, cols] - mu) / sd
     return out.fillna(0.0)
 
 
