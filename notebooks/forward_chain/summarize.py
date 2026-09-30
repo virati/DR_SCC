@@ -166,20 +166,32 @@ if (O / "confirm_C1_tests.csv").exists():
     C1 = pd.read_csv(O / "confirm_C1_tests.csv").set_index("model")
     C1s = pd.read_csv(O / "confirm_C1_scores.csv").set_index("model")
     yn = lambda v: "yes" if bool(v) else "no"
-    lines += ["## Amendment 2, C1: confirmation on held-out night recordings", "", "<!-- ai-start -->",
+    lines += ["## Amendment 2, C1: day-vs-night comparison (descriptive; retracted as a confirmation in amendment 4)", "", "<!-- ai-start -->",
+              "Daytime and nighttime recordings come from different physiological states, so this is not a valid confirmation test.",
+              "The numbers are kept as a descriptive comparison only.",
               "Frozen pipeline (amendment 1) on nighttime recordings only (F-fooof-night × baseline × T-raw, E1, same 100 null draws).",
               f"Persistence R² in this run: {f(C1s.loc['M0_persistence','R2'])}. Criteria, each required: (a) R² > persistence, (b) null p(R²) < 0.05, (c) r > 0.", "",
-              "| Model | R² | r | p (R²) | (a) | (b) | (c) | Confirmed |", "|---|---|---|---|---|---|---|---|"]
+              "| Model | R² | r | p (R²) | (a) | (b) | (c) | Original C1 call (retracted) |", "|---|---|---|---|---|---|---|---|"]
     for m in C1.index:
         x = C1.loc[m]
         conf = ("**yes**" if x.confirmed == True else "**no**") if m in ("M3_ENR+time", "M4_mixed") else "not a confirmation target"
         lines.append(f"| {m} | {f(x.R2)} | {f(x.r)} | {f(x.p_R2)} | {yn(x.a_beats_persistence)} | {yn(x.b_null_p_lt_05)} | {yn(x.c_r_positive)} | {conf} |")
-    both = all(C1.loc[m, "confirmed"] == True for m in ("M3_ENR+time", "M4_mixed"))
-    lines += ["", ("**Both pre-specified models confirmed.**" if both else
-                   "**Not confirmed.** Neither pre-specified model (M3, M4) met all three criteria on the held-out recordings. "
-                   "Other FOOOF models beat persistence on night data (see table); they were not pre-specified targets, so this is "
-                   "an observation for C2, not a confirmation."),
-              "C2 (the May 2020 frame) remains pending.", "<!-- ai-end -->", ""]
+    lines += ["", "C2 (May 2020 frame) was withdrawn in amendment 3. The selection-corrected test is C3 (amendment 4).",
+              "<!-- ai-end -->", ""]
+
+if (O / "confirm_C3_summary.csv").exists():
+    c3 = pd.read_csv(O / "confirm_C3_summary.csv").iloc[0]
+    cells = pd.read_csv(O / "confirm_C3_cells.csv")
+    lines += ["## Amendment 4, C3: selection-corrected test of the FOOOF lead (daytime)", "", "<!-- ai-start -->",
+              "Null = the best gain over persistence across all 20 explored FOOOF cells, per circular-shift draw "
+              f"({int(c3.n_draws)} draws, same shift offsets in every cell).", "",
+              f"- Observed best gain: **{f(c3.observed_max_gain)}** ({c3.cell})",
+              f"- Null best gain: mean {f(c3.null_max_mean)}, 95th percentile {f(c3.null_max_95pct)}",
+              f"- Selection-corrected p = **{f(c3.p_selection_corrected)}** → " + ("**survives**" if c3.survives else "**does not survive**"), "",
+              "| norm | target | model | gain vs persistence | selection-corrected p |", "|---|---|---|---|---|"]
+    lines += [f"| {r.norm} | {r.target} | {r.model} | {f(r.gain_vs_persistence)} | {f(r.p_selection_corrected)} |"
+              for r in cells.itertuples()]
+    lines += ["", "<!-- ai-end -->", ""]
 
 (HERE / "RESULTS.md").write_text("\n".join(lines))
 print("\n".join(lines[:40]))
