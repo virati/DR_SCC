@@ -10,6 +10,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 os.environ["PYTHONPATH"] = os.pathsep.join([str(HERE), str(HERE.parent / "forward_chain"), os.environ.get("PYTHONPATH", "")])
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "forward_chain"))
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
