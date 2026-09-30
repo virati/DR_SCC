@@ -44,7 +44,7 @@ def md5(path):
 def build_recordings(cache):
     """One row per recording: patient, week, t, circadian, GC flag, 10 paper features."""
     if Path(cache).exists():
-        return pd.read_csv(cache)
+        return pd.read_csv(cache, dtype={"pt": str, "week": str})
     from dbspace.readout import ClinVect, decoder
     D = data_dir()
     frame, clin = D / "intermed/chronic/Chronic_FrameFeb2026_F.pickle", D / "clinical/clinical_vectors_all.json"
