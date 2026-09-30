@@ -82,3 +82,29 @@ Everything else (E2, the other E3 values of N, the other feature sets and target
 
 No random train/test split is involved, so record order doesn't matter. The null draws use `numpy.random.default_rng(2026)`.
 <!-- ai-end -->
+
+## Amendment 1 (2026-09-30): FOOOF spectral parameterization
+
+<!-- ai-start -->
+Added and committed **before** any FOOOF code or result exists. Everything else above is unchanged.
+
+**Why:** the paper's features subtract a 5th-order polynomial from each PSD. FOOOF (Donoghue et al. 2020) instead separates each spectrum into an aperiodic 1/f component and periodic peaks, so broadband shifts (for example from stimulation or mismatch compression) are modelled explicitly rather than folded into band power.
+
+**Feature set F-fooof** (applied to every recording, day and night, both channels):
+- Input: the frame's per-recording Welch PSD (0–211 Hz, 513 bins), from the plain export `intermed/chronic/Chronic_FrameFeb2026_plain.pkl` (md5 `07e0f3a2c88b4b323567aa88d84089f8`, same records as `Chronic_FrameFeb2026_F.pickle`).
+- Fit: `fooof==1.1.0`, `FOOOF(peak_width_limits=[1, 8], max_n_peaks=6, min_peak_height=0.1, aperiodic_mode="fixed")`, frequency range 1–55 Hz.
+- Features per channel (7 × 2 = 14): aperiodic offset, aperiodic exponent, and the mean of the flattened spectrum (log10 power minus the aperiodic fit) within δ 1–4, θ 4–8, α 8–14, β* 14–20, γ¹ 35–50 Hz.
+- QC: a recording is excluded if either channel's fit R² < 0.5, or if its PSD contains non-positive values in 1–55 Hz. Excluded counts are reported.
+- Weekly aggregation as F-mean: daytime recordings, weekly mean.
+
+**Runs**
+- E1 (all models), E2 (linear models) and E3 (all N) for F-fooof × {raw, baseline} × {T-raw, T-smooth}.
+- A 100-draw circular-shift null for the FOOOF primary condition.
+
+**FOOOF primary condition:** E1 × T-raw × F-fooof × **raw** normalization. Raw is chosen because the pre-registered baseline z-scoring was found to inflate stimulation-on features (post-hoc section of RESULTS.md). That choice was made after seeing F-mean results, and is stated here as such.
+
+**Hypotheses (same criterion as H1)**
+- **H4.** M3 (ENR neural + time) with F-fooof beats M1 (time-only): ΔR² > 0, circular-shift p < 0.05.
+- **H5.** M6 (SVR neural + time) with F-fooof beats M1, same criterion.
+- **H6 (descriptive).** F-fooof versus F-mean pooled R² and r for M2 and M5 under E1 and under E3 N = 0.
+<!-- ai-end -->
