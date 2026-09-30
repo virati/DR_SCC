@@ -108,3 +108,38 @@ Added and committed **before** any FOOOF code or result exists. Everything else 
 - **H5.** M6 (SVR neural + time) with F-fooof beats M1, same criterion.
 - **H6 (descriptive).** F-fooof versus F-mean pooled R² and r for M2 and M5 under E1 and under E3 N = 0.
 <!-- ai-end -->
+
+## Amendment 2 (2026-09-30): confirmation of the exploratory FOOOF × baseline result
+
+<!-- ai-start -->
+Added and committed **before** any confirmation code or result exists.
+
+**Finding to confirm (exploratory, RESULTS.md):** E1 × T-raw × F-fooof × baseline normalization, daytime recordings.
+- M3 (ENR + time): pooled R² 0.246, r 0.497, circular-shift p = 0.0099.
+- M4 (mixed effects): pooled R² 0.159, r 0.504, p = 0.0099.
+- Persistence (M0): R² 0.058.
+
+That condition was chosen after looking at several FOOOF conditions, so it needs data that played no part in choosing it.
+
+**Everything is frozen as in amendment 1:** FOOOF settings, QC rule, features, baseline normalization (z-score against B01–B04 weekly values), E1 design, models and hyperparameter grids, target (nHDRS, T-raw), the 100 circular-shift draws (`default_rng(2026)`), and the metrics. Nothing may be tuned.
+
+### C1: held-out recordings (run now)
+
+Nighttime recordings (`circ == "night"`, 21:00–10:00 by filename timestamp): about 7,400 recordings never used in feature selection, model selection or the FOOOF amendment. Feature set **F-fooof-night** is identical to F-fooof except that it uses night recordings, including the night recordings' own B01–B04 baseline. Labels are the same weekly nHDRS, so this tests whether the result replicates on independent recordings, not on independent patients or weeks.
+
+Confirmation criteria, **each required** for M3 and, separately, for M4:
+- (a) pooled R² > the persistence baseline (M0) R² in the same run
+- (b) circular-shift null p for pooled R² < 0.05
+- (c) pooled r > 0
+
+Report both models, all criteria, and every other model's numbers, whatever the outcome.
+
+### C2: held-out frame (pending the data)
+
+When the original `Chronic_FrameMay2020.pickle` is available:
+1. Export it to a plain frame with `recap/tools/plainify_frame.py`.
+2. Run `fooof_features.py` on it with no setting changed. Only the input path and md5 change.
+3. Rerun E1 for daytime F-fooof × baseline × T-raw with the same criteria (a)–(c) and the same null.
+
+C2 tests replication on independently built intermediate data, with record selection and PSDs from the 2020 builder.
+<!-- ai-end -->
