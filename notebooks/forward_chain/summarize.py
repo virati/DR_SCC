@@ -85,5 +85,81 @@ lines += ["T-raw, pooled R² / r", "", "| features | norm | " + " | ".join(piv.c
           "|---|---|" + "---|" * len(piv.columns)]
 lines += [f"| {i[0]} | {i[1]} | " + " | ".join(piv.loc[i]) + " |" for i in piv.index]
 lines += ["", "<!-- ai-end -->", ""]
+
+# ---- post-hoc (not pre-registered): baseline centering
+if (O / "posthoc_center_E1.csv").exists():
+    pc1 = pd.read_csv(O / "posthoc_center_E1.csv").set_index("model")
+    pc3 = pd.read_csv(O / "posthoc_center_E3_N0.csv").set_index("model")
+    lines += ["## Post-hoc (not pre-registered): baseline centering", "", "<!-- ai-start -->",
+              "Pre-registered baseline z-scoring divides by σ from only 4 stimulation-off weeks. Once stimulation starts,",
+              "features reach |z| ≈ 6 (median) to 95 (max), versus ≤ 7.5 raw: the stimulation-on state moves band power far",
+              "outside the off-state range (consistent with the mismatch-compression / stimulation confound, remediation plan CC-1).",
+              "`posthoc_center.py` subtracts the B-week mean without scaling (F-mean, T-raw):", "",
+              "| Model | E1 R² | E1 r | E3 N=0 R² | E3 N=0 r |", "|---|---|---|---|---|"]
+    for m in pc1.index:
+        e3v = pc3.loc[m] if m in pc3.index else None
+        lines.append(f"| {m} | {f(pc1.loc[m,'R2'])} | {f(pc1.loc[m,'r'])} | "
+                     f"{f(e3v.R2) if e3v is not None else '—'} | {f(e3v.r) if e3v is not None else '—'} |")
+    lines += ["", "It does not change the conclusions.", "<!-- ai-end -->", ""]
+
+# ---- amendment 1: FOOOF
+if (O / "fooof_E1_primary_null.csv").exists():
+    F1 = pd.read_csv(O / "fooof_E1_scores.csv")
+    FN = pd.read_csv(O / "fooof_E1_primary_null.csv")
+    F3 = pd.read_csv(O / "fooof_E3_scores.csv")
+    FP = F1[(F1.norm == "raw") & (F1.target == "T-raw")].set_index("model")
+    fnw = FN.pivot_table(index="draw", columns="model", values="R2")
+    ft = []
+    for m in ["M2_ENR", "M3_ENR+time", "M4_mixed", "M5_SVR", "M6_SVR+time"]:
+        obs = FP.loc[m, "R2"] - FP.loc["M1_time", "R2"]
+        null = (fnw[m] - fnw["M1_time"]).dropna()
+        nr = FN[FN.model == m].r.dropna()
+        ft.append({"model": m, "dR2": obs, "p": (np.sum(null >= obs) + 1) / (len(null) + 1),
+                   "p_r": (np.sum(nr >= FP.loc[m, "r"]) + 1) / (len(nr) + 1), "n": len(null)})
+    FT = pd.DataFrame(ft).set_index("model")
+    FT.to_csv(O / "fooof_E1_primary_tests.csv")
+    lines += ["## Amendment 1: FOOOF features (F-fooof)", "", "<!-- ai-start -->",
+              "FOOOF primary condition: E1 × T-raw × F-fooof × raw. Same 100 circular-shift draws as the F-mean null.", "",
+              "| Model | R² | r | MAE | mean per-patient r | ΔR² vs time-only (p) | r (p) |", "|---|---|---|---|---|---|---|"]
+    for m in FP.index:
+        row = FP.loc[m]
+        extra = f"{f(FT.loc[m,'dR2'])} (p = {f(FT.loc[m,'p'])}) | {f(row.r)} (p = {f(FT.loc[m,'p_r'])})" if m in FT.index else "— | —"
+        lines.append(f"| {m} | {f(row.R2)} | {f(row.r)} | {f(row.MAE)} | {f(row.mean_pt_r)} | {extra} |")
+    h4, h5 = FT.loc["M3_ENR+time"], FT.loc["M6_SVR+time"]
+    ok = lambda h: "**supported**" if h.dR2 > 0 and h.p < 0.05 else "**not supported**"
+    mean_e1 = A1[(A1.fset == "F-mean") & (A1.norm == "raw") & (A1.target == "T-raw")].set_index("model")
+    e30f = F3[(F3.N == 0) & (F3.norm == "raw")].set_index("model")
+    e30m = E3[(E3.N == 0) & (E3.norm == "raw")].set_index("model")
+    lines += ["", f"- **H4** (M3 ENR+time, F-fooof, beats time-only): ΔR² = {f(h4.dR2)}, p = {f(h4.p)} → {ok(h4)}",
+              f"- **H5** (M6 SVR+time, F-fooof, beats time-only): ΔR² = {f(h5.dR2)}, p = {f(h5.p)} → {ok(h5)}",
+              "- **H6** (descriptive, raw features, T-raw): F-mean → F-fooof, pooled R² / r"]
+    for m in ["M2_ENR", "M5_SVR"]:
+        lines.append(f"  - {m}: E1 {f(mean_e1.loc[m,'R2'])} / {f(mean_e1.loc[m,'r'])} → {f(FP.loc[m,'R2'])} / {f(FP.loc[m,'r'])}; "
+                     f"E3 N=0 {f(e30m.loc[m,'R2'])} / {f(e30m.loc[m,'r'])} → {f(e30f.loc[m,'R2'])} / {f(e30f.loc[m,'r'])}")
+    a = F1.copy()
+    a["cell"] = a.apply(lambda r: f"{f(r.R2, 2)} / {f(r.r, 2)}", axis=1)
+    piv = a.pivot_table(index=["norm", "target"], columns="model", values="cell", aggfunc="first")
+    lines += ["", "All F-fooof E1 conditions (pooled R² / r):", "", "| norm | target | " + " | ".join(piv.columns) + " |",
+              "|---|---|" + "---|" * len(piv.columns)]
+    lines += [f"| {i[0]} | {i[1]} | " + " | ".join(piv.loc[i]) + " |" for i in piv.index]
+    c = F3[F3.norm == "raw"].pivot_table(index="model", columns="N", values="R2")
+    lines += ["", "F-fooof raw, E3 calibration curve (pooled R²):", "", "| Model | " + " | ".join(f"N={n}" for n in c.columns) + " |",
+              "|---|" + "---|" * len(c.columns)]
+    lines += [f"| {m} | " + " | ".join(f(v) for v in c.loc[m]) + " |" for m in c.index]
+    lines += ["", "<!-- ai-end -->", ""]
+
+# ---- exploratory null for the best FOOOF condition
+if (O / "fooof_baseline_E1_tests_EXPLORATORY.csv").exists():
+    X = pd.read_csv(O / "fooof_baseline_E1_tests_EXPLORATORY.csv").set_index("model")
+    lines += ["## Exploratory: FOOOF × baseline normalization, with its own null", "", "<!-- ai-start -->",
+              "Not a pre-registered test: this condition was picked after seeing the F-fooof grid. Same 100 circular-shift",
+              "draws. `p (R²)` compares the model's pooled R² with its own null; `p (ΔR²)` compares the gain over time-only.", "",
+              "| Model | R² | r | ΔR² vs time-only (p) | p (R²) | ΔR² vs persistence |", "|---|---|---|---|---|---|"]
+    for m in X.index:
+        x = X.loc[m]
+        lines.append(f"| {m} | {f(x.R2)} | {f(x.r)} | {f(x.dR2_vs_time)} (p = {f(x.p_dR2)}) | {f(x.p_R2)} | {f(x.dR2_vs_persistence)} |")
+    lines += ["", "Needs confirmation on held-out data (for example the original May 2020 frame, or new patients) before it can be",
+              "claimed: it is the best of several FOOOF conditions examined.", "<!-- ai-end -->", ""]
+
 (HERE / "RESULTS.md").write_text("\n".join(lines))
 print("\n".join(lines[:40]))

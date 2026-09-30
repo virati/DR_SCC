@@ -109,8 +109,85 @@ T-raw, pooled R² / r
 
 <!-- ai-end -->
 
-## Post-hoc (not pre-registered)
+## Post-hoc (not pre-registered): baseline centering
 
 <!-- ai-start -->
-Pre-registered baseline z-scoring divides by σ from only 4 stimulation-off weeks. Once stimulation starts, features reach |z| ≈ 6 (median) to 95 (max), versus ≤ 7.5 raw: the stimulation-on state moves band power far outside the off-state range (consistent with the mismatch-compression / stimulation confound, remediation plan CC-1). `posthoc_center.py` subtracts the B-week mean without scaling. It does not change the conclusions: E1 best is M5 SVR R² 0.027, r 0.26 (persistence r 0.55); leave-one-patient-out stays negative for every model. Files: `outputs/posthoc_center_*.csv`.
+Pre-registered baseline z-scoring divides by σ from only 4 stimulation-off weeks. Once stimulation starts,
+features reach |z| ≈ 6 (median) to 95 (max), versus ≤ 7.5 raw: the stimulation-on state moves band power far
+outside the off-state range (consistent with the mismatch-compression / stimulation confound, remediation plan CC-1).
+`posthoc_center.py` subtracts the B-week mean without scaling (F-mean, T-raw):
+
+| Model | E1 R² | E1 r | E3 N=0 R² | E3 N=0 r |
+|---|---|---|---|---|
+| M0_persistence | 0.058 | 0.551 | — | — |
+| M1_time | -0.123 | -0.405 | -0.185 | -0.565 |
+| M2_ENR | -0.019 | 0.161 | -0.244 | -0.047 |
+| M3_ENR+time | -0.053 | 0.117 | -0.262 | -0.151 |
+| M4_mixed | -0.461 | 0.322 | -5.271 | 0.225 |
+| M5_SVR | 0.027 | 0.263 | -0.167 | -0.091 |
+| M6_SVR+time | -0.024 | 0.226 | -0.149 | -0.045 |
+
+It does not change the conclusions.
+<!-- ai-end -->
+
+## Amendment 1: FOOOF features (F-fooof)
+
+<!-- ai-start -->
+FOOOF primary condition: E1 × T-raw × F-fooof × raw. Same 100 circular-shift draws as the F-mean null.
+
+| Model | R² | r | MAE | mean per-patient r | ΔR² vs time-only (p) | r (p) |
+|---|---|---|---|---|---|---|
+| M0_persistence | 0.058 | 0.551 | 0.168 | 0.371 | — | — |
+| M1_time | -0.123 | -0.405 | 0.203 | -0.253 | — | — |
+| M2_ENR | 0.015 | 0.205 | 0.193 | -0.178 | 0.138 (p = 0.030) | 0.205 (p = 0.119) |
+| M3_ENR+time | -0.020 | 0.116 | 0.194 | -0.024 | 0.103 (p = 0.010) | 0.116 (p = 0.198) |
+| M4_mixed | 0.052 | 0.456 | 0.183 | 0.325 | 0.175 (p = 0.020) | 0.456 (p = 0.020) |
+| M5_SVR | 0.003 | 0.197 | 0.184 | -0.019 | 0.126 (p = 0.168) | 0.197 (p = 0.802) |
+| M6_SVR+time | 0.023 | 0.223 | 0.180 | 0.097 | 0.146 (p = 0.139) | 0.223 (p = 0.594) |
+
+- **H4** (M3 ENR+time, F-fooof, beats time-only): ΔR² = 0.103, p = 0.010 → **supported**
+- **H5** (M6 SVR+time, F-fooof, beats time-only): ΔR² = 0.146, p = 0.139 → **not supported**
+- **H6** (descriptive, raw features, T-raw): F-mean → F-fooof, pooled R² / r
+  - M2_ENR: E1 -0.046 / 0.070 → 0.015 / 0.205; E3 N=0 -0.236 / -0.143 → -0.074 / 0.046
+  - M5_SVR: E1 -0.064 / 0.152 → 0.003 / 0.197; E3 N=0 -0.158 / -0.082 → -0.405 / -0.101
+
+All F-fooof E1 conditions (pooled R² / r):
+
+| norm | target | M0_persistence | M1_time | M2_ENR | M3_ENR+time | M4_mixed | M5_SVR | M6_SVR+time |
+|---|---|---|---|---|---|---|---|---|
+| baseline | T-raw | 0.06 / 0.55 | -0.12 / -0.40 | -0.10 / 0.01 | 0.25 / 0.50 | 0.16 / 0.50 | 0.09 / 0.32 | 0.15 / 0.39 |
+| baseline | T-smooth | 0.78 / 0.90 | -0.15 / -0.41 | -0.06 / 0.09 | 0.46 / 0.69 | 0.49 / 0.71 | 0.25 / 0.50 | 0.36 / 0.62 |
+| raw | T-raw | 0.06 / 0.55 | -0.12 / -0.40 | 0.02 / 0.20 | -0.02 / 0.12 | 0.05 / 0.46 | 0.00 / 0.20 | 0.02 / 0.22 |
+| raw | T-smooth | 0.78 / 0.90 | -0.15 / -0.41 | 0.11 / 0.36 | 0.01 / 0.16 | 0.30 / 0.63 | 0.22 / 0.47 | 0.11 / 0.34 |
+
+F-fooof raw, E3 calibration curve (pooled R²):
+
+| Model | N=0 | N=2 | N=4 | N=8 | N=12 | N=16 |
+|---|---|---|---|---|---|---|
+| M0_persistence | — | -2.058 | -2.631 | -1.316 | -0.443 | -1.174 |
+| M1_time | -0.204 | -0.205 | -0.202 | -0.174 | -0.161 | -0.191 |
+| M2_ENR | -0.074 | -0.094 | -0.116 | -0.053 | 0.000 | -0.155 |
+| M3_ENR+time | -0.216 | -0.193 | -0.130 | -0.079 | -0.082 | -0.210 |
+| M4_mixed | -0.652 | -1.383 | -1.381 | -1.094 | -0.596 | -1.089 |
+| M5_SVR | -0.405 | -0.436 | -0.315 | -0.030 | -0.024 | -0.303 |
+| M6_SVR+time | -0.179 | -0.181 | -0.199 | -0.005 | 0.005 | -0.215 |
+
+<!-- ai-end -->
+
+## Exploratory: FOOOF × baseline normalization, with its own null
+
+<!-- ai-start -->
+Not a pre-registered test: this condition was picked after seeing the F-fooof grid. Same 100 circular-shift
+draws. `p (R²)` compares the model's pooled R² with its own null; `p (ΔR²)` compares the gain over time-only.
+
+| Model | R² | r | ΔR² vs time-only (p) | p (R²) | ΔR² vs persistence |
+|---|---|---|---|---|---|
+| M2_ENR | -0.105 | 0.010 | 0.018 (p = 0.327) | 0.990 | -0.163 |
+| M3_ENR+time | 0.246 | 0.497 | 0.369 (p = 0.010) | 0.010 | 0.188 |
+| M4_mixed | 0.159 | 0.504 | 0.282 (p = 0.010) | 0.010 | 0.100 |
+| M5_SVR | 0.087 | 0.320 | 0.210 (p = 0.030) | 0.178 | 0.029 |
+| M6_SVR+time | 0.146 | 0.388 | 0.269 (p = 0.010) | 0.069 | 0.088 |
+
+Needs confirmation on held-out data (for example the original May 2020 frame, or new patients) before it can be
+claimed: it is the best of several FOOOF conditions examined.
 <!-- ai-end -->
