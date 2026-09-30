@@ -151,3 +151,21 @@ The original `Chronic_FrameMay2020.pickle` is no longer part of this project. Th
 
 C2 is therefore withdrawn and will not be run. The confirmation status stays as C1 left it: **the exploratory FOOOF × baseline result for M3/M4 is not confirmed**. Any further confirmation needs new held-out data (for example new patients or later weeks) and a new amendment written before it runs.
 <!-- ai-end -->
+
+## Amendment 4 (2026-09-30): C1 retracted as a confirmation; selection-corrected test (C3)
+
+<!-- ai-start -->
+Added and committed **before** any C3 code or result exists.
+
+**C1 retracted as a confirmation test.** Daytime and nighttime recordings come from different physiological states, so there's no reason a model of the daytime generator should transfer to the night. C1 does not test whether the exploratory result is a selection artifact. Its numbers stay in RESULTS.md as a **descriptive day-vs-night comparison only**. The exploratory FOOOF × baseline result is **untested**, not "not confirmed".
+
+**C3: selection-corrected circular-shift null (daytime data only).** The exploratory result was chosen as the best of the FOOOF grid I examined, so its null must include that choice.
+- Grid: F-fooof × {raw, baseline} × {T-raw, T-smooth} × {M2, M3, M4, M5, M6} (20 cells), E1, daytime, exactly as in amendment 1.
+- Statistic per cell: gain = pooled R²(model) − pooled R²(M0 persistence) in the same condition.
+- Observed: max gain over the 20 cells (M3, baseline, T-raw: 0.246 − 0.058 = 0.188).
+- Null: the same 100 circular-shift draws (`default_rng(2026)`). In each draw every patient's target is shifted by the same offsets in every cell, all 20 cells are refit (persistence included), and the draw's maximum gain is recorded.
+- **Criterion:** the lead survives selection correction if p = (#draws with max gain ≥ 0.188 + 1) / 101 < 0.05.
+- Also reported: each cell's own gain and its selection-corrected p (the fraction of draw maxima ≥ that cell's gain).
+
+C3 tests whether the lead exceeds what the best of 20 tries would produce by chance. Replication on new data would still be stronger evidence.
+<!-- ai-end -->
