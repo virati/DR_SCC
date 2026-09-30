@@ -161,5 +161,25 @@ if (O / "fooof_baseline_E1_tests_EXPLORATORY.csv").exists():
     lines += ["", "Needs confirmation on held-out data (for example the original May 2020 frame, or new patients) before it can be",
               "claimed: it is the best of several FOOOF conditions examined.", "<!-- ai-end -->", ""]
 
+# ---- amendment 2: confirmation
+if (O / "confirm_C1_tests.csv").exists():
+    C1 = pd.read_csv(O / "confirm_C1_tests.csv").set_index("model")
+    C1s = pd.read_csv(O / "confirm_C1_scores.csv").set_index("model")
+    yn = lambda v: "yes" if bool(v) else "no"
+    lines += ["## Amendment 2, C1: confirmation on held-out night recordings", "", "<!-- ai-start -->",
+              "Frozen pipeline (amendment 1) on nighttime recordings only (F-fooof-night × baseline × T-raw, E1, same 100 null draws).",
+              f"Persistence R² in this run: {f(C1s.loc['M0_persistence','R2'])}. Criteria, each required: (a) R² > persistence, (b) null p(R²) < 0.05, (c) r > 0.", "",
+              "| Model | R² | r | p (R²) | (a) | (b) | (c) | Confirmed |", "|---|---|---|---|---|---|---|---|"]
+    for m in C1.index:
+        x = C1.loc[m]
+        conf = ("**yes**" if x.confirmed == True else "**no**") if m in ("M3_ENR+time", "M4_mixed") else "not a confirmation target"
+        lines.append(f"| {m} | {f(x.R2)} | {f(x.r)} | {f(x.p_R2)} | {yn(x.a_beats_persistence)} | {yn(x.b_null_p_lt_05)} | {yn(x.c_r_positive)} | {conf} |")
+    both = all(C1.loc[m, "confirmed"] == True for m in ("M3_ENR+time", "M4_mixed"))
+    lines += ["", ("**Both pre-specified models confirmed.**" if both else
+                   "**Not confirmed.** Neither pre-specified model (M3, M4) met all three criteria on the held-out recordings. "
+                   "Other FOOOF models beat persistence on night data (see table); they were not pre-specified targets, so this is "
+                   "an observation for C2, not a confirmation."),
+              "C2 (the May 2020 frame) remains pending.", "<!-- ai-end -->", ""]
+
 (HERE / "RESULTS.md").write_text("\n".join(lines))
 print("\n".join(lines[:40]))

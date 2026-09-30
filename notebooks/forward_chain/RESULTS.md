@@ -191,3 +191,21 @@ draws. `p (R²)` compares the model's pooled R² with its own null; `p (ΔR²)` 
 Needs confirmation on held-out data (for example the original May 2020 frame, or new patients) before it can be
 claimed: it is the best of several FOOOF conditions examined.
 <!-- ai-end -->
+
+## Amendment 2, C1: confirmation on held-out night recordings
+
+<!-- ai-start -->
+Frozen pipeline (amendment 1) on nighttime recordings only (F-fooof-night × baseline × T-raw, E1, same 100 null draws).
+Persistence R² in this run: 0.058. Criteria, each required: (a) R² > persistence, (b) null p(R²) < 0.05, (c) r > 0.
+
+| Model | R² | r | p (R²) | (a) | (b) | (c) | Confirmed |
+|---|---|---|---|---|---|---|---|
+| M2_ENR | 0.102 | 0.371 | 0.069 | yes | no | yes | not a confirmation target |
+| M3_ENR+time | -0.051 | 0.005 | 0.713 | no | no | yes | **no** |
+| M4_mixed | 0.055 | 0.441 | 0.059 | no | no | yes | **no** |
+| M5_SVR | 0.140 | 0.384 | 0.030 | yes | yes | yes | not a confirmation target |
+| M6_SVR+time | 0.171 | 0.422 | 0.040 | yes | yes | yes | not a confirmation target |
+
+**Not confirmed.** Neither pre-specified model (M3, M4) met all three criteria on the held-out recordings. Other FOOOF models beat persistence on night data (see table); they were not pre-specified targets, so this is an observation for C2, not a confirmation.
+C2 (the May 2020 frame) remains pending.
+<!-- ai-end -->
