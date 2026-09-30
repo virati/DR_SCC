@@ -161,12 +161,15 @@ def fit_predict(model, train, test, feats, grouped=True):
         import statsmodels.api as sm
         # neural features + t fixed (drop sqrt t column to keep the protocol's "features + t")
         Xtr_m, Xte_m = sm.add_constant(Xtr[:, :-1], has_constant="add"), sm.add_constant(Xte[:, :-1], has_constant="add")
-        for method in ("lbfgs", "powell", "nm"):
+        r = None
+        for method in ("bfgs", "powell", "nm"):  # lbfgs can "converge" to a degenerate fit with llf = inf
             try:
-                r = sm.MixedLM(y, Xtr_m, groups=train.pt.values).fit(reml=True, method=method, disp=False)
-                break
+                cand = sm.MixedLM(y, Xtr_m, groups=train.pt.values).fit(reml=True, method=method, disp=False)
             except Exception:
-                r = None
+                continue
+            if np.isfinite(cand.llf):
+                r = cand
+                break
         if r is None:
             return np.full(len(test), np.nan)
         fe = Xte_m @ np.asarray(r.fe_params)
