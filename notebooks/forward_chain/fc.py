@@ -170,7 +170,11 @@ def fit_predict(model, train, test, feats, grouped=True):
         if r is None:
             return np.full(len(test), np.nan)
         fe = Xte_m @ np.asarray(r.fe_params)
-        re = np.array([float(np.asarray(r.random_effects.get(p, [0.0]))[0]) for p in test.pt.values])
+        try:
+            reff = r.random_effects
+        except ValueError:  # random-intercept variance estimated as 0: model is fixed-effects only
+            reff = {}
+        re = np.array([float(np.asarray(reff.get(p, [0.0]))[0]) for p in test.pt.values])
         return fe + re
     raise ValueError(model)
 
