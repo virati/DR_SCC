@@ -92,9 +92,10 @@ def clinical_targets():
 def weekly(rec, fset):
     g = ["pt", "week", "t"]
     day = rec[rec.circ == "day"]
-    if fset == "F-fooof":  # amendment 1: rec is the FOOOF table (recordings_fooof.csv.gz)
+    if fset in ("F-fooof", "F-fooof-night"):  # amendments 1-2: rec is the FOOOF table
         cols = [c for c in rec.columns if c[:2] in ("L_", "R_") and not c.endswith("_r2")]
-        W = day[day.qc_ok.astype(bool)].groupby(g)[cols].mean()
+        src = day if fset == "F-fooof" else rec[rec.circ == "night"]  # night: amendment 2, C1
+        W = src[src.qc_ok.astype(bool)].groupby(g)[cols].mean()
         return W.reset_index()
     if fset == "F-mean":
         W = day.groupby(g)[FEATS].mean()

@@ -22,9 +22,10 @@ from joblib import Parallel, delayed
 warnings.filterwarnings("ignore")
 load_dotenv(find_dotenv(usecwd=True))
 DATA = Path(os.environ["DATA_DIRECTORY"])
-FRAME = DATA / "intermed/chronic/Chronic_FrameFeb2026_plain.pkl"
-FRAME_MD5 = "07e0f3a2c88b4b323567aa88d84089f8"
-OUT = DATA / "intermed/forward_chain/recordings_fooof.csv.gz"
+# amendment 2, C2: only the input frame (and its md5) and the output path may change
+FRAME = Path(os.environ.get("FOOOF_FRAME", DATA / "intermed/chronic/Chronic_FrameFeb2026_plain.pkl"))
+FRAME_MD5 = os.environ.get("FOOOF_FRAME_MD5", "07e0f3a2c88b4b323567aa88d84089f8")
+OUT = Path(os.environ.get("FOOOF_OUT", DATA / "intermed/forward_chain/recordings_fooof.csv.gz"))
 
 PTS = ["901", "903", "905", "906", "907", "908"]
 WEEKS = ["B0" + str(i) for i in range(1, 5)] + ["C%02d" % i for i in range(1, 25)]
