@@ -41,6 +41,12 @@ def md5(path):
 
 
 # ---------------------------------------------------------------- per-recording features
+def load_fooof():
+    """FOOOF per-recording table from fooof_features.py (amendment 1)."""
+    return pd.read_csv(data_dir() / "intermed/forward_chain/recordings_fooof.csv.gz",
+                       dtype={"pt": str, "week": str, "circ": str})
+
+
 def build_recordings(cache):
     """One row per recording: patient, week, t, circadian, GC flag, 10 paper features."""
     if Path(cache).exists():
@@ -86,6 +92,10 @@ def clinical_targets():
 def weekly(rec, fset):
     g = ["pt", "week", "t"]
     day = rec[rec.circ == "day"]
+    if fset == "F-fooof":  # amendment 1: rec is the FOOOF table (recordings_fooof.csv.gz)
+        cols = [c for c in rec.columns if c[:2] in ("L_", "R_") and not c.endswith("_r2")]
+        W = day[day.qc_ok.astype(bool)].groupby(g)[cols].mean()
+        return W.reset_index()
     if fset == "F-mean":
         W = day.groupby(g)[FEATS].mean()
     elif fset == "F-noGC":
