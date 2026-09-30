@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.8,<3.9"
-# dependencies = ["fooof==1.1.0", "numpy==1.24.4", "scipy==1.10.1", "pandas==2.0.3", "joblib==1.3.2", "python-dotenv==1.0.1"]
+# dependencies = ["fooof==1.1.0", "numpy==1.24.4", "scipy==1.10.1", "pandas==2.0.3", "joblib==1.3.2", "python-dotenv==1.0.1", "matplotlib==3.7.5"]
 # ///
 """FOOOF features for every recording (PROTOCOL.md, amendment 1). Self-contained:
     uv run notebooks/forward_chain/fooof_features.py
