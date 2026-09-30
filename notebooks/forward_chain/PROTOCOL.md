@@ -143,3 +143,11 @@ When the original `Chronic_FrameMay2020.pickle` is available:
 
 C2 tests replication on independently built intermediate data, with record selection and PSDs from the 2020 builder.
 <!-- ai-end -->
+
+## Amendment 3 (2026-09-30): C2 withdrawn; the Feb 2026 frame is canonical
+
+<!-- ai-start -->
+The original `Chronic_FrameMay2020.pickle` is no longer part of this project. The Feb 2026 frame (`Chronic_FrameFeb2026_F.pickle`, md5 `f40adf2f4c6c2988ccf29023a4959477`) is the canonical intermediate, built with the current preprocessing, and all analyses use it.
+
+C2 is therefore withdrawn and will not be run. The confirmation status stays as C1 left it: **the exploratory FOOOF × baseline result for M3/M4 is not confirmed**. Any further confirmation needs new held-out data (for example new patients or later weeks) and a new amendment written before it runs.
+<!-- ai-end -->
