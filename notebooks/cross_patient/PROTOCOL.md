@@ -89,7 +89,7 @@ Per-patient results are always reported. A positive X1 or X2 driven by one or tw
 
 ## Phase 2 (not run now; its own amendment first)
 
-- Lead-geometry modelling: sensing-contact identification plus CT and tractography lead fields, and per-contact grey/white-matter tables.
+- Lead-geometry modelling (CT, tractography, per-contact tissue tables) is **out of scope for this repository**: it belongs to the separate SCCwm-DBS umbrella project. Its outputs (for example per-patient lead-field gains) may later be imported here as fixed covariates, through a new amendment.
 - Shared metric learning and pullback from the clinical space (nHDRS, MADRS, BDI, GAF).
 - Stitching models (shared latent, patient-specific read-in).
 - Behaviour-contrastive embeddings (CEBRA) with a cross-subject consistency metric.
