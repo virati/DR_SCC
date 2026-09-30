@@ -192,13 +192,15 @@ Needs confirmation on held-out data (for example the original May 2020 frame, or
 claimed: it is the best of several FOOOF conditions examined.
 <!-- ai-end -->
 
-## Amendment 2, C1: confirmation on held-out night recordings
+## Amendment 2, C1: day-vs-night comparison (descriptive; retracted as a confirmation in amendment 4)
 
 <!-- ai-start -->
+Daytime and nighttime recordings come from different physiological states, so this is not a valid confirmation test.
+The numbers are kept as a descriptive comparison only.
 Frozen pipeline (amendment 1) on nighttime recordings only (F-fooof-night × baseline × T-raw, E1, same 100 null draws).
 Persistence R² in this run: 0.058. Criteria, each required: (a) R² > persistence, (b) null p(R²) < 0.05, (c) r > 0.
 
-| Model | R² | r | p (R²) | (a) | (b) | (c) | Confirmed |
+| Model | R² | r | p (R²) | (a) | (b) | (c) | Original C1 call (retracted) |
 |---|---|---|---|---|---|---|---|
 | M2_ENR | 0.102 | 0.371 | 0.069 | yes | no | yes | not a confirmation target |
 | M3_ENR+time | -0.051 | 0.005 | 0.713 | no | no | yes | **no** |
@@ -206,6 +208,39 @@ Persistence R² in this run: 0.058. Criteria, each required: (a) R² > persisten
 | M5_SVR | 0.140 | 0.384 | 0.030 | yes | yes | yes | not a confirmation target |
 | M6_SVR+time | 0.171 | 0.422 | 0.040 | yes | yes | yes | not a confirmation target |
 
-**Not confirmed.** Neither pre-specified model (M3, M4) met all three criteria on the held-out recordings. Other FOOOF models beat persistence on night data (see table); they were not pre-specified targets, so this is an observation for C2, not a confirmation.
-C2 (the May 2020 frame) remains pending.
+C2 (May 2020 frame) was withdrawn in amendment 3. The selection-corrected test is C3 (amendment 4).
+<!-- ai-end -->
+
+## Amendment 4, C3: selection-corrected test of the FOOOF lead (daytime)
+
+<!-- ai-start -->
+Null = the best gain over persistence across all 20 explored FOOOF cells, per circular-shift draw (100 draws, same shift offsets in every cell).
+
+- Observed best gain: **0.188** (baseline / T-raw / M3_ENR+time)
+- Null best gain: mean -0.071, 95th percentile 0.051
+- Selection-corrected p = **0.010** → **survives**
+
+| norm | target | model | gain vs persistence | selection-corrected p |
+|---|---|---|---|---|
+| baseline | T-raw | M3_ENR+time | 0.188 | 0.010 |
+| baseline | T-raw | M4_mixed | 0.100 | 0.020 |
+| baseline | T-raw | M6_SVR+time | 0.088 | 0.020 |
+| baseline | T-raw | M5_SVR | 0.029 | 0.089 |
+| raw | T-raw | M4_mixed | -0.006 | 0.188 |
+| raw | T-raw | M6_SVR+time | -0.036 | 0.317 |
+| raw | T-raw | M2_ENR | -0.043 | 0.347 |
+| raw | T-raw | M5_SVR | -0.055 | 0.426 |
+| raw | T-raw | M3_ENR+time | -0.079 | 0.525 |
+| baseline | T-raw | M2_ENR | -0.163 | 0.901 |
+| baseline | T-smooth | M4_mixed | -0.292 | 1.000 |
+| baseline | T-smooth | M3_ENR+time | -0.324 | 1.000 |
+| baseline | T-smooth | M6_SVR+time | -0.419 | 1.000 |
+| raw | T-smooth | M4_mixed | -0.481 | 1.000 |
+| baseline | T-smooth | M5_SVR | -0.527 | 1.000 |
+| raw | T-smooth | M5_SVR | -0.562 | 1.000 |
+| raw | T-smooth | M6_SVR+time | -0.667 | 1.000 |
+| raw | T-smooth | M2_ENR | -0.671 | 1.000 |
+| raw | T-smooth | M3_ENR+time | -0.776 | 1.000 |
+| baseline | T-smooth | M2_ENR | -0.845 | 1.000 |
+
 <!-- ai-end -->
