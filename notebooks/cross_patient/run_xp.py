@@ -83,14 +83,14 @@ if "null" in stages:
 if "calib" in stages:
     S = pd.read_csv(OUT / "lopo_scores.csv")
     N = pd.read_csv(OUT / "lopo_null.csv")
-    S["cell"] = [label((mc, f, a, m)) for mc, f, a, m in zip(S.mc, S.family, S.align, S.model)]
+    S["cell"] = [label((mc, f, a, m)) for mc, f, a, m in zip(S["mc"], S["family"], S["align"], S["model"])]
     dmax = N.groupby("draw").R2.max()
     S["p_selection_corrected"] = [(np.sum(dmax >= r) + 1) / (len(dmax) + 1) for r in S.R2]
     S["p_uncorrected"] = [(np.sum(N[N.cell == c].R2 >= r) + 1) / (N[N.cell == c].R2.notna().sum() + 1)
                           for c, r in zip(S.cell, S.R2)]
     S.to_csv(OUT / "lopo_scores_with_p.csv", index=False)
     best = S.sort_values("R2", ascending=False).iloc[0]
-    cell = (bool(best.mc), best.family, best.align, best.model)
+    cell = (bool(best["mc"]), best["family"], best["align"], best["model"])
     parts = [run_cell(cell, N=n)[0] for n in (0, 4, 8, 12)]
     C = xp.score(pd.concat(parts), by=("N", "model"))
     C["cell"] = label(cell)
