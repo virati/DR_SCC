@@ -146,3 +146,30 @@ K1 uses week w's own stimulation-off value, so K1 is **not** evaluated by agreem
 
 All metrics raw, with both sides of every gain shown and per-patient values in the outputs. Four patients: any generalization is limited and will be stated as such.
 <!-- ai-end -->
+
+## Amendment W-A3 (2026-10-01): variance of each oscillation in the stimulation-off sessions
+
+<!-- ai-start -->
+Written and committed **before** any W-A3 code or result exists. **Why:** the analyses so far used the level (mean or median) of each oscillation. The DR-SCC work on the at-home recordings also looked at within-week variance. The stimulation-off sessions have about 86 clean 10-s segments each, enough to measure within-session variability.
+
+**Blocks.** Within each primary session, the clean stimulation-off segments in time order are grouped into consecutive, non-overlapping blocks of 6 (one minute of data; a remainder is dropped). Per block:
+- **variance** (ddof = 1) across the 6 segments of log₁₀ power, for each of the 6 paper bands per hemisphere (12), and of each DR-SCC feature (10)
+- **mean** across the 6 segments of the same quantities, as the reference
+
+**Feature sets:** `var` (12), `mean` (12), `mean+var` (24), from the paper bands; `dr-var` (10) and `dr-mean+var` (20) from the DR-SCC features.
+
+**Analyses**, with patient roles as in amendment W-A1 (906–908 train and test, 905 held out) and logistic regression (C = 1, features scaled to [0, 1] on training data), since the simple model matched the neural network:
+- **VA1.** Sick (C01–C04) vs stable (C21–C24), leave one patient out among 906–908. AUROC per held-out patient at block level and session level, for every feature set.
+- **VA2.** Model trained on 906–908, applied to 905: AUROC against calendar labels and against clinical-state labels (nHDRS < 0.5 = well; all C weeks).
+- **VA3.** Time versus state: per patient, Spearman ρ of the session score with nHDRS and with week, from a model that never saw the patient.
+- **VA4.** Continuous tracking: session-level features (median over blocks) in forward chaining with models M0–M6, raw and baseline-z (against the patient's B-week blocks). Circular-shift null, 100 standard draws, selection-corrected over {var, mean+var, dr-var, dr-mean+var} × 2 normalizations × 5 neural models = 40 cells; statistic = pooled R² minus persistence R².
+- **Permutation test for VA1:** session labels permuted within patient, 200 permutations, per feature set.
+
+**Hypotheses**
+- **V1.** `var` alone separates sick from stable: mean block-level leave-one-patient-out AUROC > 0.5, permutation p < 0.05.
+- **V2 (descriptive).** `mean+var` versus `mean`: AUROC side by side.
+- **V3 (descriptive).** In 905, `var` follows clinical state (AUROC against clinical-state labels) rather than the calendar.
+- **V4.** In VA4, at least one cell beats persistence with selection-corrected p < 0.05.
+
+All values raw, per patient, with both sides of any comparison.
+<!-- ai-end -->
