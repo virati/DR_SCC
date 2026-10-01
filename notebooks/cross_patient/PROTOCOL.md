@@ -96,3 +96,67 @@ Per-patient results are always reported. A positive X1 or X2 driven by one or tw
 - Gromov–Wasserstein trajectory alignment.
 - The DBS910 prospective blind test, which needs implant and stimulation-on dates.
 <!-- ai-end -->
+
+## Amendment P2 (2026-09-30): phase 2, geometric and latent-variable methods
+
+<!-- ai-start -->
+Added and committed **before** any phase-2 code or result exists. Phase 1 settings are unchanged. DBS910 and lead geometry stay out of phase 2 (no dates or labels for DBS910; geometry belongs to the SCCwm-DBS project).
+
+**Evaluation (unchanged from phase 1):** primary is calibration-free leave-one-patient-out on C01–C24 (144 patient-weeks), using no labels from the held-out patient anywhere. Raw pooled R², r and MAE, plus per-patient R² and r, alongside the phase-1 reference predictors.
+
+**Inputs.** The mismatch-compression screen is **on** throughout (recording decile exclusion plus the per-fold feature screen from training patients), because the preprint-v2 plan uses it. Each family uses its label-free alignment:
+- F-band (z)
+- F-fooof-per (z)
+- F-rel (z)
+- F-asym (z)
+- F-riem (riem)
+
+All are weekly daytime features exported from phase 1 code.
+
+**Clinical space (for pullback):** (pHDRS17, pBDI, pGAF), each divided by the patient's A04–A01 mean. MADRS is excluded: its arrays don't align with the 32 phases for 901 (34 entries) and 903 (33).
+
+### Methods (primary family, 3 methods × 5 inputs = 15 cells)
+
+**P2-A, shared metric pullback.**
+- Learn one linear map W (k = 2 × d), shared across training patients. It minimizes stress Σ_p Σ_{i<j} (‖W(x_pi − x_pj)‖ − ‖c_pi − c_pj‖)², where c is the clinical vector and pairs are within patient.
+- Optimizer: L-BFGS from a PCA initialization plus 4 random initializations (`default_rng(2026)`); keep the lowest stress.
+- Decoder: ridge regression from Wx to nHDRS on training patients, alpha by GroupKFold over {0.01, 0.1, 1, 10, 100}.
+- The held-out patient is projected with the shared W, after its own label-free alignment.
+
+**P2-B, stitched linear dynamical system (shared latent, patient-specific read-in).**
+- Model, latent dimension k = 2:
+  - z_{t+1} = F z_t + w, w ~ N(0, Q)
+  - x_t = A_p z_t + b_p + v, v ~ N(0, diag R_p)
+  - y_t = c·z_t + d + e, e ~ N(0, s²); c and d are shared
+- Fit by EM on the training patients (x and y), 200 iterations.
+- For the held-out patient, F, Q, c, d and the initial state are fixed. A_p, b_p and R_p are fit by EM on x alone, starting from the mean of the training A_p and b_p. Then predict y_t = c·E[z_t | x] + d using the **Kalman smoother**, which uses features only. Causal Kalman-filter predictions are also reported, descriptively.
+
+**P2-D, Gromov–Wasserstein label transport.**
+- For the held-out patient p and each training patient q: Euclidean intra-trajectory distance matrices D_p and D_q on weekly features (B01–C24), each scaled by its own maximum.
+- GW coupling T_pq with square loss and uniform marginals (POT `ot.gromov.gromov_wasserstein`).
+- Prediction for held-out week i = Σ_j T_ij y_qj / Σ_j T_ij, averaged over the 5 training patients.
+- This uses only the trajectories' shapes in feature space, not week indices or labels of p.
+
+### Exploratory (outside the corrected family)
+
+**P2-C, CEBRA-Behavior.**
+- Recording-level daytime features for F-band, F-fooof-per, F-rel and F-asym (4 inputs), z-aligned per patient against that patient's B01–B04 recordings. Label: the recording's weekly nHDRS (training patients only).
+- `cebra` with model `offset1-model`, output dimension 3, 2000 iterations, batch 512, temperature 1, time offset 1, conditional "time_delta".
+- Fit on training patients. Embed the held-out patient's recordings. Decode with kNN regression (k = 25) fitted on training embeddings. Average per week.
+- Cross-patient consistency of embeddings (CEBRA consistency score between training patients) is reported descriptively.
+- Null: 20 circular-shift draws (the first 20 of the standard sequence), uncorrected.
+
+### Inference
+
+- Circular-shift null with the standard 100 draws (`default_rng(2026)`). The nHDRS and clinical-vector series are shifted together, with the same per-patient offsets. All 15 primary cells are refit per draw.
+- Selection-corrected p for a cell: the fraction of draws whose maximum pooled R² over the 15 cells is at least that cell's R².
+- Also reported: p against the combined family, phase 1's 88 cells plus these 15, using the same draws.
+
+### Hypotheses
+
+- **X5.** At least one phase-2 primary cell reaches calibration-free leave-one-patient-out pooled R² > 0 with selection-corrected p < 0.05 within phase 2.
+- **X6.** The same, judged against the combined phase 1 + phase 2 family. This is the stricter test.
+- **X7 (descriptive).** CEBRA cross-patient consistency, and its leave-one-patient-out R² with the 20-draw p.
+
+Per-patient results are always reported. A cell driven by one or two patients will be called that.
+<!-- ai-end -->
