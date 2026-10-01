@@ -55,7 +55,8 @@ def fold(fam, p, rec, seed=2026):
         from cebra.integrations.sklearn.metrics import consistency_score
         embs = [Etr[(tr.pt == q).values] for q in tr.pt.unique()]
         labs = [tr[tr.pt == q].y.values for q in tr.pt.unique()]
-        sc, _, _ = consistency_score(embeddings=embs, labels=labs, between="datasets")
+        # DEVIATION (descriptive metric only): default 100 label bins fail on sparse weekly labels; 10 bins used
+        sc, _, _ = consistency_score(embeddings=embs, labels=labs, between="datasets", num_discretization_bins=10)
         cons = float(np.nanmean(sc))
     except Exception:
         pass
