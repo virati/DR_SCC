@@ -209,3 +209,75 @@ Effect in units of the week-to-week SD of the stimulation-off value (mean over C
 | co-coherence only (5) | M6_SVR+time | 144 | -0.095 | -0.053 | 0.193 |
 
 <!-- ai-end -->
+
+## Amendment W-A2: removing the stimulation effect from the at-home recordings
+
+<!-- ai-start -->
+### D1: what the at-home weekly values agree with (mean within-patient Spearman ρ across C weeks)
+
+| Feature set | at-home vs session-on | at-home vs session-off | session-on vs session-off |
+|---|---|---|---|
+| DR-SCC | 0.241 | 0.081 | 0.165 |
+| FOOOF | 0.336 | 0.080 | 0.169 |
+
+### V1: agreement of corrected at-home values with the stimulation-off session
+
+| Feature set | Correction | mean ρ | features validated |
+|---|---|---|---|
+| DR-SCC | K0 | 0.081 | 0 of 10 |
+| DR-SCC | K3 | -0.316 | 0 of 10 |
+| DR-SCC | K4 | 0.100 | 0 of 10 |
+| FOOOF | K0 | 0.080 | 0 of 14 |
+| FOOOF | K3 | -0.226 | 0 of 14 |
+| FOOOF | K4 | 0.104 | 0 of 14 |
+
+### V2: forward chaining on the session weeks (66 predictions; 905–908)
+
+Persistence: R² 0.201, r 0.630, MAE 0.154. Time-only: R² -0.093, r -0.251, MAE 0.195.
+
+Null: best gain over persistence across the 60 corrected cells per circular-shift draw (100 draws): mean -0.079, 95th pct 0.075.
+
+| Correction | Feature set | Normalization | Model | R² | r | MAE | persistence R² | gain | selection-corrected p | R² 905 | R² 906 | R² 907 | R² 908 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| K3 | FOOOF | raw | M6_SVR+time | 0.315 | 0.606 | 0.145 | 0.201 | 0.113 | 0.050 | 0.52 | 0.40 | -0.16 | -0.13 |
+| K0 | FOOOF | baseline | M6_SVR+time | 0.277 | 0.532 | 0.147 | 0.201 | 0.076 | — | 0.50 | 0.15 | -0.34 | -0.03 |
+| K4 | FOOOF | baseline | M6_SVR+time | 0.247 | 0.498 | 0.147 | 0.201 | 0.046 | 0.089 | 0.39 | 0.38 | 0.08 | -0.19 |
+| K4 | FOOOF | baseline | M4_mixed | 0.210 | 0.660 | 0.164 | 0.201 | 0.009 | 0.198 | 0.68 | -0.46 | -0.26 | -0.57 |
+| OFF | DR-SCC | raw | M6_SVR+time | 0.197 | 0.557 | 0.156 | 0.201 | -0.004 | — | 0.61 | 0.15 | -0.60 | -0.60 |
+| K3 | FOOOF | baseline | M6_SVR+time | 0.170 | 0.444 | 0.156 | 0.201 | -0.031 | 0.277 | 0.27 | 0.25 | -0.12 | -0.06 |
+| K0 | FOOOF | baseline | M5_SVR | 0.157 | 0.404 | 0.158 | 0.201 | -0.044 | — | 0.27 | 0.24 | -0.03 | -0.15 |
+| K4 | FOOOF | baseline | M5_SVR | 0.131 | 0.392 | 0.155 | 0.201 | -0.071 | 0.426 | 0.32 | 0.21 | -0.13 | -0.35 |
+| K1 | FOOOF | baseline | M6_SVR+time | 0.114 | 0.361 | 0.170 | 0.201 | -0.087 | 0.475 | 0.30 | 0.03 | -0.41 | -0.16 |
+| K3 | FOOOF | baseline | M2_ENR | 0.092 | 0.499 | 0.185 | 0.201 | -0.109 | 0.614 | 0.48 | -0.73 | -0.34 | -0.40 |
+| K0 | DR-SCC | baseline | M6_SVR+time | 0.061 | 0.345 | 0.160 | 0.201 | -0.141 | — | 0.10 | 0.14 | 0.17 | -0.16 |
+| K4 | DR-SCC | baseline | M6_SVR+time | 0.051 | 0.360 | 0.160 | 0.201 | -0.151 | 0.772 | 0.10 | 0.25 | -0.01 | -0.20 |
+| K1 | FOOOF | raw | M6_SVR+time | 0.048 | 0.295 | 0.180 | 0.201 | -0.153 | 0.772 | 0.25 | -0.22 | -0.21 | -0.30 |
+| OFF | FOOOF | raw | M6_SVR+time | 0.045 | 0.279 | 0.172 | 0.201 | -0.156 | — | 0.14 | 0.33 | -0.28 | -0.27 |
+| K1 | FOOOF | baseline | M2_ENR | 0.033 | 0.307 | 0.179 | 0.201 | -0.168 | 0.871 | 0.24 | -0.02 | -0.40 | -0.36 |
+| K0 | FOOOF | raw | M5_SVR | 0.024 | 0.267 | 0.180 | 0.201 | -0.178 | — | 0.14 | -0.28 | -0.24 | -0.07 |
+| K3 | FOOOF | baseline | M3_ENR+time | 0.015 | 0.367 | 0.190 | 0.201 | -0.186 | 0.911 | 0.30 | -0.48 | -0.20 | -0.46 |
+| OFF | FOOOF | raw | M5_SVR | 0.011 | 0.307 | 0.175 | 0.201 | -0.190 | — | 0.22 | 0.06 | -0.67 | -0.32 |
+| K0 | FOOOF | baseline | M4_mixed | 0.006 | 0.605 | 0.170 | 0.201 | -0.196 | — | 0.48 | -1.11 | -0.30 | -0.62 |
+| K3 | FOOOF | raw | M4_mixed | -0.003 | 0.476 | 0.172 | 0.201 | -0.204 | 0.941 | 0.65 | 0.13 | -1.86 | -1.11 |
+
+K0 = uncorrected at-home; OFF = stimulation-off session features (references, not in the corrected family, so no corrected p).
+Top 20 of all cells by R²; the full table is `outputs/s_v2_scores.csv`.
+
+Best cell per correction (any feature set, normalization, model):
+
+| Correction | Feature set | Normalization | Model | R² | r | MAE |
+|---|---|---|---|---|---|---|
+| K1 | FOOOF | baseline | M6_SVR+time | 0.114 | 0.361 | 0.170 |
+| K3 | FOOOF | raw | M6_SVR+time | 0.315 | 0.606 | 0.145 |
+| K4 | FOOOF | baseline | M6_SVR+time | 0.247 | 0.498 | 0.147 |
+| K0 | FOOOF | baseline | M6_SVR+time | 0.277 | 0.532 | 0.147 |
+| OFF | DR-SCC | raw | M6_SVR+time | 0.197 | 0.557 | 0.156 |
+
+### Hypotheses
+
+- **S1** (descriptive): at-home values agree more with the session's stimulation-on values than with its stimulation-off values (table D1), but on and off barely track each other across weeks.
+- **S2** (K3 or K4 validates a feature where K0 has none): validated features K0 0, K3 0, K4 0 → **not supported**
+- **S3** (a corrected cell beats persistence, selection-corrected p < 0.05): best K3 × FOOOF × raw × M6_SVR+time: R² 0.315 vs persistence 0.201 (gain 0.113), r 0.606 vs 0.630, selection-corrected p = 0.0495 → **supported (marginally)**. Per patient R²: 905 0.52, 906 0.40, 907 -0.16, 908 -0.13.
+- **S4** (descriptive, same weeks): best corrected R² 0.315, r 0.606, MAE 0.145; best uncorrected (K0: FOOOF, baseline, M6_SVR+time) R² 0.277, r 0.532, MAE 0.147; best stimulation-off session (DR-SCC, M6_SVR+time) R² 0.197, r 0.557, MAE 0.156; persistence R² 0.201, r 0.630, MAE 0.154.
+
+<!-- ai-end -->

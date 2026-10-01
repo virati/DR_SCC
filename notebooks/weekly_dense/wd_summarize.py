@@ -83,5 +83,64 @@ if (O / "c1_agreement_summary.csv").exists():
         L += ["", f"### {name}", "", "| Features | Model | n | R² | r | MAE |", "|---|---|---|---|---|---|"]
         L += [f"| {r.features} | {r.model} | {int(r.n)} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} |" for r in T.itertuples()]
 L += ["", "<!-- ai-end -->", ""]
+
+# ---------------------------------------------------------------- amendment W-A2: stimulation-effect correction
+if (O / "s_v2_scores.csv").exists():
+    D1 = pd.read_csv(O / "s_d1_agreement.csv", dtype={"pt": str})
+    V1 = pd.read_csv(O / "s_v1_summary.csv")
+    S = pd.read_csv(O / "s_v2_scores.csv")
+    L += ["## Amendment W-A2: removing the stimulation effect from the at-home recordings", "", "<!-- ai-start -->",
+          "### D1: what the at-home weekly values agree with (mean within-patient Spearman ρ across C weeks)", "",
+          "| Feature set | at-home vs session-on | at-home vs session-off | session-on vs session-off |", "|---|---|---|---|"]
+    for s_, gdf in D1.groupby("set", sort=False):
+        L.append(f"| {s_} | {f(gdf.rho_on_vs_home.mean())} | {f(gdf.rho_off_vs_home.mean())} | {f(gdf.rho_on_vs_off.mean())} |")
+    L += ["", "### V1: agreement of corrected at-home values with the stimulation-off session", "",
+          "| Feature set | Correction | mean ρ | features validated |", "|---|---|---|---|"]
+    for (s_, k), gdf in V1.groupby(["set", "correction"], sort=False):
+        L.append(f"| {s_} | {k} | {f(gdf.rho_mean.mean())} | {int(gdf.validated.sum())} of {len(gdf)} |")
+    L += ["", "### V2: forward chaining on the session weeks (66 predictions; 905–908)", ""]
+    pers = S[S.model == "M0_persistence"].iloc[0]
+    tim = S[S.model == "M1_time"].iloc[0]
+    L += [f"Persistence: R² {f(pers.R2)}, r {f(pers.r)}, MAE {f(pers.MAE)}. Time-only: R² {f(tim.R2)}, r {f(tim.r)}, MAE {f(tim.MAE)}.", ""]
+    neural = S[~S.model.isin(["M0_persistence", "M1_time"])].copy()
+    neural["gain"] = neural.R2 - pers.R2
+    if (O / "s_v2_null.csv").exists():
+        N = pd.read_csv(O / "s_v2_null.csv")
+        dmax = N.groupby("draw").gain.max()
+        neural["p_corr"] = [(np.sum(dmax >= gval) + 1) / (len(dmax) + 1) if k in ("K1", "K3", "K4") else np.nan
+                            for gval, k in zip(neural.gain, neural.correction)]
+        L += [f"Null: best gain over persistence across the 60 corrected cells per circular-shift draw ({len(dmax)} draws): "
+              f"mean {f(dmax.mean())}, 95th pct {f(dmax.quantile(0.95))}.", ""]
+    else:
+        neural["p_corr"] = np.nan
+    L += ["| Correction | Feature set | Normalization | Model | R² | r | MAE | persistence R² | gain | selection-corrected p | "
+          + " | ".join(f"R² {p}" for p in PTS) + " |", "|---|---|---|---|---|---|---|---|---|---|" + "---|" * len(PTS)]
+    for r in neural.sort_values("R2", ascending=False).head(20).itertuples():
+        L.append(f"| {r.correction} | {r.set} | {r.norm} | {r.model} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} | {f(pers.R2)} | {f(r.gain)} | {f(r.p_corr)} | "
+                 + " | ".join(f(getattr(r, f'R2_{p}'), 2) for p in PTS) + " |")
+    L += ["", "K0 = uncorrected at-home; OFF = stimulation-off session features (references, not in the corrected family, so no corrected p).",
+          "Top 20 of all cells by R²; the full table is `outputs/s_v2_scores.csv`.", "", "Best cell per correction (any feature set, normalization, model):", "",
+          "| Correction | Feature set | Normalization | Model | R² | r | MAE |", "|---|---|---|---|---|---|---|"]
+    for k, gdf in neural.groupby("correction", sort=False):
+        b = gdf.sort_values("R2", ascending=False).iloc[0]
+        L.append(f"| {k} | {b.set} | {b.norm} | {b.model} | {f(b.R2)} | {f(b.r)} | {f(b.MAE)} |")
+    bc = neural[neural.correction.isin(["K1", "K3", "K4"])].sort_values("R2", ascending=False).iloc[0]
+    k0 = neural[neural.correction == "K0"].sort_values("R2", ascending=False).iloc[0]
+    of = neural[neural.correction == "OFF"].sort_values("R2", ascending=False).iloc[0]
+    nval = {k: int(V1[V1.correction == k].validated.sum()) for k in ("K0", "K3", "K4")}
+    L += ["", "### Hypotheses", "",
+          f"- **S1** (descriptive): at-home values agree more with the session's stimulation-on values than with its stimulation-off values "
+          f"(table D1), but on and off barely track each other across weeks.",
+          f"- **S2** (K3 or K4 validates a feature where K0 has none): validated features K0 {nval['K0']}, K3 {nval['K3']}, K4 {nval['K4']} → "
+          + ("**supported**" if (nval["K3"] > 0 or nval["K4"] > 0) and nval["K0"] == 0 else "**not supported**"),
+          f"- **S3** (a corrected cell beats persistence, selection-corrected p < 0.05): best {bc.correction} × {bc.set} × {bc.norm} × {bc.model}: "
+          f"R² {f(bc.R2)} vs persistence {f(pers.R2)} (gain {f(bc.gain)}), r {f(bc.r)} vs {f(pers.r)}, selection-corrected p = {bc.p_corr:.4f} → "
+          + ("**supported (marginally)**" if bc.gain > 0 and bc.p_corr < 0.05 else "**not supported**")
+          + f". Per patient R²: " + ", ".join(f"{p_} {f(getattr(bc, 'R2_' + p_), 2)}" for p_ in PTS) + ".",
+          f"- **S4** (descriptive, same weeks): best corrected R² {f(bc.R2)}, r {f(bc.r)}, MAE {f(bc.MAE)}; best uncorrected (K0: {k0.set}, {k0.norm}, {k0.model}) "
+          f"R² {f(k0.R2)}, r {f(k0.r)}, MAE {f(k0.MAE)}; best stimulation-off session ({of.set}, {of.model}) R² {f(of.R2)}, r {f(of.r)}, MAE {f(of.MAE)}; "
+          f"persistence R² {f(pers.R2)}, r {f(pers.r)}, MAE {f(pers.MAE)}."]
+    L += ["", "<!-- ai-end -->", ""]
+
 (HERE / "RESULTS.md").write_text("\n".join(L))
 print("written", len(L), "lines")
