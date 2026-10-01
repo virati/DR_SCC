@@ -142,5 +142,52 @@ if (O / "s_v2_scores.csv").exists():
           f"persistence R² {f(pers.R2)}, r {f(pers.r)}, MAE {f(pers.MAE)}."]
     L += ["", "<!-- ai-end -->", ""]
 
+# ---------------------------------------------------------------- amendment W-A3: variance of each oscillation
+if (O / "v_auc.csv").exists():
+    VA = pd.read_csv(O / "v_auc.csv", dtype={"pt": str})
+    VP = pd.read_csv(O / "v_permutation.csv")
+    VT = pd.read_csv(O / "v_time_vs_state.csv", dtype={"pt": str})
+    sets = ["var", "mean", "mean+var", "dr-var", "dr-mean+var"]
+    L += ["## Amendment W-A3: within-session variance of each oscillation (stimulation-off sessions)", "", "<!-- ai-start -->",
+          "One-minute blocks of 6 segments; variance and mean of log band power across the block. Logistic regression.", "",
+          "Block-level AUROC (session-level in brackets):", "",
+          "| Analysis | Patient | " + " | ".join(sets) + " |", "|---|---|" + "---|" * len(sets)]
+    for (an, pt), gdf in VA.groupby(["analysis", "pt"], sort=False):
+        gdf = gdf.set_index("set")
+        L.append(f"| {an} | {pt} | " + " | ".join(f"{f(gdf.loc[s_, 'auc_block'])} ({f(gdf.loc[s_, 'auc_session'], 2)})" for s_ in sets) + " |")
+    L += ["", "Permutation test (session labels permuted within patient, 200), mean block AUROC over 906–908:", "",
+          "| Feature set | observed | null mean | null 95th pct | p |", "|---|---|---|---|---|"]
+    L += [f"| {r.set} | {f(r.obs_auc_block_mean)} | {f(r.null_mean)} | {f(r.null_95)} | {f(r.p)} |" for r in VP.itertuples()]
+    L += ["", "Time versus state, `var` features (score from a model that never saw the patient):", "",
+          "| Patient | sessions | ρ(score, nHDRS) | p | ρ(score, week) | p |", "|---|---|---|---|---|---|"]
+    L += [f"| {r.pt} | {int(r.n_sessions)} | {f(r.rho_score_nHDRS)} | {f(r.p_score_nHDRS)} | {f(r.rho_score_week)} | {f(r.p_score_week)} |"
+          for r in VT[VT.set == "var"].itertuples()]
+    vpm = VP.set_index("set")
+    L += ["", f"- **V1** (variance alone separates sick from stable): AUROC {f(vpm.loc['var', 'obs_auc_block_mean'])}, p = {f(vpm.loc['var', 'p'])} → "
+          + ("**supported**" if vpm.loc["var", "obs_auc_block_mean"] > 0.5 and vpm.loc["var", "p"] < 0.05 else "**not supported**"),
+          f"- **V2** (descriptive): mean {f(vpm.loc['mean', 'obs_auc_block_mean'])} vs mean+var {f(vpm.loc['mean+var', 'obs_auc_block_mean'])}.",
+          f"- **V3** (descriptive): 905 against clinical-state labels, `var`: "
+          f"{f(VA[(VA.set == 'var') & VA.analysis.str.contains('clinical')].auc_block.iloc[0])} (block), "
+          f"{f(VA[(VA.set == 'var') & VA.analysis.str.contains('clinical')].auc_session.iloc[0])} (session)."]
+    if (O / "v_chain_scores.csv").exists():
+        VC = pd.read_csv(O / "v_chain_scores.csv")
+        pers = VC[VC.model == "M0_persistence"].iloc[0]
+        nv = VC[~VC.model.isin(["M0_persistence", "M1_time"])].copy()
+        nv["gain"] = nv.R2 - pers.R2
+        if (O / "v_chain_null.csv").exists():
+            dmax = pd.read_csv(O / "v_chain_null.csv").groupby("draw").gain.max()
+            nv["p_corr"] = [(np.sum(dmax >= gv) + 1) / (len(dmax) + 1) for gv in nv.gain]
+            note = f"Null best gain over the 40 cells: mean {f(dmax.mean())}, 95th pct {f(dmax.quantile(0.95))}."
+        else:
+            nv["p_corr"], note = np.nan, "Null not available."
+        b = nv.sort_values("R2", ascending=False)
+        L += ["", f"Continuous tracking (forward chaining, 66 predictions). Persistence: R² {f(pers.R2)}, r {f(pers.r)}, MAE {f(pers.MAE)}. {note}", "",
+              "| Feature set | Normalization | Model | R² | r | MAE | persistence R² | gain | selection-corrected p |", "|---|---|---|---|---|---|---|---|---|"]
+        L += [f"| {r.set} | {r.norm} | {r.model} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} | {f(pers.R2)} | {f(r.gain)} | {f(r.p_corr)} |" for r in b.head(8).itertuples()]
+        top = b.iloc[0]
+        L += ["", f"- **V4** (a variance cell beats persistence, selection-corrected p < 0.05): best gain {f(top.gain)}, p = {f(top.p_corr)} → "
+              + ("**supported**" if top.gain > 0 and top.p_corr < 0.05 else "**not supported**")]
+    L += ["", "<!-- ai-end -->", ""]
+
 (HERE / "RESULTS.md").write_text("\n".join(L))
 print("written", len(L), "lines")

@@ -281,3 +281,58 @@ Best cell per correction (any feature set, normalization, model):
 - **S4** (descriptive, same weeks): best corrected R² 0.315, r 0.606, MAE 0.145; best uncorrected (K0: FOOOF, baseline, M6_SVR+time) R² 0.277, r 0.532, MAE 0.147; best stimulation-off session (DR-SCC, M6_SVR+time) R² 0.197, r 0.557, MAE 0.156; persistence R² 0.201, r 0.630, MAE 0.154.
 
 <!-- ai-end -->
+
+## Amendment W-A3: within-session variance of each oscillation (stimulation-off sessions)
+
+<!-- ai-start -->
+One-minute blocks of 6 segments; variance and mean of log band power across the block. Logistic regression.
+
+Block-level AUROC (session-level in brackets):
+
+| Analysis | Patient | var | mean | mean+var | dr-var | dr-mean+var |
+|---|---|---|---|---|---|---|
+| VA1 LOPO 906-908 | 906 | 0.418 (0.56) | 1.000 (1.00) | 1.000 (1.00) | 0.395 (0.33) | 0.755 (0.67) |
+| VA1 LOPO 906-908 | 907 | 0.662 (0.89) | 1.000 (1.00) | 1.000 (1.00) | 0.618 (1.00) | 0.747 (1.00) |
+| VA1 LOPO 906-908 | 908 | 0.750 (0.83) | 0.973 (1.00) | 0.973 (1.00) | 0.696 (0.83) | 0.616 (0.83) |
+| VA2 905 held out, calendar labels | 905 | 0.451 (0.44) | 0.056 (0.00) | 0.080 (0.11) | 0.514 (0.67) | 0.705 (1.00) |
+| VA2 905 held out, clinical-state labels (all C weeks) | 905 | 0.643 (0.73) | 0.882 (0.95) | 0.859 (0.92) | 0.465 (0.27) | 0.503 (0.42) |
+
+Permutation test (session labels permuted within patient, 200), mean block AUROC over 906–908:
+
+| Feature set | observed | null mean | null 95th pct | p |
+|---|---|---|---|---|
+| var | 0.610 | 0.490 | 0.635 | 0.100 |
+| mean | 0.991 | 0.496 | 0.762 | 0.005 |
+| mean+var | 0.991 | 0.493 | 0.733 | 0.005 |
+| dr-var | 0.570 | 0.494 | 0.643 | 0.229 |
+| dr-mean+var | 0.706 | 0.513 | 0.704 | 0.055 |
+
+Time versus state, `var` features (score from a model that never saw the patient):
+
+| Patient | sessions | ρ(score, nHDRS) | p | ρ(score, week) | p |
+|---|---|---|---|---|---|
+| 905 | 16 | -0.087 | 0.748 | -0.162 | 0.549 |
+| 906 | 17 | 0.005 | 0.985 | 0.078 | 0.765 |
+| 907 | 13 | -0.605 | 0.029 | 0.489 | 0.090 |
+| 908 | 20 | 0.025 | 0.917 | 0.217 | 0.359 |
+
+- **V1** (variance alone separates sick from stable): AUROC 0.610, p = 0.100 → **not supported**
+- **V2** (descriptive): mean 0.991 vs mean+var 0.991.
+- **V3** (descriptive): 905 against clinical-state labels, `var`: 0.643 (block), 0.733 (session).
+
+Continuous tracking (forward chaining, 66 predictions). Persistence: R² 0.201, r 0.630, MAE 0.154. Null best gain over the 40 cells: mean -0.131, 95th pct 0.038.
+
+| Feature set | Normalization | Model | R² | r | MAE | persistence R² | gain | selection-corrected p |
+|---|---|---|---|---|---|---|---|---|
+| mean+var | baseline | M5_SVR | 0.120 | 0.359 | 0.161 | 0.201 | -0.081 | 0.218 |
+| mean+var | raw | M6_SVR+time | 0.082 | 0.369 | 0.172 | 0.201 | -0.119 | 0.406 |
+| mean+var | baseline | M2_ENR | 0.069 | 0.392 | 0.168 | 0.201 | -0.132 | 0.416 |
+| mean+var | baseline | M6_SVR+time | -0.016 | 0.300 | 0.176 | 0.201 | -0.217 | 0.901 |
+| var | baseline | M5_SVR | -0.023 | 0.129 | 0.179 | 0.201 | -0.224 | 0.901 |
+| var | raw | M3_ENR+time | -0.040 | -0.100 | 0.191 | 0.201 | -0.242 | 0.921 |
+| mean+var | raw | M3_ENR+time | -0.046 | -0.056 | 0.190 | 0.201 | -0.247 | 0.921 |
+| var | raw | M5_SVR | -0.049 | 0.053 | 0.183 | 0.201 | -0.250 | 0.921 |
+
+- **V4** (a variance cell beats persistence, selection-corrected p < 0.05): best gain -0.081, p = 0.218 → **not supported**
+
+<!-- ai-end -->
