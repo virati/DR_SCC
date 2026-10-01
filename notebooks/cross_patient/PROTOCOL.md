@@ -160,3 +160,35 @@ All are weekly daytime features exported from phase 1 code.
 
 Per-patient results are always reported. A cell driven by one or two patients will be called that.
 <!-- ai-end -->
+
+## Amendment P3 (2026-09-30): FOOOF-based cross-patient tests
+
+<!-- ai-start -->
+Added and committed **before** any P3 code or result exists. **Why:** phases 1–2 used FOOOF in only one family (periodic power, F-fooof-per). The representation that survived selection correction within patients (forward chaining, C3, p = 0.010) is the **full FOOOF set with baseline z-normalization**, and it was never tested across patients. Everything else is as in phase 1: data, daytime recordings, the C01–C24 evaluation, calibration-free leave-one-patient-out as the primary test, the mismatch-compression screen rules, the reference predictors, raw metrics, and the 100 standard circular-shift draws.
+
+**FOOOF feature families.** FOOOF fits are as in forward-chaining amendment 1 (`fooof==1.1.0`, 1–55 Hz, fixed aperiodic, QC R² ≥ 0.5); weekly daytime means.
+
+| Family | Definition |
+|---|---|
+| F-fooof-full | offset, exponent and 5 periodic band powers per side (14): the forward-chaining representation |
+| F-fooof-aper | offset and exponent per side (4) |
+| F-fooof-rel | per side, each periodic band power minus that side's mean periodic power (10) |
+| F-fooof-asym | left minus right of F-fooof-rel (5) |
+| F-fooof-riem | per band, the 2×2 co-spectral matrix flattened by each channel's aperiodic fit: C_flat = D^(−1/2) C D^(−1/2), where D = diag of each channel's mean aperiodic power over the band's bins (10^offset · f^(−exponent), from that recording's FOOOF fit). Riemannian re-centering and stretching as in phase 1 (15) |
+
+**Alignment:** none and z (against the patient's own B01–B04) for the first four families; riem for F-fooof-riem.
+
+**Mismatch-compression screen** off and on. The feature screen also covers offset and exponent, matched to their side's GCr; F-fooof-asym and the cross terms of F-fooof-riem use the mean GCr of both sides.
+
+**Models:** ENR, SVR-RBF, anchor regression and ICP as in phase 1, plus **ENR + time** and **SVR-RBF + time**: the same models with [t, √t] appended, as forward-chaining M3 and M6. Time terms are never screened.
+
+**Grid:** 2 screen settings × (4 families × 2 alignments + 1) × 6 models = **108 cells**.
+
+**Inference:** circular-shift null, 100 standard draws, all 108 cells refit per draw.
+
+**Hypotheses**
+- **X8 (pre-specified single cell):** F-fooof-full × z × screen **off** × ENR + time, which is the forward-chaining winner configuration moved to calibration-free leave-one-patient-out. Pooled R² > 0 with uncorrected p < 0.05.
+- **X9:** at least one P3 cell with R² > 0 and selection-corrected p < 0.05 within P3's 108 cells.
+- **X10:** the same, against the combined family of phase 1 (88), phase 2 (15) and P3 (108) cells, using the same draws. Phase 2's CEBRA cells are excluded, because they're exploratory with 20 draws.
+- **X11 (descriptive):** a calibration curve (N ∈ {0, 4, 8, 12}) for the X8 cell and for the best P3 cell; which FOOOF features the mismatch-compression screen drops (especially the exponent); per-patient R² and r throughout.
+<!-- ai-end -->
