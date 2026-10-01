@@ -18,6 +18,7 @@ import fc
 import xp
 
 BANDS = list(fc.BANDS)
+BAND_HZ = {"Delta": (1, 4), "Theta": (4, 8), "Alpha": (8, 14), "Beta*": (14, 20), "Gamma1": (35, 50)}  # as xp_features / fooof_features
 FAMILIES = {"F-fooof-full": ["none", "z"], "F-fooof-aper": ["none", "z"], "F-fooof-rel": ["none", "z"],
             "F-fooof-asym": ["none", "z"], "F-fooof-riem": ["riem"]}
 MODELS = ["ENR", "ENR+time", "SVR", "SVR+time", "Anchor", "ICP"]
@@ -47,7 +48,7 @@ def recordings():
     r = r[(r.circ == "day") & r.qc_ok.astype(bool)].reset_index(drop=True)
     # FOOOF-flattened co-spectra: C_flat = D^-1/2 C D^-1/2, D = diag(mean aperiodic power over the band's bins)
     f = np.linspace(0, 211, 513)
-    for b, (lo, hi) in fc.BANDS.items():
+    for b, (lo, hi) in BAND_HZ.items():
         fb = f[(f >= lo) & (f < hi)]
         ap = {s: np.array([np.mean(10 ** (o - e * np.log10(fb))) for o, e in zip(r[f"{s}_offset"], r[f"{s}_exponent"])])
               for s in "LR"}
