@@ -1,0 +1,71 @@
+contrast,detail,corr,band,n_patients,n_sig_pos,n_sig_neg,median_delta_deg,consistent
+i night-day (home),stim on,uncorrected,delta,4,0,0,1.7673723722403907,False
+"iii on-off (home, C vs B weeks)",day,uncorrected,delta,2,0,0,70.07407336097312,False
+"iii on-off (home, C vs B weeks)",night,uncorrected,delta,3,0,0,71.79170640735566,False
+i night-day (home),stim off,uncorrected,theta,2,0,0,13.864751501983532,False
+i night-day (home),stim off,uncorrected,beta,1,0,0,-0.7214100014620565,False
+"iii on-off (home, C vs B weeks)",day,uncorrected,beta,4,0,1,-79.29904393668153,False
+"iii on-off (home, C vs B weeks)",night,uncorrected,beta,6,0,2,-27.073078771761573,False
+"iii on-off (home, C vs B weeks)",night,uncorrected,gamma,4,1,1,32.02845373773235,False
+i night-day (home),stim on,corrected,delta,5,0,0,1.0758608535745742,False
+"iii on-off (home, C vs B weeks)",day,corrected,delta,4,1,0,29.02163223643802,False
+"iii on-off (home, C vs B weeks)",night,corrected,delta,4,0,0,13.801401972163509,False
+"iii on-off (home, C vs B weeks)",day,corrected,bstar,2,0,0,-10.613634843890233,False
+iv corrected-uncorrected,day/off,GCr screen,delta,3,0,0,-6.441335396047731,False
+iv corrected-uncorrected,day/off,GCr screen,theta,2,0,0,-1.6283707893035122,False
+iv corrected-uncorrected,day/on,bstar vs beta,bstar,5,0,1,0.5131719989973395,False
+iv corrected-uncorrected,day/on,GCr screen,delta,5,0,0,0.30968995300272867,False
+iv corrected-uncorrected,night/off,GCr screen,theta,3,0,0,3.042005687313969,False
+iv corrected-uncorrected,night/on,GCr screen,delta,5,0,0,0.06556655754897177,False
+i night-day (home),stim off,uncorrected,alpha,1,0,0,6.972664921635734,False
+i night-day (home),stim on,uncorrected,gamma,5,0,0,1.7494395072678628,False
+"iii on-off (home, C vs B weeks)",day,uncorrected,gamma,3,0,1,-164.37427896488083,False
+i night-day (home),stim off,corrected,alpha,1,0,0,2.9085978871242633,False
+iv corrected-uncorrected,day/off,GCr screen,alpha,1,0,0,4.942070477866413,False
+iv corrected-uncorrected,night/off,GCr screen,alpha,2,0,0,0.61205270294529,False
+i night-day (home),stim on,uncorrected,alpha,3,0,0,5.656176131067046,False
+"iii on-off (home, C vs B weeks)",night,uncorrected,alpha,4,1,0,-9.724479357200313,False
+i night-day (home),stim on,uncorrected,beta,4,0,0,0.8955908367187355,False
+ii on-off (session),,uncorrected,gamma,3,0,0,-1.4159160981856422,False
+i night-day (home),stim on,corrected,alpha,3,0,0,7.787945010310321,False
+"iii on-off (home, C vs B weeks)",night,corrected,alpha,3,1,0,-6.967290609144209,False
+"iii on-off (home, C vs B weeks)",night,corrected,bstar,2,1,0,40.61167336010014,False
+i night-day (home),stim on,corrected,gamma1,2,0,0,-3.6416784483514717,False
+ii on-off (session),,corrected,gamma1,2,0,0,-17.546512568064372,False
+iv corrected-uncorrected,day/on,gamma1 vs gamma,gamma1,1,0,0,-28.803465823930008,False
+iv corrected-uncorrected,day/on,GCr screen,theta,4,0,1,0.24079408732267235,False
+iv corrected-uncorrected,day/on,GCr screen,alpha,3,0,0,1.1870160551129023,False
+iv corrected-uncorrected,night/on,gamma1 vs gamma,gamma1,3,0,0,-2.597343209395809,False
+iv corrected-uncorrected,night/on,GCr screen,alpha,3,0,0,-0.2764712558134912,False
+iv corrected-uncorrected,session/off,gamma1 vs gamma,gamma1,3,0,0,-0.6861702467279187,False
+iv corrected-uncorrected,session/on,gamma1 vs gamma,gamma1,2,0,0,-99.89237515494148,False
+ii on-off (session),,uncorrected,delta,2,0,0,-1.2803592515445907,False
+i night-day (home),stim on,uncorrected,theta,2,0,0,12.820194884918077,False
+ii on-off (session),,uncorrected,theta,2,0,0,23.31382533777313,False
+"iii on-off (home, C vs B weeks)",night,uncorrected,theta,2,0,0,-7.402986115639262,False
+ii on-off (session),,uncorrected,alpha,2,0,1,16.58096361709734,False
+ii on-off (session),,uncorrected,beta,2,0,1,-34.16488604104224,False
+ii on-off (session),,corrected,delta,2,0,0,-1.2803592515445907,False
+i night-day (home),stim on,corrected,theta,2,0,0,10.604186503296678,False
+ii on-off (session),,corrected,theta,2,0,0,23.31382533777313,False
+"iii on-off (home, C vs B weeks)",night,corrected,theta,2,0,0,-7.886206243295286,False
+ii on-off (session),,corrected,alpha,2,0,1,16.58096361709734,False
+i night-day (home),stim on,corrected,bstar,2,0,0,7.3038751704189275,False
+ii on-off (session),,corrected,bstar,3,0,1,42.81853143122178,False
+iv corrected-uncorrected,night/off,bstar vs beta,bstar,1,0,0,-9.798090780324317,False
+iv corrected-uncorrected,night/on,bstar vs beta,bstar,2,0,0,8.798435911913643,False
+iv corrected-uncorrected,night/on,GCr screen,theta,2,0,0,-2.6880688049160915,False
+iv corrected-uncorrected,session/off,bstar vs beta,bstar,3,0,0,-2.7052863782689767,False
+iv corrected-uncorrected,session/on,bstar vs beta,bstar,3,0,0,3.8841967488381504,False
+i night-day (home),stim off,uncorrected,delta,1,0,0,7.383339991027426,False
+"iii on-off (home, C vs B weeks)",day,uncorrected,theta,2,0,0,-20.398358497403546,False
+i night-day (home),stim off,uncorrected,gamma,2,0,0,-34.37921849058078,False
+i night-day (home),stim off,corrected,delta,1,0,0,14.071930421112125,False
+i night-day (home),stim off,corrected,theta,1,0,0,4.3443589987450855,False
+"iii on-off (home, C vs B weeks)",day,corrected,theta,2,0,0,-9.602226918487087,False
+"iii on-off (home, C vs B weeks)",night,corrected,gamma1,2,0,1,-75.6198411547484,False
+iv corrected-uncorrected,night/off,gamma1 vs gamma,gamma1,2,0,0,-3.3685288929103137,False
+iv corrected-uncorrected,night/off,GCr screen,delta,1,0,0,2.876351345738587,False
+"iii on-off (home, C vs B weeks)",day,uncorrected,alpha,1,0,0,-10.8181930171279,False
+"iii on-off (home, C vs B weeks)",day,corrected,alpha,1,0,0,-0.20644029882509218,False
+"iii on-off (home, C vs B weeks)",day,corrected,gamma1,1,0,0,-23.528122960999717,False
