@@ -76,7 +76,7 @@ def session(path, segs):
     for r in segs.itertuples():
         a = int(round(r.start_s * FS))
         rows.append({"source": "session", "pt": r.pt, "week": r.week, "t": r.t, "circ": "day", "state": r.state, "file": r.file,
-                     **unit(X[a:a + N, 0], X[a:a + N, 2])})
+                     "start_s": r.start_s, **unit(X[a:a + N, 0], X[a:a + N, 2])})
     return rows
 
 
