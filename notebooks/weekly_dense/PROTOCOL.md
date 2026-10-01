@@ -110,3 +110,39 @@ All metrics are reported raw. Any difference or gain is shown beside the values 
 
 The (b) drift controls and (b) B4 and (c) are unchanged. Readers should weigh every (a)/(b) result knowing this amendment followed the first look.
 <!-- ai-end -->
+
+## Amendment W-A2 (2026-09-30): removing the stimulation effect from the at-home recordings
+
+<!-- ai-start -->
+Written and committed **before** any W-A2 code or result exists. **Why:** C1 and C2 showed that at-home features (stimulation on during C weeks) don't agree with the same week's stimulation-off values, and that stimulation shifts the DR-SCC features by many week-to-week SDs. Each weekly session has both states, minutes apart, so it measures the stimulation effect for that week.
+
+**Scope:** patients 905–908; daytime at-home recordings (weekly means, as F-mean); weekly sessions as in the primary set, additionally requiring ≥ 3 clean stimulation-on segments to define an "on" value. Two feature sets: DR-SCC (10) and FOOOF (14). Corrections apply to C weeks only (t ≥ 4). B weeks have no stimulation and are left unchanged.
+
+### Diagnostic (label-free)
+
+- **D1.** For each feature and patient, Spearman ρ across C weeks of (i) session-on vs at-home, (ii) session-off vs at-home, (iii) session-on vs session-off. If at-home agrees with session-on no better than with session-off, the disagreement in C1 is about context (clinic vs home), not stimulation, and corrections shouldn't be expected to help.
+
+### Corrections (all label-free)
+
+- **K0:** none (reference).
+- **K1, weekly additive offset:** home_w − (on_w − off_w), using that week's session. Weeks without a usable session take the offset linearly interpolated over t within the patient, using the nearest value at the ends.
+- **K3, on→off map:** per patient and feature, off = a + b·on, fitted by least squares across that patient's session weeks **excluding week w**. The at-home value of week w is passed through the map.
+- **K4, projecting out the stimulation axis:** u = unit vector of the patient's mean (on − off) across session weeks **excluding week w**, in features scaled by the patient's at-home SD over C weeks. The at-home vector (centred on the patient's C-week at-home mean) has its component along u removed.
+
+K1 uses week w's own stimulation-off value, so K1 is **not** evaluated by agreement with the stimulation-off session; K3 and K4 are.
+
+### Evaluation
+
+- **V1, agreement (K3 and K4 only).** As C1: within-patient Spearman ρ across C weeks between the corrected at-home value and the same week's stimulation-off value. "Validated" = ρ > 0 with BH-FDR q < 0.05 in ≥ 3 of 4 patients. K0 is shown beside each.
+- **V2, depression tracking.** Forward chaining as B4/C3 (other patients' weeks plus the patient's own past weeks → next week). Models M0–M6. Normalization raw and baseline-z (against the patient's B-week at-home values). Cells: {K1, K3, K4} × {DR-SCC, FOOOF} × {raw, baseline-z} × 5 neural models = **60 cells**, plus K0 and the stimulation-off-session features as references on the same weeks.
+- **Null:** circular shift, 100 standard draws, all 60 cells refit. Statistic = pooled R²(cell) − pooled R²(persistence). Selection-corrected p = fraction of draws whose maximum over the 60 cells is at least the cell's observed gain.
+
+### Hypotheses
+
+- **S1 (descriptive).** D1: mean ρ of at-home with session-on versus with session-off.
+- **S2.** V1: K3 or K4 yields at least one validated feature where K0 has none.
+- **S3 (primary).** V2: at least one corrected cell beats persistence with selection-corrected p < 0.05.
+- **S4 (descriptive).** V2: corrected at-home features (best cell) versus uncorrected (K0) and versus the stimulation-off session features, raw R², r and MAE, same weeks.
+
+All metrics raw, with both sides of every gain shown and per-patient values in the outputs. Four patients: any generalization is limited and will be stated as such.
+<!-- ai-end -->
