@@ -1,0 +1,11 @@
+analysis,model,pt,n_sessions,auc_segment,auc_session
+"A2-1 LOPO 906-908, calendar labels",MLP,906,6,0.9983255125683912,1.0
+"A2-1 LOPO 906-908, calendar labels",MLP,907,6,0.9243584364729739,1.0
+"A2-1 LOPO 906-908, calendar labels",MLP,908,5,0.998382446022927,1.0
+"A2-2 905 held out, calendar labels (C01-04 vs C21-24)",MLP,905,6,0.04193061840120663,0.0
+"A2-2 905 held out, clinical-state labels (nHDRS < 0.5 = well), all C weeks",MLP,905,16,0.8733156787911831,0.9833333333333334
+"A2-1 LOPO 906-908, calendar labels",LR,906,6,0.9987733406024261,1.0
+"A2-1 LOPO 906-908, calendar labels",LR,907,6,0.9791448150478987,1.0
+"A2-1 LOPO 906-908, calendar labels",LR,908,5,0.9718451836744262,1.0
+"A2-2 905 held out, calendar labels (C01-04 vs C21-24)",LR,905,6,0.06968325791855204,0.0
+"A2-2 905 held out, clinical-state labels (nHDRS < 0.5 = well), all C weeks",LR,905,16,0.8617387363785058,0.9666666666666668
