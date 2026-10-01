@@ -33,7 +33,7 @@ BLOCKS = {"B": ["B01", "B02", "B03", "B04"], "C01-04": ["C01", "C02", "C03", "C0
 OUT = HERE / "outputs"
 OUT.mkdir(exist_ok=True)
 D = fc.data_dir() / "intermed" / "weekly_dense"
-stages = sys.argv[1:] or ["a", "b", "b4", "c"]
+stages = sys.argv[1:] or ["a", "b", "a2", "b4", "c"]
 t0 = time.time()
 
 seg = pd.concat([pd.read_csv(D / "segments.csv.gz", dtype={"pt": str, "week": str}), pd.read_csv(D / "segments_drscc.csv.gz")], axis=1)
@@ -123,6 +123,62 @@ if "a" in stages or "b" in stages:
                    "p_segment": (np.sum(N[:, 0] >= obs.auc_segment.mean()) + 1) / 201,
                    "p_session": (np.nansum(N[:, 1] >= obs.auc_session.mean()) + 1) / 201}]).to_csv(OUT / "b3_permutation_test.csv", index=False)
     print(f"a/b done ({time.time()-t0:.0f}s)")
+
+# ------------------------------------------------------------------ amendment W-A1: clinical-state labels, 905, time vs state
+if "a2" in stages:
+    TR = ["906", "907", "908"]
+    sick, stab = BLOCKS["C01-04"], BLOCKS["C21-24"]
+    d = OFF[OFF.week.isin(sick + stab)].assign(lab=lambda x: x.week.isin(stab).astype(int))
+    rows, scores = [], []
+
+    def fit(tr, kind):
+        sc = MinMaxScaler().fit(tr[PAPER])
+        m = make(kind).fit(sc.transform(tr[PAPER]), tr.lab)
+        return lambda X: m.predict_proba(sc.transform(X[PAPER]))[:, 1]
+
+    def sess_scores(pred, p, kind):
+        allp = OFF[(OFF.pt == p) & (OFF.t >= 4)]
+        s = allp.assign(pr=pred(allp)).groupby(["pt", "week", "t"]).agg(score=("pr", "mean"), y=("y", "first")).reset_index()
+        s["model"] = kind
+        return s
+
+    for kind in ("MLP", "LR"):
+        for p in TR:                                                       # A2-1
+            pred = fit(d[d.pt.isin([q for q in TR if q != p])], kind)
+            te = d[d.pt == p]
+            pr = pred(te)
+            ses = te.assign(pr=pr).groupby("week").agg(lab=("lab", "first"), pr=("pr", "mean"))
+            rows.append({"analysis": "A2-1 LOPO 906-908, calendar labels", "model": kind, "pt": p, "n_sessions": len(ses),
+                         "auc_segment": roc_auc_score(te.lab, pr),
+                         "auc_session": roc_auc_score(ses.lab, ses.pr) if ses.lab.nunique() == 2 else np.nan})
+            scores.append(sess_scores(pred, p, kind))
+        pred = fit(d[d.pt.isin(TR)], kind)                                 # A2-2: 905 held out
+        te = d[d.pt == "905"]
+        pr = pred(te)
+        ses = te.assign(pr=pr).groupby("week").agg(lab=("lab", "first"), pr=("pr", "mean"))
+        rows.append({"analysis": "A2-2 905 held out, calendar labels (C01-04 vs C21-24)", "model": kind, "pt": "905",
+                     "n_sessions": len(ses), "auc_segment": roc_auc_score(te.lab, pr), "auc_session": roc_auc_score(ses.lab, ses.pr)})
+        s905 = sess_scores(pred, "905", kind)
+        allp = OFF[(OFF.pt == "905") & (OFF.t >= 4)]
+        well_seg = (allp.y < 0.5).astype(int)
+        rows.append({"analysis": "A2-2 905 held out, clinical-state labels (nHDRS < 0.5 = well), all C weeks", "model": kind,
+                     "pt": "905", "n_sessions": len(s905), "auc_segment": roc_auc_score(well_seg, pred(allp)),
+                     "auc_session": roc_auc_score((s905.y < 0.5).astype(int), s905.score)})
+        scores.append(s905)
+    SC = pd.concat(scores)
+    SC.to_csv(fc.data_dir() / "intermed" / "weekly_dense" / "a2_session_scores.csv", index=False)
+    pd.DataFrame(rows).to_csv(OUT / "a2_auc.csv", index=False)
+    ts = []
+    for (kind, p), g_ in SC.groupby(["model", "pt"]):                      # A2-3
+        r1, p1 = sp_stats.spearmanr(g_.score, g_.y)
+        r2, p2 = sp_stats.spearmanr(g_.score, g_.t)
+        r3, p3 = sp_stats.spearmanr(g_.y, g_.t)
+        ts.append({"model": kind, "pt": p, "n_sessions": len(g_), "rho_score_nHDRS": r1, "p_score_nHDRS": p1,
+                   "rho_score_week": r2, "p_score_week": p2, "rho_nHDRS_week": r3, "p_nHDRS_week": p3})
+    T = pd.DataFrame(ts)
+    T.to_csv(OUT / "a2_time_vs_state.csv", index=False)
+    print(pd.DataFrame(rows).round(3).to_string(index=False))
+    print(T.round(3).to_string(index=False), f"\na2 done ({time.time()-t0:.0f}s)")
 
 # ------------------------------------------------------------------ session-level tables
 W_OFF = OFF.groupby(["pt", "week", "t"])[PAPER + DR + FO + ["y"]].median().reset_index()
