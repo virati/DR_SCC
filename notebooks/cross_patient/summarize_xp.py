@@ -54,5 +54,49 @@ L += ["", "## Mismatch-compression feature screen", "",
       "Features dropped in at least one leave-one-patient-out fold (number of folds, of 6):", ""]
 L += [f"- `{k}`: {v}" for k, v in cnt.items()] or ["- none"]
 L += ["", "<!-- ai-end -->", ""]
+
+# ---------------------------------------------------------------- phase 2 (amendment P2)
+if (O / "p2_lopo_null.csv").exists():
+    P2 = pd.read_csv(O / "p2_lopo_scores.csv")
+    N2 = pd.read_csv(O / "p2_lopo_null.csv")
+    LC = pd.read_csv(O / "p2_lds_causal_scores.csv")
+    m2 = N2.groupby("draw").R2.max()
+    comb = pd.concat([N.groupby("draw").R2.max(), m2], axis=1).max(axis=1)
+    P2["p_phase2"] = [(np.sum(m2 >= r) + 1) / (len(m2) + 1) for r in P2.R2]
+    P2["p_combined"] = [(np.sum(comb >= r) + 1) / (len(comb) + 1) for r in P2.R2]
+    P2.to_csv(O / "p2_lopo_scores_with_p.csv", index=False)
+    L += ["## Phase 2 (amendment P2): metric pullback, stitched LDS, Gromov–Wasserstein", "", "<!-- ai-start -->",
+          "Calibration-free leave-one-patient-out, mismatch-compression screen on, label-free alignment per family. Raw values.",
+          f"Reference predictors (MC on): training mean R² {f(R[(R.mc == True) & (R.model == 'REF_train_mean')].R2.iloc[0])}, "
+          f"r {f(R[(R.mc == True) & (R.model == 'REF_train_mean')].r.iloc[0])}; time-only R² "
+          f"{f(R[(R.mc == True) & (R.model == 'REF_time')].R2.iloc[0])}, r {f(R[(R.mc == True) & (R.model == 'REF_time')].r.iloc[0])}.",
+          f"Null best-of-15 R² (phase 2): mean {f(m2.mean())}, 95th pct {f(m2.quantile(0.95))}; best-of-103 (phase 1 + 2): "
+          f"mean {f(comb.mean())}, 95th pct {f(comb.quantile(0.95))}.", "",
+          "| Family | Method | R² | r | MAE | p (phase 2) | p (phase 1 + 2) | " + " | ".join(f"R² {p}" for p in PTS) + " |",
+          "|---|---|---|---|---|---|---|" + "---|" * len(PTS)]
+    for r in P2.sort_values("R2", ascending=False).itertuples():
+        L.append(f"| {r.family} | {r.method} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} | {f(r.p_phase2)} | {f(r.p_combined)} | "
+                 + " | ".join(f(getattr(r, f'R2_{p}'), 2) for p in PTS) + " |")
+    b2 = P2.sort_values("R2", ascending=False).iloc[0]
+    L += ["", f"- **X5** (phase 2, selection-corrected within phase 2): best {b2.family} × {b2.method}, R² {f(b2.R2)}, r {f(b2.r)}, "
+          f"p = {f(b2.p_phase2)} → " + ("**supported**" if b2.R2 > 0 and b2.p_phase2 < 0.05 else "**not supported**"),
+          f"- **X6** (combined phase 1 + 2 family): best phase-2 cell p = {f(b2.p_combined)} → "
+          + ("**supported**" if b2.R2 > 0 and b2.p_combined < 0.05 else "**not supported**"),
+          "", "Stitched LDS, causal (Kalman filter) predictions, descriptive:", "",
+          "| Family | R² | r | MAE |", "|---|---|---|---|"]
+    L += [f"| {r.family} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} |" for r in LC.itertuples()]
+    if (O / "p2_cebra_scores.csv").exists():
+        CE = pd.read_csv(O / "p2_cebra_scores.csv")
+        CN = pd.read_csv(O / "p2_cebra_null.csv") if (O / "p2_cebra_null.csv").exists() else None
+        L += ["", "**P2-C CEBRA-Behavior (exploratory; 20-draw uncorrected null)**", "",
+              "| Family | R² | r | MAE | cross-patient consistency | p (this cell, 20 draws) | " + " | ".join(f"R² {p}" for p in PTS) + " |",
+              "|---|---|---|---|---|---|" + "---|" * len(PTS)]
+        for r in CE.itertuples():
+            pv = (np.sum(CN[CN.family == r.family].R2 >= r.R2) + 1) / (CN[CN.family == r.family].R2.notna().sum() + 1) if CN is not None else np.nan
+            L.append(f"| {r.family} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} | {f(r.consistency_mean)} | {f(pv)} | "
+                     + " | ".join(f(getattr(r, f'R2_{p}'), 2) for p in PTS) + " |")
+        L += ["", "- **X7** (descriptive): CEBRA cross-patient consistency and leave-one-patient-out R² above."]
+    L += ["<!-- ai-end -->", ""]
+
 (HERE / "RESULTS.md").write_text("\n".join(L))
 print("\n".join(L[:14]))

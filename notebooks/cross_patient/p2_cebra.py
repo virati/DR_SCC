@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.8,<3.9"
 # dependencies = ["cebra==0.4.0", "torch==2.2.2", "numpy==1.24.4", "scipy==1.10.1", "pandas==2.0.3",
-#                 "scikit-learn==1.3.2", "joblib==1.3.2", "python-dotenv==1.0.1", "matplotlib==3.7.5"]
+#                 "scikit-learn==1.3.2", "joblib==1.3.2", "python-dotenv==1.0.1", "matplotlib==3.7.5", "setuptools<70"]
 # [[tool.uv.index]]
 # name = "pytorch-cpu"
 # url = "https://download.pytorch.org/whl/cpu"
