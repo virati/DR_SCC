@@ -227,4 +227,25 @@ Stitched LDS, causal (Kalman filter) predictions, descriptive:
 | F-fooof-per | -0.534 | -0.053 | 0.223 |
 | F-rel | -0.440 | 0.069 | 0.214 |
 | F-riem | -0.624 | 0.008 | 0.256 |
+
+**P2-C CEBRA-Behavior (exploratory; 20-draw uncorrected null)**
+
+| Family | R² | r | MAE | cross-patient consistency | p (this cell, 20 draws) | R² 901 | R² 903 | R² 905 | R² 906 | R² 907 | R² 908 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| F-asym | -0.078 | -0.039 | 0.203 | 0.459 | 0.429 | -0.88 | -0.13 | -0.00 | -0.23 | -0.00 | -0.22 |
+| F-band | -0.244 | -0.206 | 0.216 | 0.533 | 0.857 | -0.73 | -2.03 | -0.15 | -0.11 | -0.05 | 0.18 |
+| F-fooof-per | -0.122 | -0.116 | 0.212 | 0.478 | 0.619 | -0.48 | -0.69 | -0.15 | -0.36 | 0.01 | -0.30 |
+| F-rel | -0.231 | -0.255 | 0.223 | 0.528 | 0.714 | -1.04 | -1.22 | -0.05 | -0.28 | -0.15 | -0.06 |
+
+CEBRA training is not bit-deterministic here (its internal sampling isn't controlled by the torch seed).
+Run 1 (used for the 20-draw null; consistency failed with the default 100 label bins) versus run 2 (table above; 10 bins):
+
+| Family | run 1 R² | run 1 r | run 2 R² | run 2 r |
+|---|---|---|---|---|
+| F-asym | -0.093 | -0.042 | -0.078 | -0.039 |
+| F-band | -0.208 | -0.148 | -0.244 | -0.206 |
+| F-fooof-per | -0.087 | -0.044 | -0.122 | -0.116 |
+| F-rel | -0.162 | -0.152 | -0.231 | -0.255 |
+
+- **X7** (descriptive): CEBRA embeddings are moderately consistent across training patients (about 0.46–0.53), but no input gives positive leave-one-patient-out R² in either run.
 <!-- ai-end -->

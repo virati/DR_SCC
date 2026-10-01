@@ -95,7 +95,14 @@ if (O / "p2_lopo_null.csv").exists():
             pv = (np.sum(CN[CN.family == r.family].R2 >= r.R2) + 1) / (CN[CN.family == r.family].R2.notna().sum() + 1) if CN is not None else np.nan
             L.append(f"| {r.family} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} | {f(r.consistency_mean)} | {f(pv)} | "
                      + " | ".join(f(getattr(r, f'R2_{p}'), 2) for p in PTS) + " |")
-        L += ["", "- **X7** (descriptive): CEBRA cross-patient consistency and leave-one-patient-out R² above."]
+        if (O / "p2_cebra_scores_run1.csv").exists():
+            r1 = pd.read_csv(O / "p2_cebra_scores_run1.csv").set_index("family")
+            L += ["", "CEBRA training is not bit-deterministic here (its internal sampling isn't controlled by the torch seed).",
+                  "Run 1 (used for the 20-draw null; consistency failed with the default 100 label bins) versus run 2 (table above; 10 bins):", "",
+                  "| Family | run 1 R² | run 1 r | run 2 R² | run 2 r |", "|---|---|---|---|---|"]
+            L += [f"| {r.family} | {f(r1.loc[r.family, 'R2'])} | {f(r1.loc[r.family, 'r'])} | {f(r.R2)} | {f(r.r)} |" for r in CE.itertuples()]
+        L += ["", "- **X7** (descriptive): CEBRA embeddings are moderately consistent across training patients (about 0.46–0.53), "
+              "but no input gives positive leave-one-patient-out R² in either run."]
     L += ["<!-- ai-end -->", ""]
 
 (HERE / "RESULTS.md").write_text("\n".join(L))
