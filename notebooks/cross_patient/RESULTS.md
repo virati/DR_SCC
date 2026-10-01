@@ -189,3 +189,42 @@ Features dropped in at least one leave-one-patient-out fold (number of folds, of
 - `riem_Delta_LL`: 2
 
 <!-- ai-end -->
+
+## Phase 2 (amendment P2): metric pullback, stitched LDS, Gromov–Wasserstein
+
+<!-- ai-start -->
+Calibration-free leave-one-patient-out, mismatch-compression screen on, label-free alignment per family. Raw values.
+Reference predictors (MC on): training mean R² -0.071, r -0.331; time-only R² -0.184, r -0.570.
+Null best-of-15 R² (phase 2): mean -0.028, 95th pct 0.051; best-of-103 (phase 1 + 2): mean 0.042, 95th pct 0.166.
+
+| Family | Method | R² | r | MAE | p (phase 2) | p (phase 1 + 2) | R² 901 | R² 903 | R² 905 | R² 906 | R² 907 | R² 908 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| F-riem | P2A_pullback | -0.023 | 0.200 | 0.203 | 0.446 | 0.901 | -0.73 | -0.00 | -0.04 | -0.10 | 0.04 | -0.02 |
+| F-asym | P2D_GW | -0.167 | -0.007 | 0.214 | 1.000 | 1.000 | -0.75 | -0.96 | 0.06 | -0.31 | -0.59 | -0.13 |
+| F-asym | P2A_pullback | -0.197 | -0.023 | 0.208 | 1.000 | 1.000 | -0.70 | -0.23 | -0.47 | 0.00 | 0.02 | -0.17 |
+| F-fooof-per | P2D_GW | -0.216 | -0.019 | 0.222 | 1.000 | 1.000 | -0.71 | -0.91 | -0.08 | -0.88 | -0.57 | 0.09 |
+| F-band | P2D_GW | -0.227 | -0.004 | 0.215 | 1.000 | 1.000 | -0.58 | -1.26 | -0.11 | -1.52 | -0.03 | -0.07 |
+| F-rel | P2D_GW | -0.259 | -0.089 | 0.223 | 1.000 | 1.000 | -0.91 | -1.00 | -0.12 | -0.14 | -0.61 | -0.17 |
+| F-riem | P2D_GW | -0.303 | -0.122 | 0.225 | 1.000 | 1.000 | -0.94 | -1.09 | -0.08 | -0.74 | -0.36 | -0.60 |
+| F-band | P2A_pullback | -0.395 | 0.057 | 0.208 | 1.000 | 1.000 | -0.72 | -0.01 | -1.10 | -0.04 | -0.00 | -0.03 |
+| F-rel | P2B_stitchLDS | -0.437 | 0.071 | 0.215 | 1.000 | 1.000 | -0.96 | -0.52 | -0.50 | -1.92 | -0.05 | -0.66 |
+| F-fooof-per | P2B_stitchLDS | -0.532 | -0.055 | 0.223 | 1.000 | 1.000 | -0.63 | -0.85 | -1.10 | -0.63 | -0.23 | -0.27 |
+| F-asym | P2B_stitchLDS | -0.560 | 0.063 | 0.240 | 1.000 | 1.000 | -1.57 | -1.35 | -0.57 | -0.73 | -0.02 | -0.40 |
+| F-riem | P2B_stitchLDS | -0.638 | 0.006 | 0.257 | 1.000 | 1.000 | -1.79 | 0.05 | -0.23 | -6.43 | 0.12 | -0.20 |
+| F-band | P2B_stitchLDS | -0.680 | -0.048 | 0.234 | 1.000 | 1.000 | 0.10 | -3.39 | -0.58 | -1.29 | -0.27 | -2.38 |
+| F-rel | P2A_pullback | -1.334 | 0.258 | 0.291 | 1.000 | 1.000 | -0.58 | -3.93 | -2.57 | -0.78 | -0.01 | -0.49 |
+| F-fooof-per | P2A_pullback | -2.449 | 0.003 | 0.308 | 1.000 | 1.000 | -0.31 | -0.30 | 0.07 | -44.32 | -0.06 | -0.26 |
+
+- **X5** (phase 2, selection-corrected within phase 2): best F-riem × P2A_pullback, R² -0.023, r 0.200, p = 0.446 → **not supported**
+- **X6** (combined phase 1 + 2 family): best phase-2 cell p = 0.901 → **not supported**
+
+Stitched LDS, causal (Kalman filter) predictions, descriptive:
+
+| Family | R² | r | MAE |
+|---|---|---|---|
+| F-asym | -0.556 | 0.059 | 0.240 |
+| F-band | -0.682 | -0.052 | 0.234 |
+| F-fooof-per | -0.534 | -0.053 | 0.223 |
+| F-rel | -0.440 | 0.069 | 0.214 |
+| F-riem | -0.624 | 0.008 | 0.256 |
+<!-- ai-end -->
