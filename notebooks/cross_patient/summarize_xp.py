@@ -105,5 +105,49 @@ if (O / "p2_lopo_null.csv").exists():
               "but no input gives positive leave-one-patient-out R² in either run."]
     L += ["<!-- ai-end -->", ""]
 
+# ---------------------------------------------------------------- amendment P3: FOOOF-based families
+if (O / "p3_lopo_null.csv").exists():
+    P3 = pd.read_csv(O / "p3_lopo_scores.csv")
+    N3 = pd.read_csv(O / "p3_lopo_null.csv")
+    C3 = pd.read_csv(O / "p3_calibration.csv")
+    D3 = pd.read_csv(O / "p3_mc_screen_dropped.csv")
+    lab = lambda mc, fa, al, m: f"{'MC' if mc else 'noMC'} | {fa} | {al} | {m}"
+    P3["cell"] = [lab(*v) for v in P3[["mc", "family", "align", "model"]].values]
+    m3 = N3.groupby("draw").R2.max()
+    parts = [N.groupby("draw").R2.max(), m3]
+    if (O / "p2_lopo_null.csv").exists():
+        parts.append(pd.read_csv(O / "p2_lopo_null.csv").groupby("draw").R2.max())
+    comb3 = pd.concat(parts, axis=1).max(axis=1)
+    P3["p_P3"] = [(np.sum(m3 >= r) + 1) / (len(m3) + 1) for r in P3.R2]
+    P3["p_combined"] = [(np.sum(comb3 >= r) + 1) / (len(comb3) + 1) for r in P3.R2]
+    P3["p_cell"] = [(np.sum(N3[N3.cell == c].R2 >= r) + 1) / (N3[N3.cell == c].R2.notna().sum() + 1) for c, r in zip(P3.cell, P3.R2)]
+    P3.to_csv(O / "p3_lopo_scores_with_p.csv", index=False)
+    x8 = P3[P3.cell == "noMC | F-fooof-full | z | ENR+time"].iloc[0]
+    b3 = P3.sort_values("R2", ascending=False).iloc[0]
+    rm = R[R.mc == False].set_index("model")
+    L += ["## Amendment P3: FOOOF-based families, calibration-free leave-one-patient-out", "", "<!-- ai-start -->",
+          f"Reference predictors (raw): training mean R² {f(rm.loc['REF_train_mean','R2'])}, r {f(rm.loc['REF_train_mean','r'])}; "
+          f"time-only R² {f(rm.loc['REF_time','R2'])}, r {f(rm.loc['REF_time','r'])}.",
+          f"Null best-of-108 R² (P3): mean {f(m3.mean())}, 95th pct {f(m3.quantile(0.95))}; best over phase 1 + 2 + P3 ({len(parts)} families): "
+          f"mean {f(comb3.mean())}, 95th pct {f(comb3.quantile(0.95))}.", "",
+          f"- **X8** (forward-chaining winner config, F-fooof-full × z × MC off × ENR+time): R² {f(x8.R2)}, r {f(x8.r)}, MAE {f(x8.MAE)}, "
+          f"uncorrected p = {f(x8.p_cell)} → " + ("**supported**" if x8.R2 > 0 and x8.p_cell < 0.05 else "**not supported**"),
+          f"- **X9** (any P3 cell, corrected within P3): best {b3.cell}, R² {f(b3.R2)}, r {f(b3.r)}, p = {f(b3.p_P3)} → "
+          + ("**supported**" if b3.R2 > 0 and b3.p_P3 < 0.05 else "**not supported**"),
+          f"- **X10** (combined phase 1 + 2 + P3): best P3 cell p = {f(b3.p_combined)} → "
+          + ("**supported**" if b3.R2 > 0 and b3.p_combined < 0.05 else "**not supported**"), "",
+          "| MC | Family | Alignment | Model | R² | r | MAE | p (this cell) | p (P3) | p (combined) | " + " | ".join(f"R² {p}" for p in PTS) + " |",
+          "|---|---|---|---|---|---|---|---|---|---|" + "---|" * len(PTS)]
+    for r in P3.sort_values("R2", ascending=False).itertuples():
+        L.append(f"| {'on' if r.mc else 'off'} | {r.family} | {r.align} | {r.model} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} | "
+                 f"{f(r.p_cell)} | {f(r.p_P3)} | {f(r.p_combined)} | " + " | ".join(f(getattr(r, f'R2_{p}'), 2) for p in PTS) + " |")
+    L += ["", "**X11** calibration curves (raw):", "", "| Cell | N | R² | r | MAE |", "|---|---|---|---|---|"]
+    L += [f"| {r.cell} | {int(r.N)} | {f(r.R2)} | {f(r.r)} | {f(r.MAE)} |" for r in C3.sort_values(["cell", "N"]).itertuples()]
+    c3 = D3.assign(feat=D3.dropped.fillna("").str.split(";")).explode("feat")
+    c3 = c3[c3.feat != ""].groupby("feat").held_out.nunique().sort_values(ascending=False)
+    L += ["", "Mismatch-compression screen, FOOOF features dropped (folds of 6):", ""]
+    L += [f"- `{k}`: {v}" for k, v in c3.items()] or ["- none"]
+    L += ["<!-- ai-end -->", ""]
+
 (HERE / "RESULTS.md").write_text("\n".join(L))
 print("\n".join(L[:14]))
