@@ -90,3 +90,23 @@ Session-level features are the median across the session's segments.
 
 All metrics are reported raw. Any difference or gain is shown beside the values it's computed from. Per-patient values are always included. With four patients, every cross-patient statement is limited, and the results will say so.
 <!-- ai-end -->
+
+## Amendment W-A1 (2026-09-30): clinical-state labels, the relapse patient, and time versus state
+
+<!-- ai-start -->
+**Written after the first run of (a) and (b) B1–B3, and prompted by it.** Those results stay in the record as run (`outputs/a_b_contrasts.csv`, all four patients, calendar-block labels).
+
+**What the first run showed.** The calendar labels ("sick" = C01–C04, "stable" = C21–C24) are clinically wrong for 905. Its mean HDRS17 is 3.2 in C01–C04 and 20.5 in C21–C24: well early, relapsed late. That matches the paper's held-out relapse participant (P001), which the paper excluded from classifier training. The pooled nHDRS difference between the blocks across 905–908 is 0.001, so the pre-registered contrast isn't a clinical contrast for this group. Logistic regression was inverted in 905 (segment AUROC 0.07) and high in 906–908 (0.97, 0.93, 0.84).
+
+**Added analyses** (code committed before they run):
+
+- **A2-1, the paper's design.** Classifier trained and validated leave-one-patient-out on the patients whose calendar labels are clinically valid: **906, 907, 908**. Segment- and session-level AUROC, neural network and logistic regression. (901 and 903 have no weekly sessions.)
+- **A2-2, held-out relapse patient.** Models trained on all of 906–908 (sick-vs-stable blocks), applied to every 905 session. AUROC is reported against (i) the calendar labels and (ii) clinical-state labels, where sick is nHDRS ≥ 0.5 over all C-week sessions.
+- **A2-3, time versus state.** For each patient, a session score = mean predicted P(stable). It comes from a model that never saw that patient: the leave-one-out fold model for 906–908, and the 906–908 model for 905. Over all C-week sessions, the within-patient Spearman ρ of the score with **nHDRS** and with **week index**.
+
+**Hypotheses**
+- **W7.** In 905 the score follows clinical state, not time: ρ(score, nHDRS) < 0 with p < 0.05, while ρ(score, week) has the opposite sign from the typical responders.
+- **W8 (descriptive).** In 906–908, ρ(score, nHDRS) is reported next to ρ(score, week). In those patients time and state are confounded, so only 905 separates them.
+
+The (b) drift controls and (b) B4 and (c) are unchanged. Readers should weigh every (a)/(b) result knowing this amendment followed the first look.
+<!-- ai-end -->
