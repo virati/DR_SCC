@@ -173,14 +173,20 @@ Wk = W[W.n >= 10]
 p4 = []
 for a, b in [("M1", "M2"), ("M1", "M3"), ("M2", "M3")]:
     r, p = shift_p(Wk[a].values, Wk[b].values)
+    if PR[a].std() < 1e-9 or PR[b].std() < 1e-9:              # amendment N-A2: a constant model has no correlation
+        r, p = np.nan, np.nan
     p4.append(dict(a=NAMES[a], b=NAMES[b], weeks=len(Wk), rho=r, p=p))
 for a in SETS:
     d = Wk.dropna(subset=["M4"])
     r, p = shift_p(d[a].values, d.M4.values)
+    if PR[a].std() < 1e-9:
+        r, p = np.nan, np.nan
     p4.append(dict(a=NAMES[a], b="M4, in-clinic marker", weeks=len(d), rho=r, p=p))
 for a in [*SETS, "M4"]:
     d = Wk.dropna(subset=[a])
     r, p = shift_p(d[a].values, d.index.values.astype(float), two=True)
+    if a in PR and PR[a].std() < 1e-9:
+        r, p = np.nan, np.nan
     p4.append(dict(a=NAMES.get(a, "M4, in-clinic marker"), b="week number", weeks=len(d), rho=r, p=p))
 P4 = pd.DataFrame(p4)
 P4.to_csv(O / "p4_agreement_910.csv", index=False)
@@ -235,7 +241,10 @@ for st in ("off", "on"):
 g = P2[P2.block == "in-clinic (20)"]
 L += ["**In-clinic stimulation-off segments (20 features), against 906–908**", "", "| Patient | kind | segments | outside | AUROC |", "|---|---|---|---|---|"]
 L += [f"| {r.pt} | {r.kind} | {int(r.n)} | {f2(r.outside)} | {f2(r.auc)} |" for r in g.itertuples()]
-L += ["", "## P3: the predictions", "", "Predicted nHDRS (1.0 = the patient's own pre-implant level). Median, with the 10th–90th percentile in brackets.", "",
+const = [NAMES[mk] for mk in SETS if PR[mk].std() < 1e-9]
+L += ["", "## P3: the predictions", "",
+      ("**" + " and ".join(const) + " are constants.** Choosing the penalty by leaving a training patient out set every coefficient to zero, so these models predict the training mean for every recording. "
+       "Their predictions carry no information, and correlations involving them are undefined (shown as —). See amendment N-A2 and `RESULTS_paperstyle.md`.") if const else "", "", "Predicted nHDRS (1.0 = the patient's own pre-implant level). Median, with the 10th–90th percentile in brackets.", "",
       "| Patient | state | recordings | " + " | ".join(NAMES[mk] for mk in SETS) + " | " + " | ".join(mk + " state-matched" for mk in SETS) + " |", "|---|---|---|" + "---|" * (2 * len(SETS))]
 q3 = lambda v: f"{f2(np.median(v))} ({f2(np.percentile(v, 10))} to {f2(np.percentile(v, 90))})"
 for pt in NEW:

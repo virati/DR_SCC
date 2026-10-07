@@ -103,3 +103,19 @@ Seen so far: recording counts, lengths, sensing contacts and stimulation-line pr
     - Secondary frozen models M1-off, M2-off, M3-off (trained on training stimulation-off recordings only) and M1-on, M2-on, M3-on, each applied to the new recordings in that state. P1 is reported for these too. The models trained on all recordings stay primary.
     - A caution for reading 912 and 913: a model that has mostly learned "stimulation off means unwell" will call them unwell whatever the signal says. The state-matched models are the check on that.
 <!-- ai-end -->
+
+## Amendment N-A2 (2026-10-07, after the first results; post hoc)
+
+<!-- ai-start -->
+**What the first run showed.** Choosing the penalty by leaving a training patient out drove every coefficient of M1 and M3 to zero. Those two frozen models are therefore the constant "predict the training mean" (0.49), and their predictions for the new patients carry no information. That is the pre-registered procedure's answer, and it stands. Two consequences:
+
+1. In P4, correlations involving a constant model are undefined. The values printed for M1 and M3 are rounding noise and are withdrawn; `RESULTS.md` is regenerated with them marked as constant.
+2. A constant doesn't tell the user what the **2022-style** decoder would say about these patients. That decoder chose its penalty with training and test recordings drawn from the same patients. Added, labelled post hoc:
+    - **M1p, paper-style.** Same ten band-power features. Elastic net (L1 ratio 0.5), penalty chosen by 5-fold cross-validation over recordings pooled across the six patients, shuffled. Fitted on all training recordings, frozen, applied to the new patients' main-contact recordings.
+    - Its accuracy **within** the cohort: 60/40 recording-level split, average of 20 random splits (R² and r), for comparison with the published 0.137.
+    - Its accuracy in an **unseen** patient: each original patient left out, penalty chosen the same pooled way within the remaining five; week-level and recording-level R², r and mean absolute error beside the constant.
+    - Its predictions, sealed in `outputs/predictions_home_paperstyle.csv`, and for 910 its weekly course against stimulation state, week number and the in-clinic marker.
+    - Because predictions may follow stimulation state, the 910 weekly correlations are also computed within the stimulation-on weeks only.
+
+Expectation, stated before running: M1p will give varying predictions, will reach an R² near the published value within the cohort, and will have R² at or below the constant in an unseen patient.
+<!-- ai-end -->
