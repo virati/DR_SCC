@@ -1,0 +1,11 @@
+weeks_set,against,weeks,rho,p
+all weeks,share of recordings with stimulation on,31,-0.7535168319888842,0.03225806451612903
+all weeks,"M4, in-clinic marker",29,0.4748768472906402,0.10344827586206896
+all weeks,week number,31,-0.2524193548387097,0.41935483870967744
+all weeks,share of recordings with stimulation on (M2),31,-0.6916629285630141,0.03225806451612903
+all weeks,"M4, in-clinic marker (M2)",29,0.43054187192118215,0.2413793103448276
+all weeks,week number (M2),31,0.16008064516129034,0.8709677419354839
+stimulation-on weeks only (on in > 90% of recordings),"M4, in-clinic marker",22,-0.06832298136645965,0.8636363636363636
+stimulation-on weeks only (on in > 90% of recordings),week number,24,0.05130434782608695,0.75
+stimulation-on weeks only (on in > 90% of recordings),"M4, in-clinic marker (M2)",22,-0.1609260304912479,0.36363636363636365
+stimulation-on weeks only (on in > 90% of recordings),week number (M2),24,0.8843478260869565,0.041666666666666664

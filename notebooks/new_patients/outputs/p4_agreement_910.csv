@@ -1,11 +1,11 @@
 a,b,weeks,rho,p
-"M1, DR-SCC-like","M2, full set",31,0.3376516262209545,0.0967741935483871
-"M1, DR-SCC-like","M3, catch22",31,0.9999999999999999,0.03225806451612903
-"M2, full set","M3, catch22",31,0.3376516262209545,0.0967741935483871
-"M1, DR-SCC-like","M4, in-clinic marker",29,0.24397501823713327,0.20689655172413793
+"M1, DR-SCC-like","M2, full set",31,,
+"M1, DR-SCC-like","M3, catch22",31,,
+"M2, full set","M3, catch22",31,,
+"M1, DR-SCC-like","M4, in-clinic marker",29,,
 "M2, full set","M4, in-clinic marker",29,0.43054187192118215,0.13793103448275862
-"M3, catch22","M4, in-clinic marker",29,0.24397501823713327,0.20689655172413793
-"M1, DR-SCC-like",week number,31,-0.029361010975735173,0.9032258064516129
+"M3, catch22","M4, in-clinic marker",29,,
+"M1, DR-SCC-like",week number,31,,
 "M2, full set",week number,31,0.16008064516129034,0.8709677419354839
-"M3, catch22",week number,31,-0.029361010975735173,0.9032258064516129
+"M3, catch22",week number,31,,
 "M4, in-clinic marker",week number,29,-0.28472906403940884,0.6206896551724138

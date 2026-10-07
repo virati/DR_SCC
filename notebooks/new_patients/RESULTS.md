@@ -136,6 +136,8 @@ Within stimulation state. "Outside" = share of feature values outside the refere
 
 ## P3: the predictions
 
+**M1, DR-SCC-like and M3, catch22 are constants.** Choosing the penalty by leaving a training patient out set every coefficient to zero, so these models predict the training mean for every recording. Their predictions carry no information, and correlations involving them are undefined (shown as —). See amendment N-A2 and `RESULTS_paperstyle.md`.
+
 Predicted nHDRS (1.0 = the patient's own pre-implant level). Median, with the 10th–90th percentile in brackets.
 
 | Patient | state | recordings | M1, DR-SCC-like | M2, full set | M3, catch22 | M1 state-matched | M2 state-matched | M3 state-matched |
@@ -198,15 +200,15 @@ Spearman correlation across weeks; p from circular week shifts (one-sided for ag
 
 | | against | weeks | ρ | p |
 |---|---|---|---|---|
-| M1, DR-SCC-like | M2, full set | 31 | 0.34 | 0.097 |
-| M1, DR-SCC-like | M3, catch22 | 31 | 1.00 | 0.032 |
-| M2, full set | M3, catch22 | 31 | 0.34 | 0.097 |
-| M1, DR-SCC-like | M4, in-clinic marker | 29 | 0.24 | 0.207 |
+| M1, DR-SCC-like | M2, full set | 31 | — | — |
+| M1, DR-SCC-like | M3, catch22 | 31 | — | — |
+| M2, full set | M3, catch22 | 31 | — | — |
+| M1, DR-SCC-like | M4, in-clinic marker | 29 | — | — |
 | M2, full set | M4, in-clinic marker | 29 | 0.43 | 0.138 |
-| M3, catch22 | M4, in-clinic marker | 29 | 0.24 | 0.207 |
-| M1, DR-SCC-like | week number | 31 | -0.03 | 0.903 |
+| M3, catch22 | M4, in-clinic marker | 29 | — | — |
+| M1, DR-SCC-like | week number | 31 | — | — |
 | M2, full set | week number | 31 | 0.16 | 0.871 |
-| M3, catch22 | week number | 31 | -0.03 | 0.903 |
+| M3, catch22 | week number | 31 | — | — |
 | M4, in-clinic marker | week number | 29 | -0.28 | 0.621 |
 
 <!-- ai-end -->
