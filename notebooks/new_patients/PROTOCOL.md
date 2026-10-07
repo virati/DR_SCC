@@ -90,3 +90,16 @@ The same is done for the session features of 910 and 913 against 906–908.
 - 912 covers one night and 913 ten days.
 - Lead position and sensing contacts differ between patients and are not modelled.
 <!-- ai-end -->
+
+## Amendment N-A1 (2026-10-07, after feature extraction, before any model is fitted)
+
+<!-- ai-start -->
+Seen so far: recording counts, lengths, sensing contacts and stimulation-line presence. No model has been fitted and no prediction made.
+
+1. **Recording length.** About half of the at-home recordings of 901 and 903 are roughly 4,200 samples long, just under the 4,220 the protocol required, and were dropped. That would bias the training set. Change: use the last min(length, 4,220) samples of each recording and require at least 4,096.
+2. **Sensing contacts.** 910's at-home recordings are mostly E1–E3 and E8–E10 (1,836), with small sets on seven other contact pairs (about 28 each), which look like a contact survey. 913 is mostly E0–E2 and E8–E10 (108 of 123); 912 is all E1–E3 and E9–E11. Change: predictions use each new patient's main contact pair only. The others are counted and left out.
+3. **Stimulation state.** The stimulation line is present in 59% of 910's recordings but only 6% of 912's and 2% of 913's, so 912 and 913 were recorded almost entirely with stimulation off. In training, stimulation-off recordings come mostly from the four weeks before stimulation started, when patients were unwell. Changes:
+    - P2 (resemblance) is computed within stimulation state: new stimulation-off recordings against training stimulation-off recordings, and likewise for on.
+    - Secondary frozen models M1-off, M2-off, M3-off (trained on training stimulation-off recordings only) and M1-on, M2-on, M3-on, each applied to the new recordings in that state. P1 is reported for these too. The models trained on all recordings stay primary.
+    - A caution for reading 912 and 913: a model that has mostly learned "stimulation off means unwell" will call them unwell whatever the signal says. The state-matched models are the check on that.
+<!-- ai-end -->

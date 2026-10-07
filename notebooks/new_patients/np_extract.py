@@ -70,10 +70,10 @@ def home(pt, week, circ, path):
     base = {"pt": pt, "week": week, "circ": circ, "file": os.path.basename(path), "time": "%s-%s-%s %s:%s:%s" % g}
     try:
         X = pd.read_csv(path, sep=",", header=None).values
-        if len(X) < N:
+        if len(X) < 4096:                                     # amendment N-A1
             return {**base, "err": "short"}
         x, y = X[-N:, 0].astype(float), X[-N:, 2].astype(float)
-        row = dict(base, montage=montage(path) if pt in NEW else "")
+        row = dict(base, n=len(x), montage=montage(path) if pt in NEW else "")
         P = {}
         for side, v in (("L", x), ("R", y)):
             f, p = sig.welch(v[:-1], **WELCH)
@@ -126,6 +126,8 @@ if __name__ == "__main__":
     J = int(os.environ.get("JOBS", 14))
     H = pd.DataFrame(Parallel(n_jobs=J, batch_size=32)(delayed(home)(*j) for j in jobs))
     H.to_csv(OUT / "home.csv.gz", index=False)
+    if os.environ.get("HOME_ONLY"):
+        sys.exit(print("home", H.shape, H.groupby("pt").size().to_dict(), H.get("err", pd.Series(dtype=object)).value_counts().to_dict(), file=sys.stderr))
     res = Parallel(n_jobs=min(J, 8))(delayed(session)(*d) for d in dense)
     pd.DataFrame([r for rr, _ in res for r in rr]).to_csv(OUT / "sessions_new.csv.gz", index=False)
     pd.DataFrame([i for _, i in res]).to_csv(OUT / "session_files.csv", index=False)
